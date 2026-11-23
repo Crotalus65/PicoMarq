@@ -1,0 +1,1482 @@
+diff --git a/README.md b/README.md
+index b8d51ac..a3ed5d6 100644
+--- a/README.md
++++ b/README.md
+@@ -9,6 +9,7 @@ This version removes folder navigation, folder settings, AI integrations, Git in
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. This is an unsigned personal test build, independent of upstream Scratch.
+ 
+ - PicoMarQ uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- Version 1.3.0 shows the selected words in the status bar: with text selected, the word count reads "56 of 1,234 words" (words in the selection, then the document's total); with nothing selected it reads "1,234 words" as before. It follows the selection as it changes, with the mouse or the keyboard, in both views, for selected table cells, and for the match that Find selects in Markdown source. Selecting everything gives the document's count. A partly selected word counts as a word; a selected image, horizontal rule, or empty line shows no selected count, because no text is selected; selected text without words (a space, a period) shows 0. Settings > Typography now labels the size box **Point Size (12-24)**; the box itself works as in 1.2.7.
+ - Version 1.2.7 fixes three things. Spell checking now covers opened files and pasted text, not only what you type, and always uses US English. Settings > Size (and Custom Width) accept typed numbers: a size from 12 to 24 takes effect as you type it, and anything outside the range moves to the nearest limit when you press Enter or leave the box; the arrow keys still step it. Settings > Saved Themes adds Restore Default Theme…, which, after asking, returns colors (Light and Dark), typography, and User Interface settings to their defaults, keeping Light or Dark, Startup, and Smart Typography as they are.
+ - Version 1.2.6 adds Save Theme… and Load Theme… under Settings > Saved Themes. Themes are portable JSON files in a Themes folder beside PicoMarQ.exe (or any location you select in the Windows dialog). They contain light/dark appearance and both color palettes, typography, page width, text zoom, and formatting icon size; no Markdown, startup choice, or smart-typing behavior is stored. Missing installed fonts fall back to Sans. Heading 4 is now bold, without changing its size. This release is based directly on 1.2.4 and retains its original hex color picker, deliberately omitting the 1.2.5 picker changes.
+ - Version 1.2.4 displays blockquotes in regular text with their existing gray left rule and no automatic quotation marks; explicitly italicized words inside quotations remain italic. Settings > Theme > Customize colors now has separate Text and UI groups, with six additional per-theme colors for Headings 1–4, Bold, and Italic. Normal paragraph text and those six categories default to black in light mode and white in dark mode. Colors are display-only preferences, not Markdown document formatting.
+@@ -27,7 +28,7 @@ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64.
+ - Settings > Icon Size, below Text Zoom, offers 100% (default), 150%, and 200% for formatting toolbar icons only (the Find magnifier among them). Menus, their dropdowns, and document text keep their sizes.
+ - Markdown source wraps to the available window/page width, including long links and code lines. Wrapping changes only their display; saved Markdown line breaks stay intact. Find and source/view positioning account for wrapped lines.
+ - The PicoMarQ icon in the window and Windows executable: a white sheet with a folded corner and a bold red outline, carrying the Markdown "M" whose right stem runs down into an arrowhead. It fills the icon square like other app icons, with transparent corners.
+-- A live word count beside zoom in the status bar. It counts document text in both editing views, excluding Markdown formatting markers and hidden link URLs. The settings sample preview has been removed.
++- A live word count beside zoom in the status bar. It counts document text in both editing views, excluding Markdown formatting markers and hidden link URLs. While text is selected it reads "x of n words", where x is the number of words in the selection. The settings sample preview has been removed.
+ - Markdown files are saved manually. Recovery snapshots merge independently for each window, retaining drafts, selection, scroll, source mode, size, position, and maximized state. Preferences remain in the existing AppData profile and changes apply to every open window.
+ - File > Close Window (Ctrl+W) removes the current document from the session after Save/Discard/Cancel. It closes that window when others remain, or replaces the final document with a blank at the same position when no other window remains. A failed replacement load keeps the original document and recovery data. The title-bar close button and Alt+F4 close the native window; on the last window they exit and retain its saved document for restoration when Restore is selected. Discard during Exit keeps the saved version of a named document and removes an untitled draft.
+ - File > Exit (Ctrl+Shift+Q) checks all windows and retains the remaining saved documents for the next launch when Restore is selected. Discard choices take effect only after every prompt succeeds; a later Cancel preserves all drafts and windows. Canceling Save As also cancels closing. Unsaved drafts remain available for recovery after an unexpected termination.
+@@ -47,7 +48,7 @@ Markdown source is available through View or Ctrl+Shift+M. The toolbar omits inl
+ 
+ Added/pasted images are embedded as data URLs. Existing relative image links resolve against the document's location. Source and code blocks stay monospace. Switching open documents preserves their undo histories. Recovery after a restart does not restore undo history; opening a recovered document starts a new undo history.
+ 
+-The 1.2.4 Windows portable distribution was assembled from the supplied 1.2.3 Electron 44.6.0 x64 runtime and the updated 1.2.4 application files. The `.exe` version resources were updated to 1.2.4 without altering executable code; all other runtime binaries remain unchanged. The 1.2.3 runtime was originally packaged from Electron's official release with checksum verification. A clean build from the TypeScript source was not possible in the offline environment, so the distributed renderer uses the bundled, patched JavaScript/CSS, which passed browser regression testing. Electron execution and Windows-native behavior have not been rerun; a Windows smoke test is required before general distribution.
++The Windows portable distributions since 1.2.4 are assembled from the previous release's package: the Electron 44.6.0 x64 runtime is kept byte for byte, the application files in `resources/app` are replaced, and only the version information in the `.exe` is updated (`scripts/repack-windows-from-*.py`; 1.3.0 comes from 1.2.7). The 1.2.3 runtime was originally packaged from Electron's official release with checksum verification. Since 1.2.7 the renderer in `dist/` is compiled from this TypeScript source. The app is tested on Linux with the same Electron version; it has not been run on Windows in the build environment. `VALIDATION.md` has the details for this release.
+ 
+ ## Performance
+ 
+@@ -60,6 +61,12 @@ Version 0.1.7 makes large documents usable without changing any feature or the M
+ - The formatted editor stays mounted (hidden) while the source view is open instead of being torn down and rebuilt, and the source textarea gets an explicitly resolved text direction instead of `dir="auto"`, which Chromium re-resolves at great cost for multi-megabyte values.
+ - StarterKit's duplicate Link extension is disabled (the configured Link is the only one), the toolbar re-renders only when an active state changes, recovery snapshots are compared structurally instead of through multi-megabyte `JSON.stringify` calls, the main process no longer deep-copies document text for every menu rebuild, and documents restored in the background are parsed when first shown.
+ 
++Version 1.3.0's selected-word count is built so that selecting stays as fast as it was:
++
++- `countSelectedWords` (`src/lib/word-count.ts`) gives the same number as counting the selected text from scratch, but blocks whose text lies wholly inside the selection reuse the document count's cached per-block numbers; only a block cut by an end of the selection is counted afresh. With everything selected in a 2 MB document (about 250,000 words) a count takes about 0.2 ms.
++- The count is made at most once per frame and written straight into the status bar element (`WordCount` in `src/App.tsx`), not through React state. On every React update React re-reads the caret by walking the focused editor's content, which is slow in a long document, and a dragged selection changes many times a second.
++- In Markdown source view the selected text is parsed like the whole source, so markers and link addresses are not counted and selecting everything gives the document's count. A selection up to 20,000 characters (or one already counted, such as everything) is counted on the next frame; a longer one 0.3 s after the selection stops changing. A selection that cuts through Markdown syntax is counted as the text it would be on its own: selecting only a link's address, or only the description inside an image, counts those words although the document count leaves them out.
++
+ `npm run test:equivalence` verifies that parsing, serialization, word counts, and highlighting match TipTap's stock implementations across a corpus of documents and thousands of random edits, and that every document in the corpus reads back as the same document after PicoMarQ writes it (it runs inside Electron and needs a graphical session or Xvfb like the desktop smoke test).
+ 
+ ## Markdown escapes
+@@ -77,7 +84,7 @@ npm run build
+ npm start
+ ```
+ 
+-`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.2.4.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory. To reproduce the offline 1.2.4 distribution from the supplied 1.2.3 ZIP, run `python scripts/repack-windows-from-1.2.3.py /path/to/PicoMarQ-Windows-x64-1.2.3.zip`. This offline repackaging is not a substitute for compiling the TypeScript source.
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.3.0.zip` (named after the version in `package.json`), containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory. The released packages are made another way, which keeps the runtime of the previous release unchanged: after `npm ci && npm run build`, run `python scripts/repack-windows-from-1.2.7.py /path/to/PicoMarQ-Windows-x64-1.2.7.zip` to make `release/PicoMarQ-Windows-x64-1.3.0.zip` (the earlier `repack-windows-from-*.py` scripts made 1.2.4, 1.2.6 and 1.2.7 the same way).
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+@@ -85,7 +92,7 @@ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it w
+ 
+ `npm run test:close-window` exercises the real File menu, native Ctrl+W, renderer close command, repeated blank closes, exact replacement bounds, fresh Undo, Save/Discard/Cancel, Save As cancellation and saving, replacement-load failure, rapid closes, and restarting without resurrecting an explicitly closed file. `npm run test:close-restore` closes native windows and relaunches the actual application for both two-document close orders, an immediate file launch/close, rapid closes, closing during startup, final-window Save/Discard/Cancel and Save As, and the intentional blank startup in New mode. Its first case reproduces the erased-session bug on 1.2.1.
+ 
+-`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, and Markdown escaping. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:startup` covers the new selector, persistence and live synchronization, legacy defaults, next-launch behavior, saved-file and preference preservation, requested-file launches, and both recovery choices after an actual forced termination. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
++`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, Markdown escaping, and the selected-word count (against a slow reference count, for every possible selection of a mixed document and for random documents). `npm run test:word-count` checks the status bar's "x of n words" in the real app: mouse and keyboard selections in both views, table cells, typing over a selection, Find in source view, and long selections. `npm run test:settings` covers the Point Size and Custom Width boxes and Restore Default Theme; `npm run test:spelling` covers spell checking of opened, pasted and source-edited text. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:startup` covers the new selector, persistence and live synchronization, legacy defaults, next-launch behavior, saved-file and preference preservation, requested-file launches, and both recovery choices after an actual forced termination. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
+ 
+ New installations keep recovery data under Electron's per-user app-data directory for PicoMarQ, separately from the original Scratch app. PicoMarQ detects and reuses a valid profile from Quill (0.1.6–0.1.11) or the earlier custom editor, preserving open documents, drafts, recent files, font, zoom, and other preferences. Previously saved preset page widths become Full; an existing Custom width is preserved. No account, AI model, cloud sync, updater, or analytics is configured. Remote images can be loaded if they appear in a document.
+ 
+diff --git a/START-HERE.txt b/START-HERE.txt
+index 98111ed..d514573 100644
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.2.7
++PICOMARQ — WINDOWS BUILD 1.3.0
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+@@ -11,16 +11,28 @@ folder. Keep the executable in the same place if Windows already uses
+ it to open .md files. Preferences and recovery stay in the existing
+ AppData profile on each machine.
+ 
+-WHAT'S NEW IN 1.2.7
++WHAT'S NEW IN 1.3
++Word count of a selection: when text is selected, the word count at the
++bottom right reads "56 of 1,234 words": the words in the selection, then
++the whole document. With nothing selected it reads "1,234 words" as
++before. It follows the selection as you drag or extend it, in both
++views, and counts selected table cells. A partly selected word counts
++as a word. Selecting everything (Ctrl+A) gives the document's count.
++
++Settings > Typography: the size box is now labeled Point Size (12-24).
++It works as before.
++
++NEW IN 1.2.7
+ Spelling: opened files and pasted text are now spell-checked, not only
+ what you type, and spelling is always US English. After a paste the
+ whole document is rechecked, so other red underlines disappear for
+ about a second (a few seconds in very long documents) and come back.
+ 
+-Settings > Typography > Size: you can type a size. A size from 12 to 24
+-takes effect as you type it; a number outside that range moves to 12 or
+-24 when you press Enter or leave the box. The Up and Down arrow keys
+-still work. Custom Width (under Page Width) works the same way.
++Settings > Typography > Point Size (12-24): you can type a size. A size
++from 12 to 24 takes effect as you type it; a number outside that range
++moves to 12 or 24 when you press Enter or leave the box. The Up and Down
++arrow keys still work. Custom Width (under Page Width) works the same
++way.
+ 
+ Settings > Saved Themes > Restore Default Theme... asks first, then
+ returns colors (Light and Dark), typography, and User Interface settings
+@@ -122,9 +134,7 @@ Ctrl+0          Actual text size
+ See KEYBOARD-SHORTCUTS.md for the full list.
+ 
+ This is an unsigned personal build adapted from Scratch by Eric Li.
+-The 1.2.4 portable package reuses the 1.2.3 Electron runtime and includes
+-updated 1.2.4 application resources. Its executable's version information
+-is 1.2.4; its runtime executable code is unchanged from 1.2.3. Renderer
+-regression tests passed in Chromium, but Windows-native execution, file
+-associations, font enumeration, and dialogs need a Windows bench check.
++This package keeps the runtime files of the previous release; only the
++application files and the version shown in the executable's properties
++are new. RELEASE-VALIDATION.txt says how it was assembled and tested.
+ Source, build instructions, and tests are in the source ZIP.
+diff --git a/VALIDATION.md b/VALIDATION.md
+index 1beb9e9..cc3e540 100644
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,25 +1,43 @@
+-# PicoMarQ 1.2.7 — validation and release status
++# PicoMarQ 1.3.0 — validation and release status
+ 
+-**Changes since 1.2.6** (`changes-since-1.2.6.patch`):
++**Changes since 1.2.7** (`changes-since-1.2.7.patch`):
+ 
+-- **Spelling of opened and pasted text, in US English.** Recent Chromium versions (from 143 or 144; Electron 44.6.0 has Chromium 152) spell-check only text they see typed into a text box the user clicked into: a privacy rule against websites probing the user's dictionary. PicoMarQ focuses its editor itself when a document opens and inserts pastes itself, so opened files and pasted text were never checked. `desktop/main.cjs` turns the rule off with the Chromium switch `UnrestrictSpellingAndGrammarForTesting` (PicoMarQ shows no websites) and sets the spelling language to `en-US`. After a change it did not see typed, Chromium rechecks only about 128 characters around the cursor, so after a paste or drop, and when returning from Markdown source view, `src/lib/spelling.ts` switches the editor's `spellcheck` attribute off and on, which makes Chromium recheck the whole document. Other underlines disappear until that recheck is done: about a second, 2.6 s in a 2 MB document.
+-- **Settings > Size and Custom Width accept typed numbers** (`NumberBox` in `src/components/settings/EditorSettingsSection.tsx`). The old boxes forced every keystroke into range: the "1" of "18" became 12, then "128" became 24. A number in range now takes effect as it is typed; an out-of-range number moves to the nearest limit on Enter or on leaving the box; a box left empty shows the current value again. The arrow keys still step the value. Line Height already worked and is unchanged.
+-- **Settings > Saved Themes > Restore Default Theme…** (`public/theme-presets-ui.js`, `restore_default_theme` in `desktop/main.cjs`, `defaultAppearance` in `desktop/theme-presets.cjs`). It asks first (Cancel is the default button). It then resets colors for Light and Dark, typography, and User Interface settings to the defaults a new profile starts with, the same values as the existing Reset buttons, and updates every open window the way Load Theme does. Light or Dark, Startup, Smart Typography, documents and theme files are not changed.
++- **Status bar: "x of n words" while text is selected.** With a selection the word count reads, for example, "56 of 1,234 words"; without one it reads "1,234 words" as before.
++  - *Formatted view.* `countSelectedWords` (`src/lib/word-count.ts`) gives the same number as counting the selected text from scratch with the document count's rules, so selecting everything gives the document's count. A partly selected word counts as a word. It returns no count when no text is selected (a caret; only an image, a horizontal rule, or empty lines; a new empty document, which starts with its empty content selected), and 0 for selected text without words (a space, a period). Selected table cells are added up.
++  - *Markdown source view.* The selected Markdown is parsed like the whole source, so markers and link addresses are not counted. A selection up to 20,000 characters, or one already counted (such as everything), is counted on the next frame; a longer one 0.3 s after the selection stops changing.
++  - *Display.* The selected count is computed at most once per frame and written straight into the status bar element (`WordCount` in `src/App.tsx`), not through React state: every React update makes React re-read the caret by walking the focused editor's content, which is slow in a long document.
++- **Settings > Typography: the size box is labeled "Point Size (12-24)"** (was "Size"). The box is unchanged.
++- Version 1.3.0 in `package.json`, the documents, and the executable's properties. The main-process files (`desktop/`) and the stylesheet are identical to 1.2.7.
+ 
+-**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. Before any change, the 1.2.6 source compiled to a JavaScript bundle byte-identical to the shipped 1.2.6 `index-N7AKkEmi.js`. 1.2.4–1.2.6 used a hand-patched stylesheet; 1.2.7 uses the stylesheet compiled from `src/App.css`. Every computed style of the torture-test document and of the whole Settings page, in Light and Dark (2,294 elements), is identical under the two stylesheets. Rebuilding this source package reproduces `dist/` byte for byte.
++**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. The compiled stylesheet is byte-identical to 1.2.7's (`index-B5ITzcGl.css`); only the JavaScript bundle and `index.html` change. Rebuilding this source package reproduces `dist/` byte for byte.
+ 
+-**Tests** (Linux, Electron 44.6.0 official linux-x64 build with its published SHA-256, Xvfb):
++**Tests** (Linux, Electron 44.6.0 official linux-x64 build, Xvfb):
+ 
+-- `npm test`: 39 passed (29 + 10), including new Restore Default Theme tests.
+-- `tests/theme-browser-smoke.py` (updated for the third button) and `tests/colors-browser-smoke.py`: passed in Chrome for Testing 153.
+-- `tests/desktop-smoke.cjs` (18 checks), `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`: passed. The typography test still expected the pre-1.2.6 italic Heading 4 and failed the same way on 1.2.6; it now expects the bold Heading 4.
+-- New `tests/settings-smoke.cjs`: typing in Size and Custom Width; Restore Default Theme with Cancel, then Restore.
+-- New `tests/spelling-smoke.cjs`: 24 misspellings (including the British "colour" and "organise") in an opened file, one- and three-paragraph pastes, typing, a source-view edit, and a ten-paragraph paste. All are underlined within about 1.2 s, with no underline under any correctly spelled word. The same test fails on 1.2.6 (none of the opened file's misspellings underlined, even with US English set). The dictionary is Ubuntu's US English Hunspell (`hunspell-en-us`, SCOWL 2020.12.07), converted by `scripts/hunspell-to-bdic.py`, a port of Chromium's converter. Loaded into Electron, it accepts all 78,990 of its words and marks British spellings and common typos.
+-- Large documents (2 MB, 4,400 paragraphs): typing latency to the next frame is a median of 34 ms (33 ms in 1.2.6). The whole document is checked within 7 s of opening. After a short paste, the paragraph is underlined in 0.2 s and the whole document is rechecked in 2.6 s, against 1.2 s for 100 KB.
+-- The packaged `resources/app` from the Windows ZIP passed the same spelling, settings, and Restore checks.
++- `npm test`: 45 passed (29 + 16). The six new tests in `tests/word-count.test.mts` compare `countSelectedWords` with a slow reference count for every possible selection of a mixed document (46,056 ranges: headings, lists, a quote, a code block, a table, an image, a rule, empty lines), for 24,000 random ranges of random documents before and after edits, for several ranges at once (table cells), and check the status bar wording, including "1 of 1 word".
++- `npm run test:equivalence`: the real editor's documents now also compare the selected-word count with the slow count for 14 ranges in each of 3,400 edited states of 64 documents. Passed.
++- New `tests/word-count-smoke.cjs` (`npm run test:word-count`), in the real app: a double-clicked word, Ctrl+Shift+Arrow, a triple-clicked paragraph (bold and linked words counted, the link address not), Ctrl+A, a drag counted while the mouse button is still down, part of a word, a lone period (0), Shift+arrows across blocks, a selected rule (no count), dragged table cells, typing over a selection, Bold on a selection; in source view Ctrl+A, Shift+End, a double-click, a drag, selections set by script, a table row, the match that Find selects; a 4,200-word document with selections above the 20,000-character limit in both views. The same test fails on 1.2.7 at its first selection.
++- A restart that restores a saved selection shows its count again, in both views (checked by hand with a script; not part of the test suite).
++- `tests/settings-smoke.cjs` now also checks the label "Point Size (12-24)". `tests/spelling-smoke.cjs`, `tests/desktop-smoke.cjs` (18 checks, including the existing word-count checks), `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`, `tests/theme-browser-smoke.py` and `tests/colors-browser-smoke.py`: passed, unchanged.
++- The packaged `resources/app` from the Windows ZIP passed the word-count, settings and spelling checks.
+ 
+-**Windows portable distribution.** Assembled by `scripts/repack-windows-from-1.2.6.py` from the 1.2.6 portable release. Its Electron 44.6.0 runtime is unchanged; `resources/app` (desktop, dist, package.json) and the text files are replaced. Only four version-resource fields of `PicoMarQ.exe` change, from 1.2.6 to 1.2.7, as checked independently with `pefile`: every section except `.rsrc` is identical, 4 bytes of `.rsrc` differ, and the entry point is the same.
+-Baseline executable SHA-256: `23f746841b54f40d90f7e0ed019232d664d4c321080e627af89774060d159713`
+-1.2.7 executable SHA-256: `914236887c47e0583bdb6acd394c4159dfacab023baf5229a1ee11b5f8056ccb`
++**Speed in a long document** (2 MB, about 248,000 words, 4,400 paragraphs; 1.2.7 → 1.3.0, key press to painted frame, medians):
+ 
+-**Limitations.** Not run on Windows. On Windows, Electron may use the Windows spell checker instead of Hunspell, but the rule and the recheck are in Chromium's page engine, so the behavior should be the same; confirm with a file that has a typo. The switch's name ends in "ForTesting". It exists in Electron 44.6.0 (Chromium 152), and if a later Electron drops it, `tests/spelling-smoke.cjs` fails. The drag-and-drop recheck uses the same code as paste but is not exercised by a test.
++- Typing: 31–35 ms in both.
++- Extending a selection line by line (Shift+Up) or by a character (Shift+Left): 12–14 ms in both.
++- With nearly the whole document selected, Shift+Left or Shift+PageUp: the selection is drawn after 53–66 ms in both; almost all of that is Chromium moving so large a selection. In 1.3.0 the status bar's new count is drawn in the frame after that, which is about 10 ms more work per key press.
++- Ctrl+A: about 70 ms → about 83 ms.
++- Dragging a selection with the mouse: no long tasks in either version.
++- The count itself takes about 0.2 ms with everything selected. The extra 10 ms or so is what Chromium needs to redraw after any change of the status bar's text in a document this large (measured separately; the same happens in 1.2.7 whenever typing changes the word count). In a document of ordinary length it is not measurable.
++- Source view: counting a 100,000-character selection takes about 3 ms for plain prose and about 30 ms for Markdown dense with tables, lists and code, which is why long selections wait until the selection rests.
++
++**Windows portable distribution.** Assembled by `scripts/repack-windows-from-1.2.7.py` from the 1.2.7 portable release. Its Electron 44.6.0 runtime is unchanged. In `resources/app` only `package.json`, `dist/index.html` and the JavaScript bundle differ from 1.2.7; `START-HERE.txt` and `RELEASE-VALIDATION.txt` are this release's. In `PicoMarQ.exe` only the version information changes from 1.2.7 to 1.3.0 (two strings and the four numbers of the fixed version record), as checked independently with `pefile`: 8 bytes of `.rsrc` differ, every other section is identical, and the entry point is the same.
++Baseline (1.2.7) executable SHA-256: `914236887c47e0583bdb6acd394c4159dfacab023baf5229a1ee11b5f8056ccb`
++1.3.0 executable SHA-256: `33497603f3fa99975cfca18df33b3f6856042f2a2107200d3bcdaabdc374dcec`
++
++**Limitations.**
++
++- Not run on Windows. Nothing in this release depends on the operating system, but a check on Windows 10/11 is still worth doing.
++- The size in Settings is the font size in CSS pixels, as before; only its label changed. At 100% text zoom, 15 looks about like 11-point type in a word processor.
++- In source view a selection that cuts through Markdown syntax is counted as the text it would be on its own. Selecting only a link's address, or only the description inside an image, counts those words, although the document count leaves them out. The same can happen with single lines taken out of a table, a code block or another construct of several lines. In the sample `docs/test-documents/PicoMarQ-Torture-Test.md` (916 words) the blocks selected one at a time add up to exactly 916, the 144 lines selected one at a time to 924, and none of 3,000 random selections counted more words than a plain count of the selected characters.
++- Hyphenated words count as two words, in the selection as in the total (unchanged).
++- Found while writing the test, the same in 1.2.6 and 1.2.7, and not changed: in the first 0.15 s or so after leaving source view, the editor places the caret, and an arrow key pressed in that instant right after Ctrl+A can be ignored. Only a script is that fast; the status bar shows the selection the editor really has.
+diff --git a/package-lock.json b/package-lock.json
+index 28e549e..5d2d3b0 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.2.7",
++  "version": "1.3.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.2.7",
++      "version": "1.3.0",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+diff --git a/package.json b/package.json
+index a85b755..c1e64fb 100644
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.2.7",
++  "version": "1.3.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -18,7 +18,8 @@
+     "test:close-restore": "node tests/close-restore-smoke.cjs",
+     "test:close-window": "node tests/close-command-smoke.cjs",
+     "test:settings": "node tests/settings-smoke.cjs",
+-    "test:spelling": "node tests/spelling-smoke.cjs"
++    "test:spelling": "node tests/spelling-smoke.cjs",
++    "test:word-count": "node tests/word-count-smoke.cjs"
+   },
+   "dependencies": {
+     "@radix-ui/react-alert-dialog": "^1.1.15",
+diff --git a/scripts/repack-windows-from-1.2.7.py b/scripts/repack-windows-from-1.2.7.py
+new file mode 100644
+index 0000000..149092d
+--- /dev/null
++++ b/scripts/repack-windows-from-1.2.7.py
+@@ -0,0 +1,217 @@
++#!/usr/bin/env python3
++"""Repackage PicoMarQ 1.3.0 from the 1.2.7 portable Windows release.
++
++Keeps the 1.2.7 package's Electron 44.6.0 runtime, replaces the application
++files (resources/app: desktop, dist, package.json) with this source, which
++must already be built (npm ci && npm run build), and updates the version
++information of the unsigned executable from 1.2.7 to 1.3.0: the two version
++strings and the four numbers of the fixed version record.
++Usage:
++  python scripts/repack-windows-from-1.2.7.py BASE-1.2.7.zip [OUTPUT-1.3.0.zip]
++"""
++import json
++import hashlib
++import shutil
++import struct
++import sys
++import tempfile
++import zipfile
++from pathlib import Path, PurePosixPath
++
++ROOT = Path(__file__).resolve().parents[1]
++OLD = '1.2.7'
++NEW = '1.3.0'
++
++
++def sha256(path):
++    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++
++def version_numbers(version):
++    """'1.3.0' as the two 32-bit values of VS_FIXEDFILEINFO: (major.minor, patch.0)."""
++    major, minor, patch = (int(part) for part in version.split('.'))
++    return (major << 16) | minor, patch << 16
++
++
++def pe_sections(data):
++    """Return PE section extents and the security directory for sanity checks."""
++    if data[:2] != b'MZ':
++        raise ValueError('Not a Windows PE executable (no MZ).')
++    e_lfanew = struct.unpack_from('<I', data, 0x3C)[0]
++    if data[e_lfanew:e_lfanew + 4] != b'PE\0\0':
++        raise ValueError('Not a PE executable (no PE signature).')
++    coff = e_lfanew + 4
++    count = struct.unpack_from('<H', data, coff + 2)[0]
++    optional = coff + 20
++    opt_size = struct.unpack_from('<H', data, coff + 16)[0]
++    if struct.unpack_from('<H', data, optional)[0] != 0x20b:
++        raise ValueError('Expected 64-bit PE32+ executable.')
++    if struct.unpack_from('<II', data, optional + 112 + 8*4) != (0, 0):
++        raise ValueError('Expected an unsigned executable; refusing to break a signature.')
++    checksum = struct.unpack_from('<I', data, optional + 64)[0]
++    if checksum:
++        raise ValueError('Expected zero PE checksum; refusing to overwrite a checksummed executable.')
++    sections = {}
++    for index in range(count):
++        at = optional + opt_size + index*40
++        name = bytes(data[at:at+8]).split(b'\0')[0].decode('ascii')
++        virtual_size, virtual_addr, raw_size, raw_ptr = struct.unpack_from('<IIII', data, at + 8)
++        if raw_ptr + raw_size > len(data):
++            raise ValueError(f'Invalid section {name} raw size.')
++        sections[name] = (raw_ptr, raw_size)
++    if '.rsrc' not in sections:
++        raise ValueError('Missing PE resource section.')
++    return sections
++
++
++def update_version_resource(exe_path):
++    original = exe_path.read_bytes()
++    sections = pe_sections(original)
++    resource_start, resource_length = sections['.rsrc']
++    new_bytes = bytearray(original)
++    resource = original[resource_start:resource_start+resource_length]
++    old_unicode = OLD.encode('utf-16-le')
++    new_unicode = NEW.encode('utf-16-le')
++    if len(old_unicode) != len(new_unicode):
++        raise ValueError('The version strings must have the same length to be replaced in place.')
++    matches = []
++    where = 0
++    while True:
++        index = resource.find(old_unicode, where)
++        if index == -1:
++            break
++        matches.append(index)
++        where = index + len(old_unicode)
++    # Existing unsigned PicoMarQ.exe contains FileVersion and ProductVersion.
++    if len(matches) != 2:
++        raise ValueError(f'Expected two strings {OLD} in .rsrc; found {len(matches)}')
++    for index in matches:
++        at = resource_start + index
++        new_bytes[at:at+len(old_unicode)] = new_unicode
++    fixed_signature = struct.pack('<I', 0xFEEF04BD)
++    positions = []
++    where = 0
++    while True:
++        index = resource.find(fixed_signature, where)
++        if index == -1:
++            break
++        positions.append(index)
++        where = index + 4
++    if len(positions) != 1:
++        raise ValueError(f'Expected one VS_FIXEDFILEINFO structure, got {len(positions)}')
++    at = resource_start + positions[0]
++    fixed = struct.unpack_from('<13I', original, at)
++    old_parts = version_numbers(OLD)
++    new_parts = version_numbers(NEW)
++    if (fixed[2],fixed[3],fixed[4],fixed[5]) != old_parts*2:
++        raise ValueError(f'Unexpected numeric version metadata: {fixed[2:6]}')
++    # File version and product version, each as (major.minor, patch.0).
++    for rel_offset, value in zip((2,3,4,5), new_parts*2):
++        struct.pack_into('<I', new_bytes, at + rel_offset*4, value)
++    if pe_sections(new_bytes) != sections:
++        raise ValueError('Patch changed PE section layout.')
++    # No original runtime bytes outside the .rsrc section have changed.
++    assert new_bytes[:resource_start] == original[:resource_start]
++    assert new_bytes[resource_start+resource_length:] == original[resource_start+resource_length:]
++    for name,(offset,length) in sections.items():
++        if name != '.rsrc' and new_bytes[offset:offset+length] != original[offset:offset+length]:
++            raise ValueError(f'Non-resource section changed: {name}')
++    old_strings = new_bytes[resource_start:resource_start+resource_length].count(old_unicode)
++    new_strings = new_bytes[resource_start:resource_start+resource_length].count(new_unicode)
++    if old_strings != 0 or new_strings != 2:
++        raise ValueError('Incorrect updated resource version strings.')
++    updated = struct.unpack_from('<13I', new_bytes, at)
++    if (updated[2],updated[3],updated[4],updated[5]) != new_parts*2:
++        raise ValueError('Numeric version verification failed.')
++    exe_path.write_bytes(new_bytes)
++    return {
++        'original_exe_sha256': hashlib.sha256(original).hexdigest(),
++        'updated_exe_sha256': hashlib.sha256(new_bytes).hexdigest(),
++        'version_strings_changed': len(matches),
++        'numeric_version_values_changed': sum(1 for a, b in zip(old_parts*2, new_parts*2) if a != b),
++        'runtime_sections_unchanged': True,
++    }
++
++
++def package(base, output):
++    source_pkg = json.loads((ROOT/'package.json').read_text())
++    if source_pkg['version'] != NEW:
++        raise ValueError('Source package version does not match expected release.')
++    with tempfile.TemporaryDirectory(prefix='picomarq-windows-') as tmp:
++        tmp = Path(tmp)
++        with zipfile.ZipFile(base) as z:
++            names = z.namelist()
++            for member in names:
++                p = PurePosixPath(member)
++                if not p.parts or p.parts[0] != 'PicoMarQ' or '..' in p.parts or p.is_absolute() or '\\' in member:
++                    raise ValueError(f'Unsafe/malformed ZIP entry: {member}')
++            if 'PicoMarQ/PicoMarQ.exe' not in names:
++                raise ValueError('Baseline portable ZIP is missing PicoMarQ.exe')
++            z.extractall(tmp)
++        win = tmp/'PicoMarQ'
++        app = win/'resources/app'
++        prior = json.loads((app/'package.json').read_text())
++        if prior.get('version') != OLD:
++            raise ValueError(f'Baseline app must be {OLD}')
++        # Replace renderer and desktop app with the exact supplied source version.
++        for directory in ('dist','desktop'):
++            shutil.rmtree(app/directory)
++            shutil.copytree(ROOT/directory,app/directory)
++        for filename in ('LICENSE','THIRD-PARTY-NOTICES.txt','app.ico'):
++            shutil.copy2(ROOT/filename,app/filename)
++        (app/'package.json').write_text(json.dumps({
++            'name': source_pkg['name'],
++            'productName': source_pkg['productName'],
++            'version': NEW,
++            'main': source_pkg['main'],
++        },indent=2)+'\n')
++        for name,src in {
++            'START-HERE.txt': 'START-HERE.txt',
++            'KEYBOARD-SHORTCUTS.md':'docs/KEYBOARD-SHORTCUTS.md',
++            'APP-LICENSE.txt':'LICENSE',
++            'THIRD-PARTY-NOTICES.txt':'THIRD-PARTY-NOTICES.txt',
++        }.items():
++            shutil.copy2(ROOT/src,win/name)
++        verification = update_version_resource(win/'PicoMarQ.exe')
++        (win/'RELEASE-VALIDATION.txt').write_text(
++            'PicoMarQ 1.3.0 portable Windows release\n\n'
++            'Assembled from the PicoMarQ 1.2.7 portable release. Its Electron\n'
++            '44.6.0 x64 runtime is unchanged; the application files in\n'
++            'resources\\app are replaced with PicoMarQ 1.3.0, and the version\n'
++            'information of PicoMarQ.exe changes from 1.2.7 to 1.3.0 (two\n'
++            'strings and the four numbers of the fixed version record). No\n'
++            'other bytes of the executable or the runtime files change.\n\n'
++            'The 1.3.0 renderer is compiled from the 1.3.0 source (npm ci,\n'
++            'npm run build). Tested on Linux with the same Electron 44.6.0:\n'
++            'unit tests, Chromium browser checks, and the desktop, typography,\n'
++            'startup, close, settings, spelling and word-count checks (see\n'
++            'VALIDATION.md in the source package). Not run on Windows here;\n'
++            'this unsigned personal build should be checked on Windows 10/11.\n\n'
++            f'Baseline executable SHA-256: {verification["original_exe_sha256"]}\n'
++            f'Updated executable SHA-256:  {verification["updated_exe_sha256"]}\n'
++        )
++        if json.loads((app/'package.json').read_text())['version'] != NEW:
++            raise AssertionError('App metadata version mismatch')
++        output.parent.mkdir(parents=True,exist_ok=True)
++        if output.exists():
++            output.unlink()
++        with zipfile.ZipFile(output,mode='w',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True) as z:
++            for item in sorted(win.rglob('*')):
++                if item.is_file():
++                    z.write(item,arcname=Path('PicoMarQ')/item.relative_to(win))
++        with zipfile.ZipFile(output) as z:
++            corrupt = z.testzip()
++            if corrupt:
++                raise ValueError(f'Archive CRC failure: {corrupt}')
++            assert json.loads(z.read('PicoMarQ/resources/app/package.json'))['version'] == NEW
++            assert z.read('PicoMarQ/PicoMarQ.exe')[:2] == b'MZ'
++        return verification
++
++if __name__ == '__main__':
++    if len(sys.argv) not in (2,3):
++        raise SystemExit(__doc__)
++    base = Path(sys.argv[1]).resolve()
++    target = Path(sys.argv[2]).resolve() if len(sys.argv) == 3 else ROOT/'release'/f'PicoMarQ-Windows-x64-{NEW}.zip'
++    summary = package(base,target)
++    print(f'Created: {target} ({target.stat().st_size:,} bytes)')
++    print(json.dumps(summary,indent=2))
+diff --git a/src/App.tsx b/src/App.tsx
+index 7cd63b5..1486cbf 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,4 +1,4 @@
+-import { useCallback, useEffect, useRef, useState } from 'react';
++import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
+ import { toast } from 'sonner';
+ import { ThemeProvider, useTheme } from './context/ThemeContext';
+ import { Editor, type EditorHandle, type PreviewModeData } from './components/editor/Editor';
+@@ -6,6 +6,7 @@ import { SettingsPage } from './components/settings/SettingsPage';
+ import { Toaster } from './components/ui/Toaster';
+ import { TooltipProvider } from './components/ui/Tooltip';
+ import { invoke, runContextMenuAction, type DocumentState, type DesktopCommand, type WorkspaceState } from './lib/desktop';
++import { wordCountLabel } from './lib/word-count';
+ 
+ function nameOf(doc: DocumentState) { return doc.path?.split(/[\\/]/).pop() || doc.name || 'Untitled'; }
+ function blankDocument(existing: DocumentState[] = []): DocumentState {
+@@ -30,32 +31,65 @@ function sameJson(a: unknown, b: unknown): boolean {
+ }
+ 
+ // Each native document window owns its editor, undo history, and Find state.
+-function DocumentPane({ doc, active, generation, externalChanges, onReady, onContent, onWords, onRevert }: {
++function DocumentPane({ doc, active, generation, externalChanges, onReady, onContent, onWords, onSelectedWords, onRevert }: {
+   doc: DocumentState; active: boolean; externalChanges: boolean;
+   generation: number;
+   onReady: (id: string, handle: EditorHandle, generation: number) => void;
+   onContent: (id: string, content: string, generation: number) => Promise<void>;
+   onWords: (id: string, count: number) => void;
++  onSelectedWords: (id: string, count: number | null) => void;
+   onRevert: (id: string) => Promise<void>;
+ }) {
+   const handleReady = useCallback((handle: EditorHandle) => onReady(doc.id, handle, generation), [doc.id, generation, onReady]);
+   const save = useCallback((content: string) => onContent(doc.id, content, generation), [doc.id, generation, onContent]);
+   const words = useCallback((count: number) => onWords(doc.id, count), [doc.id, onWords]);
++  const selectedWords = useCallback((count: number | null) => onSelectedWords(doc.id, count), [doc.id, onSelectedWords]);
+   const reload = useCallback(() => onRevert(doc.id), [doc.id, onRevert]);
+   // A window restored directly into Settings parses its document when first shown.
+   const [mounted, setMounted] = useState(active);
+   useEffect(() => { if (active) setMounted(true); }, [active]);
+   const preview: PreviewModeData = { content: doc.content, title: nameOf(doc), filePath: doc.id, documentPath: doc.path, modified: doc.modified, hasExternalChanges: externalChanges, reloadVersion: 0, save, reload, dirty: doc.content !== doc.diskContent };
+   return <div data-document-id={doc.id} className="flex-1 min-h-0 flex flex-col" style={{ display: active ? 'flex' : 'none' }} aria-hidden={!active}>
+-    {mounted && <Editor previewMode={preview} active={active} initialSession={doc.view} resumeSession={doc.view} onHandleReady={handleReady} onWordCountChange={words} />}
++    {mounted && <Editor previewMode={preview} active={active} initialSession={doc.view} resumeSession={doc.view} onHandleReady={handleReady} onWordCountChange={words} onSelectedWordCountChange={selectedWords} />}
+   </div>;
+ }
+ 
++// The status bar's word count: "1,234 words", or "56 of 1,234 words" while text
++// is selected. The total arrives as a prop. The selected count is written
++// straight into the element instead of going through React state: a selection
++// changes many times a second while it is dragged, and on every React update
++// React re-reads the caret by walking the focused editor's content, which is
++// slow in a long document. React renders the element empty and never touches
++// its text.
++type WordCountHandle = { setSelected: (count: number | null) => void };
++function WordCount({ words, editor, ref }: { words: number; editor: string; ref: Ref<WordCountHandle> }) {
++  const element = useRef<HTMLSpanElement>(null);
++  const shown = useRef<{ words: number; selected: number | null; editor: string }>({ words, selected: null, editor });
++  const paint = useCallback(() => {
++    const text = wordCountLabel(shown.current.words, shown.current.selected);
++    if (element.current && element.current.textContent !== text) element.current.textContent = text;
++  }, []);
++  useImperativeHandle(ref, () => ({
++    setSelected(count) {
++      if (shown.current.selected === count) return;
++      shown.current.selected = count;
++      paint();
++    },
++  }), [paint]);
++  useLayoutEffect(() => {
++    // Another document, or the same one reloaded: its selection starts empty.
++    shown.current = { words, selected: shown.current.editor === editor ? shown.current.selected : null, editor };
++    paint();
++  });
++  return <span ref={element} data-word-count aria-label="Word count" className="tabular-nums whitespace-nowrap" />;
++}
++
+ function DocumentApp() {
+   const [workspace, setWorkspace] = useState<WorkspaceState | null>(null);
+   const workspaceRef = useRef<WorkspaceState | null>(null);
+   const handlesRef = useRef(new Map<string, EditorHandle>());
+   const [wordCounts, setWordCounts] = useState<Record<string, number>>({});
++  const wordCountRef = useRef<WordCountHandle>(null);
+   const [externalChanges, setExternalChanges] = useState<Record<string, boolean>>({});
+   const persistedRef = useRef<WorkspaceState | null>(null);
+   const closingRef = useRef(false);
+@@ -299,15 +333,18 @@ function DocumentApp() {
+   const updateWords = useCallback((id: string, count: number) => {
+     if (workspaceRef.current?.documents.some(doc => doc.id === id)) setWordCounts(previous => previous[id] === count ? previous : { ...previous, [id]: count });
+   }, []);
++  const updateSelectedWords = useCallback((id: string, count: number | null) => {
++    if (workspaceRef.current?.activeDocumentId === id) wordCountRef.current?.setSelected(count);
++  }, []);
+   if (!workspace || !doc) return <div className="h-full bg-bg" />;
+   const words = wordCounts[doc.id] ?? 0;
+   return <div className="h-full flex flex-col bg-bg" inert={closing} aria-busy={closing}>
+     <div className="flex-1 flex flex-col min-h-0" style={{ display: workspace.settingsOpen ? 'none' : 'flex' }}>
+-      <DocumentPane key={`${doc.id}:${editorGeneration}`} doc={doc} generation={editorGeneration} active={!workspace.settingsOpen} externalChanges={externalChanges[doc.id] ?? false} onReady={handleReady} onContent={updateContent} onWords={updateWords} onRevert={revert} />
++      <DocumentPane key={`${doc.id}:${editorGeneration}`} doc={doc} generation={editorGeneration} active={!workspace.settingsOpen} externalChanges={externalChanges[doc.id] ?? false} onReady={handleReady} onContent={updateContent} onWords={updateWords} onSelectedWords={updateSelectedWords} onRevert={revert} />
+       <footer className="h-6 shrink-0 border-t border-border flex items-center justify-between px-3 text-[11px] text-text-muted select-none gap-4">
+         <span className="truncate" title={doc.path || undefined}>{doc.path || nameOf(doc)}{doc.content !== doc.diskContent ? ' · Unsaved changes' : ''}</span>
+         <div className="shrink-0 flex items-center gap-3">
+-          <span data-word-count aria-label="Word count" className="tabular-nums whitespace-nowrap">{words.toLocaleString()} {words === 1 ? 'word' : 'words'}</span>
++          <WordCount ref={wordCountRef} words={words} editor={`${doc.id}:${editorGeneration}`} />
+           <button onClick={() => showSettings(true)} className="hover:text-text" title="Settings (Ctrl+,)">{Math.round(interfaceZoom * 100)}%</button>
+         </div>
+       </footer>
+diff --git a/src/components/editor/Editor.tsx b/src/components/editor/Editor.tsx
+index 65867f5..25abf48 100644
+--- a/src/components/editor/Editor.tsx
++++ b/src/components/editor/Editor.tsx
+@@ -20,7 +20,7 @@ import Image from "@tiptap/extension-image";
+ import TaskItem from "@tiptap/extension-task-item";
+ import { TableKit } from "@tiptap/extension-table";
+ import { Markdown } from "@tiptap/markdown";
+-import { countWords, countDocumentWords } from "../../lib/word-count";
++import { countWords, countDocumentWords, countSelectedWords } from "../../lib/word-count";
+ import { createTextareaMeasurer, lastIndexWhere, textareaOffsetTops } from "../../lib/textarea-position";
+ import { resolveAutoDirection } from "../../lib/text-direction";
+ import { recheckSpelling } from "../../lib/spelling";
+@@ -395,6 +395,8 @@ interface EditorProps {
+   resumeSession?: ViewState;
+   onHandleReady?: (handle: EditorHandle) => void;
+   onWordCountChange?: (count: number) => void;
++  /** Words in the selected text, or null when no text is selected. */
++  onSelectedWordCountChange?: (count: number | null) => void;
+ }
+ 
+ /**
+@@ -499,7 +501,11 @@ function tableContextMenuItems(editor: TiptapEditor): ContextMenuItem[] {
+   }
+ }
+ 
+-export function Editor({ previewMode, active = true, initialSession, resumeSession, onHandleReady, onWordCountChange }: EditorProps) {
++// Source view: a selection up to this many characters is counted for the
++// status bar on the next frame; a longer one after the selection has rested.
++const SOURCE_SELECTION_LIVE_LIMIT = 20000;
++
++export function Editor({ previewMode, active = true, initialSession, resumeSession, onHandleReady, onWordCountChange, onSelectedWordCountChange }: EditorProps) {
+   const activeRef = useRef(active);
+   activeRef.current = active;
+   const resumeSessionRef = useRef(resumeSession);
+@@ -2063,6 +2069,30 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+       sourceWordCountTimerRef.current = null;
+     }
+   }, []);
++  // Words in Markdown source, counted as the formatted view counts them. The
++  // last result for the whole source and for the selection are kept, so that
++  // selecting everything (or the same text again) does not parse a second time.
++  const sourceWordCacheRef = useRef<{ total?: { source: string; count: number }; selection?: { source: string; count: number } }>({});
++  const cachedMarkdownWords = useCallback((source: string) => {
++    const cache = sourceWordCacheRef.current;
++    if (cache.total?.source === source) return cache.total.count;
++    if (cache.selection?.source === source) return cache.selection.count;
++    return undefined;
++  }, []);
++  const countMarkdownWords = useCallback((source: string, kind: 'total' | 'selection') => {
++    const cached = cachedMarkdownWords(source);
++    if (cached !== undefined) return cached;
++    let count: number;
++    try {
++      const manager = editor?.storage.markdown?.manager;
++      if (!editor || !manager) throw new Error('Markdown parser is unavailable.');
++      count = countDocumentWords(editor.schema.nodeFromJSON(manager.parse(source)));
++    } catch {
++      count = countWords(source);
++    }
++    sourceWordCacheRef.current[kind] = { source, count };
++    return count;
++  }, [editor, cachedMarkdownWords]);
+   const reportWordCount = useCallback(() => {
+     if (!editor || !onWordCountChange) return;
+     cancelSourceWordCount();
+@@ -2074,16 +2104,9 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+     sourceWordCountTimerRef.current = window.setTimeout(() => {
+       sourceWordCountTimerRef.current = null;
+       if (!sourceModeRef.current || sourceContentRef.current !== source) return;
+-      try {
+-        const manager = editor.storage.markdown?.manager;
+-        if (!manager) throw new Error('Markdown parser is unavailable.');
+-        const document = editor.schema.nodeFromJSON(manager.parse(source));
+-        onWordCountChange(countDocumentWords(document));
+-      } catch {
+-        onWordCountChange(countWords(source));
+-      }
++      onWordCountChange(countMarkdownWords(source, 'total'));
+     }, 300);
+-  }, [editor, onWordCountChange, cancelSourceWordCount]);
++  }, [editor, onWordCountChange, cancelSourceWordCount, countMarkdownWords]);
+   useEffect(() => {
+     if (!editor) return;
+     editor.on('update', reportWordCount);
+@@ -2091,6 +2114,85 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+   }, [editor, reportWordCount]);
+   useEffect(() => { reportWordCount(); return cancelSourceWordCount; }, [reportWordCount, cancelSourceWordCount, sourceMode, sourceContent]);
+ 
++  // Status bar "x of n words": the words in the selection. The count goes to
++  // the status bar directly, never through React state: a selection changes
++  // many times a second while it is dragged, and every React update re-reads
++  // the caret by walking the focused document (see onSelectionUpdate above).
++  const selectedWordsFrameRef = useRef<number | null>(null);
++  const cancelSelectedWordsFrame = useCallback(() => {
++    if (selectedWordsFrameRef.current !== null) {
++      cancelAnimationFrame(selectedWordsFrameRef.current);
++      selectedWordsFrameRef.current = null;
++    }
++  }, []);
++  // Formatted view. Blocks inside the selection use their cached counts.
++  const reportSelectedWords = useCallback(() => {
++    cancelSelectedWordsFrame();
++    if (!editor || !onSelectedWordCountChange || sourceModeRef.current) return;
++    const { doc, selection } = editor.state;
++    onSelectedWordCountChange(selection.empty ? null : countSelectedWords(doc, selection.ranges));
++  }, [editor, onSelectedWordCountChange, cancelSelectedWordsFrame]);
++  useEffect(() => {
++    if (!editor || !onSelectedWordCountChange) return;
++    const changed = () => {
++      if (sourceModeRef.current) return;
++      // No selection, as while typing: nothing to count.
++      if (editor.state.selection.empty) { reportSelectedWords(); return; }
++      // At most one count per frame, however fast the selection moves.
++      if (selectedWordsFrameRef.current === null) selectedWordsFrameRef.current = requestAnimationFrame(reportSelectedWords);
++    };
++    editor.on('transaction', changed);
++    return () => { editor.off('transaction', changed); cancelSelectedWordsFrame(); };
++  }, [editor, onSelectedWordCountChange, reportSelectedWords, cancelSelectedWordsFrame]);
++  // Each view has its own selection: report again after switching views.
++  useEffect(() => { if (!sourceMode) reportSelectedWords(); }, [sourceMode, reportSelectedWords]);
++  // Source view: the selection is the textarea's. The selected Markdown is
++  // parsed like the whole source, so markers and link addresses are not
++  // counted and selecting everything gives the document's count. A short
++  // selection (or one already counted, such as everything) is counted on the
++  // next frame; a long one, which takes longer to parse, once the selection
++  // has stopped changing.
++  useEffect(() => {
++    if (!sourceMode || !editor || !onSelectedWordCountChange) return;
++    const textarea = scrollContainerRef.current?.querySelector('textarea');
++    if (!textarea) return;
++    let frame: number | null = null;
++    let timer: number | null = null;
++    const cancel = () => {
++      if (frame !== null) cancelAnimationFrame(frame);
++      if (timer !== null) clearTimeout(timer);
++      frame = null;
++      timer = null;
++    };
++    const report = () => {
++      frame = null;
++      timer = null;
++      const { selectionStart, selectionEnd } = textarea;
++      onSelectedWordCountChange(selectionStart === selectionEnd ? null : countMarkdownWords(textarea.value.slice(selectionStart, selectionEnd), 'selection'));
++    };
++    const changed = () => {
++      cancel();
++      const { selectionStart, selectionEnd } = textarea;
++      const length = selectionEnd - selectionStart;
++      if (length === 0) onSelectedWordCountChange(null);
++      else if (length <= SOURCE_SELECTION_LIVE_LIMIT || cachedMarkdownWords(textarea.value.slice(selectionStart, selectionEnd)) !== undefined) frame = requestAnimationFrame(report);
++      else timer = window.setTimeout(report, 300);
++    };
++    // Chromium reports selection changes inside a text box through
++    // "selectionchange" (which bubbles to the document) and "select".
++    document.addEventListener('selectionchange', changed);
++    textarea.addEventListener('select', changed);
++    changed();
++    return () => {
++      document.removeEventListener('selectionchange', changed);
++      textarea.removeEventListener('select', changed);
++      cancel();
++    };
++  }, [sourceMode, sourceContent, editor, onSelectedWordCountChange, countMarkdownWords, cachedMarkdownWords]);
++  useEffect(() => { if (!sourceMode) sourceWordCacheRef.current = {}; }, [sourceMode]);
++  // A closed or reloaded editor has no selection.
++  useEffect(() => () => { onSelectedWordCountChange?.(null); }, [onSelectedWordCountChange]);
++
+   if (!currentNote) return <div className="flex-1 flex items-center justify-center"><SpinnerIcon className="w-6 h-6 animate-spin" /></div>;
+ 
+   // What the FormatBar is about to show; selection updates compare against it.
+diff --git a/src/components/settings/EditorSettingsSection.tsx b/src/components/settings/EditorSettingsSection.tsx
+index 5dd32ce..2d22db4 100644
+--- a/src/components/settings/EditorSettingsSection.tsx
++++ b/src/components/settings/EditorSettingsSection.tsx
+@@ -294,7 +294,7 @@ export function AppearanceSettingsSection() {
+ 
+           {/* Base Font Size */}
+           <div className="flex items-center justify-between">
+-            <label htmlFor="font-size" className="text-sm text-text font-medium">Size</label>
++            <label htmlFor="font-size" className="text-sm text-text font-medium">Point Size (12-24)</label>
+             <div className="relative w-40">
+               <NumberBox
+                 id="font-size"
+diff --git a/src/lib/word-count.ts b/src/lib/word-count.ts
+index 9aea597..8a5ff86 100644
+--- a/src/lib/word-count.ts
++++ b/src/lib/word-count.ts
+@@ -1,4 +1,4 @@
+-import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
++import type { Node as ProseMirrorNode, ResolvedPos } from "@tiptap/pm/model";
+ 
+ const segments = new Intl.Segmenter(undefined, { granularity: 'word' });
+ 
+@@ -15,6 +15,15 @@ export function countWords(text: string): number {
+ // block keeps its identity and its cached count.
+ const blockWordCounts = new WeakMap<ProseMirrorNode, number>();
+ 
++function countBlockWords(block: ProseMirrorNode): number {
++  let count = blockWordCounts.get(block);
++  if (count === undefined) {
++    count = countWords(block.textBetween(0, block.content.size, '\n', '\n'));
++    blockWordCounts.set(block, count);
++  }
++  return count;
++}
++
+ /**
+  * Count the words of a document the same way as
+  * `countWords(doc.textBetween(0, doc.content.size, '\n', '\n'))`, but
+@@ -26,12 +35,76 @@ const blockWordCounts = new WeakMap<ProseMirrorNode, number>();
+ export function countDocumentWords(doc: ProseMirrorNode): number {
+   let total = 0;
+   doc.forEach((block) => {
+-    let count = blockWordCounts.get(block);
+-    if (count === undefined) {
+-      count = countWords(block.textBetween(0, block.content.size, '\n', '\n'));
+-      blockWordCounts.set(block, count);
+-    }
+-    total += count;
++    total += countBlockWords(block);
+   });
+   return total;
+ }
++
++/** One range of a selection, as ProseMirror's `selection.ranges` gives it. */
++export interface SelectedRange {
++  readonly $from: ResolvedPos;
++  readonly $to: ResolvedPos;
++}
++
++function containsText(node: ProseMirrorNode, from: number, to: number): boolean {
++  if (to <= from) return false;
++  let found = false;
++  node.nodesBetween(from, to, (child) => {
++    if (child.isText) found = true;
++    return !found;
++  });
++  return found;
++}
++
++/**
++ * Count the words inside a selection, for the status bar's "x of n words".
++ *
++ * Returns the same number as
++ * `countWords(doc.textBetween(from, to, '\n', '\n'))` summed over the ranges,
++ * so selecting a whole document gives `countDocumentWords(doc)`. A word that
++ * is only partly selected counts as a word. Blocks whose text lies completely
++ * inside a range use their cached count, so a long selection costs one lookup
++ * per block; only a block cut by an end of the range is counted afresh.
++ *
++ * Returns null when no text is selected: the selection is empty, or it holds
++ * only things without text, such as an image, a horizontal rule, or empty
++ * lines. Selected text without words (spaces, punctuation) gives 0.
++ */
++export function countSelectedWords(doc: ProseMirrorNode, ranges: readonly SelectedRange[]): number | null {
++  let words = 0;
++  let text = false;
++  for (const { $from, $to } of ranges) {
++    const from = $from.pos;
++    const to = $to.pos;
++    if (to <= from) continue;
++    // Walk the top-level blocks from the one that holds (or follows) `from`.
++    let index = $from.index(0);
++    let start = $from.before(1);
++    while (start < to && index < doc.childCount) {
++      const block = doc.child(index);
++      const end = start + block.nodeSize;
++      let count: number;
++      // The part of the block's content inside the range, in the block's own positions.
++      let inside: [number, number] | null = null;
++      // All of the block's content is selected (with or without the block itself).
++      if (from <= start + 1 && to >= end - 1) {
++        count = countBlockWords(block);
++        if (count === 0 && !text) inside = [0, block.content.size];
++      } else {
++        inside = [Math.max(from - start - 1, 0), Math.min(to - start - 1, block.content.size)];
++        count = countWords(block.textBetween(inside[0], inside[1], '\n', '\n'));
++      }
++      words += count;
++      if (!text) text = count > 0 || (inside !== null && containsText(block, inside[0], inside[1]));
++      start = end;
++      index++;
++    }
++  }
++  return text ? words : null;
++}
++
++/** The status bar text: "1,234 words", or "56 of 1,234 words" while text is selected. */
++export function wordCountLabel(total: number, selected: number | null): string {
++  const words = `${total.toLocaleString()} ${total === 1 ? 'word' : 'words'}`;
++  return selected === null ? words : `${selected.toLocaleString()} of ${words}`;
++}
+diff --git a/tests/markdown-equivalence/main.ts b/tests/markdown-equivalence/main.ts
+index cc9e08d..31a44c8 100644
+--- a/tests/markdown-equivalence/main.ts
++++ b/tests/markdown-equivalence/main.ts
+@@ -20,7 +20,7 @@ import { MarkdownEscape } from "@app/components/editor/MarkdownEscape";
+ import { Underline } from "@app/components/editor/Underline";
+ import { serializeDocumentMarkdown, escapedJSON } from "@app/components/editor/markdown-serialize";
+ import { IncrementalLowlightPlugin } from "@app/components/editor/lowlight-plugin";
+-import { countWords, countDocumentWords } from "@app/lib/word-count";
++import { countWords, countDocumentWords, countSelectedWords } from "@app/lib/word-count";
+ 
+ function extensions(kind: "original" | "fast") {
+   const fast = kind === "fast";
+@@ -166,6 +166,19 @@ const api = {
+       const slow = countWords(doc.textBetween(0, doc.content.size, "\n", "\n"));
+       const quick = countDocumentWords(doc);
+       if (slow !== quick) problems.push(`wordcount step ${step}: ${slow} vs ${quick}`);
++      // Selected words (the status bar's "x of n words"): everything, and
++      // ranges picked with their own sequence so the edits stay the same.
++      let pick = (doc.content.size * 31 + step * 17 + 7) >>> 0;
++      const next = (limit: number) => { pick = (pick * 1103515245 + 12345) & 0x7fffffff; return pick % limit; };
++      const size = doc.content.size;
++      const ranges: Array<[number, number]> = [[0, size], [1, Math.max(1, size - 1)]];
++      for (let i = 0; i < 12; i++) { const a = next(size + 1), b = next(size + 1); ranges.push([Math.min(a, b), Math.max(a, b)]); }
++      for (const [from, to] of ranges) {
++        const expected = doc.textBetween(from, to, "", () => "") === "" ? null : countWords(doc.textBetween(from, to, "\n", "\n"));
++        const selected = countSelectedWords(doc, [{ $from: doc.resolve(from), $to: doc.resolve(to) }]);
++        if (selected !== expected) problems.push(`selected words step ${step}, range ${from}-${to}: ${selected} vs ${expected}`);
++      }
++      if (slow > 0 && countSelectedWords(doc, [{ $from: doc.resolve(0), $to: doc.resolve(size) }]) !== quick) problems.push(`selecting everything at step ${step} does not give the document count`);
+       const origDoc = editors.original.state.doc;
+       if (JSON.stringify(origDoc.toJSON()) !== JSON.stringify(doc.toJSON())) problems.push(`doc divergence at step ${step}`);
+       const h1 = highlightClasses("original"), h2 = highlightClasses("fast"), truth = groundTruthHighlight("fast");
+diff --git a/tests/markdown-equivalence/run.cjs b/tests/markdown-equivalence/run.cjs
+index 331b866..e8224ca 100644
+--- a/tests/markdown-equivalence/run.cjs
++++ b/tests/markdown-equivalence/run.cjs
+@@ -1,6 +1,7 @@
+ // Checks that the performance paths produce exactly what TipTap's stock code
+ // produces: Markdown parsing (bounded list tokenizers), Markdown serialization
+-// (per-block cache), word counting (per-block cache), and code highlighting
++// (per-block cache), word counting (per-block cache; also the words of a
++// selection, for random ranges of every document state), and code highlighting
+ // (incremental lowlight plugin, compared against a fresh full computation).
+ // Also checks that what PicoMarQ writes reads back as the same document (the
+ // backslash escapes it adds on output, and keeps on input).
+@@ -190,7 +191,7 @@ addEscape('dashes-in-prose', 'a---b and a --- b and ---\n\n\\---\n\nx\n\\---\n',
+   }
+   if (errors.length) { failures++; console.log('PAGE ERRORS', errors.slice(0, 5)); }
+   console.log(`${corpus.length} documents, ${states} edited states compared; stock highlighter was stale in ${stale} states where the incremental one matched a fresh computation; ${roundTrips} documents round-tripped.`);
+-  console.log(failures ? `FAIL: ${failures} problem(s)` : 'PASS: parse, serialize, word count, and highlighting match the stock implementations; output reads back as the same document');
++  console.log(failures ? `FAIL: ${failures} problem(s)` : 'PASS: parse, serialize, word count, selected-word count, and highlighting match the stock implementations; output reads back as the same document');
+   electron.process().kill('SIGKILL');
+   process.exit(failures ? 1 : 0);
+ })().catch(error => { console.error(error); process.exit(1); });
+diff --git a/tests/settings-smoke.cjs b/tests/settings-smoke.cjs
+index 192299f..4e58c71 100644
+--- a/tests/settings-smoke.cjs
++++ b/tests/settings-smoke.cjs
+@@ -1,4 +1,4 @@
+-// Settings checks in the real Electron app: typing in the Size and Custom
++// Settings checks in the real Electron app: typing in the Point Size and Custom
+ // Width boxes, and Saved Themes > Restore Default Theme (its confirmation is
+ // answered by the test). Needs a graphical session or Xvfb.
+ // Usage: node tests/settings-smoke.cjs
+@@ -48,8 +48,12 @@ async function main() {
+   await page.waitForSelector('[data-document-id][aria-hidden="false"] .tiptap', { timeout: 15000 });
+   await dispatch('settings');
+   await page.locator('#font-size').waitFor();
++  // The size box is labeled with its range (since 1.3).
++  assert.equal(await page.locator('label[for="font-size"]').innerText(), 'Point Size (12-24)');
++  assert.equal(await page.getByLabel('Point Size (12-24)', { exact: true }).getAttribute('id'), 'font-size');
++  assert.equal(await page.getByText('Size', { exact: true }).count(), 0);
+ 
+-  // Size: typed numbers take effect; out-of-range numbers move into range.
++  // Point Size: typed numbers take effect; out-of-range numbers move into range.
+   let result = await typeInto('#font-size', '18');
+   assert.deepEqual(result, { whileTyping: '18', after: '18' });
+   assert.equal((await settings()).editorFont.baseFontSize, 18);
+@@ -67,7 +71,7 @@ async function main() {
+   await page.keyboard.press('ArrowUp');
+   assert.equal(await page.locator('#font-size').inputValue(), '14');
+   assert.equal((await settings()).editorFont.baseFontSize, 14);
+-  console.log('PASS: Settings > Size accepts typed sizes, moves out-of-range sizes into 12-24, and still steps with the arrow keys');
++  console.log('PASS: Settings > Point Size (12-24) is labeled so, accepts typed sizes, moves out-of-range sizes into 12-24, and still steps with the arrow keys');
+ 
+   // Custom Width has the same kind of box.
+   await page.locator('#editor-width').selectOption('custom');
+diff --git a/tests/word-count-smoke.cjs b/tests/word-count-smoke.cjs
+new file mode 100644
+index 0000000..243b369
+--- /dev/null
++++ b/tests/word-count-smoke.cjs
+@@ -0,0 +1,346 @@
++// The status bar's "x of n words" in the real Electron app: selections made
++// with the mouse and the keyboard in the formatted view (words, paragraphs,
++// everything, table cells, a rule), typing over a selection, and selections in
++// Markdown source view, short and long. Needs a graphical session or Xvfb.
++// Usage: node tests/word-count-smoke.cjs
++const assert = require('node:assert/strict');
++const fs = require('node:fs/promises');
++const path = require('node:path');
++const { spawn } = require('node:child_process');
++const { _electron } = require('playwright');
++const root = path.resolve(__dirname, '..');
++const work = path.join(__dirname, 'tmp', 'word-count-smoke');
++const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
++let virtualDisplay;
++let electron;
++let page;
++const errors = [];
++
++// 2 + 9 + 10 + 4 + 4 + 0 (rule) + 3 = 32 words.
++const DOCUMENT = `# Field notes
++
++The quick brown fox jumps over the lazy dog.
++
++Second paragraph with **bold words** and a [linked phrase](https://example.com/hidden-address) inside.
++
++- First item
++- Second item
++
++| Name | Role |
++| --- | --- |
++| Ada | Writer |
++
++---
++
++Last line here.
++`;
++const LONG_PARAGRAPHS = 600; // seven words each, about 27,000 characters in all
++const LONG_DOCUMENT = Array.from({ length: LONG_PARAGRAPHS }, (_, i) => `Paragraph ${i + 1} has exactly seven words here.`).join('\n\n') + '\n';
++
++const active = '[data-document-id][aria-hidden="false"]';
++const label = (total, selected = null) => {
++  const words = `${total.toLocaleString()} ${total === 1 ? 'word' : 'words'}`;
++  return selected === null ? words : `${selected.toLocaleString()} of ${words}`;
++};
++async function expectCount(total, selected, step) {
++  const expected = label(total, selected);
++  const start = Date.now();
++  let shown;
++  while (Date.now() - start < 8000) {
++    shown = await page.locator('[data-word-count]').innerText();
++    if (shown === expected) return;
++    await pause(50);
++  }
++  assert.equal(shown, expected, step);
++}
++async function dispatch(action) {
++  const win = await electron.browserWindow(page);
++  await win.evaluate((window, action) => window.webContents.send('scratch:command', { action }), action);
++}
++// Where a piece of text is on screen in the formatted view.
++async function rectNow(text) {
++  const rect = await page.evaluate(({ text, active }) => {
++    const walker = document.createTreeWalker(document.querySelector(`${active} .tiptap`), NodeFilter.SHOW_TEXT);
++    for (let node; (node = walker.nextNode());) {
++      const index = node.data.indexOf(text);
++      if (index < 0) continue;
++      const range = document.createRange();
++      range.setStart(node, index);
++      range.setEnd(node, index + text.length);
++      const r = range.getBoundingClientRect();
++      return { left: r.left, right: r.right, y: r.top + r.height / 2, x: r.left + r.width / 2 };
++    }
++    return null;
++  }, { text, active });
++  assert(rect, `"${text}" is not in the formatted view`);
++  return rect;
++}
++// A person pauses between gestures, and aims at text that has stopped moving
++// (the toolbar slides open after leaving source view). The editor
++// (ProseMirror) also ignores selection changes for 50 ms after it has redrawn
++// a selection in Chromium, so a script's immediate next click would be lost.
++async function rectOf(text) {
++  await pause(200);
++  let rect = await rectNow(text);
++  for (let i = 0; i < 40; i++) {
++    await pause(60);
++    const next = await rectNow(text);
++    if (next.x === rect.x && next.y === rect.y) return next;
++    rect = next;
++  }
++  throw new Error(`"${text}" did not stop moving`);
++}
++const selectedText = () => page.evaluate(() => window.getSelection().toString());
++async function doubleClick(word) {
++  const r = await rectOf(word);
++  await page.mouse.dblclick(r.x, r.y);
++  await page.waitForFunction(word => window.getSelection().toString().trim() === word, word, { timeout: 5000 }).catch(async () => { throw new Error(`Double-click on "${word}" selected ${JSON.stringify(await selectedText())}`); });
++}
++async function clickBefore(text) { const r = await rectOf(text); await page.mouse.click(r.left + 1, r.y); }
++const source = () => page.locator(`${active} textarea`);
++async function toSource() { await dispatch('source'); await source().waitFor(); }
++// After the switch the editor places the caret and scrolls on the next
++// frames; keys pressed in that instant (as only a script can) are overridden.
++async function toFormatted() { await dispatch('source'); await page.locator(`${active} .tiptap`).waitFor({ state: 'visible' }); await pause(500); }
++// Select the first occurrence of a piece of the Markdown source, as Find does.
++async function selectSource(text, length = text.length) {
++  await source().evaluate((el, { text, length }) => {
++    const start = el.value.indexOf(text);
++    if (start < 0) throw new Error(`"${text}" is not in the source`);
++    el.focus();
++    el.setSelectionRange(start, start + length);
++  }, { text, length });
++}
++
++// Where a character of the first source lines is on screen (the source view
++// uses a fixed-width font, and these lines do not wrap). The text box moves up
++// when the toolbar closes after entering source view, so wait until it rests.
++async function sourcePoint(line, column) {
++  await pause(200);
++  let point = await sourcePointNow(line, column);
++  for (let i = 0; i < 40; i++) {
++    await pause(60);
++    const next = await sourcePointNow(line, column);
++    if (next.x === point.x && next.y === point.y) return next;
++    point = next;
++  }
++  throw new Error('The source view did not stop moving');
++}
++function sourcePointNow(line, column) {
++  return source().evaluate((el, { line, column }) => {
++    const style = getComputedStyle(el);
++    const context = document.createElement('canvas').getContext('2d');
++    context.font = `${style.fontSize} ${style.fontFamily}`;
++    const rect = el.getBoundingClientRect();
++    return {
++      x: rect.left + parseFloat(style.paddingLeft) + context.measureText('M').width * column,
++      y: rect.top + parseFloat(style.paddingTop) + parseFloat(style.lineHeight) * (line + 0.5) - el.scrollTop,
++    };
++  }, { line, column });
++}
++const sourceSelection = () => source().evaluate(el => el.value.slice(el.selectionStart, el.selectionEnd));
++async function expectSourceSelection(expected, step) {
++  const start = Date.now();
++  let selected;
++  while (Date.now() - start < 5000) {
++    selected = (await sourceSelection()).trim();
++    if (selected === expected) return;
++    await pause(50);
++  }
++  assert.equal(selected, expected, step);
++}
++// Select the whole source line that contains a piece of text.
++async function selectSourceLine(text) {
++  return source().evaluate((el, text) => {
++    const at = el.value.indexOf(text);
++    if (at < 0) throw new Error(`"${text}" is not in the source`);
++    const start = el.value.lastIndexOf('\n', at) + 1;
++    const end = el.value.indexOf('\n', at);
++    el.focus();
++    el.setSelectionRange(start, end < 0 ? el.value.length : end);
++    return el.value.slice(el.selectionStart, el.selectionEnd);
++  }, text);
++}
++
++async function main() {
++  await fs.rm(work, { recursive: true, force: true });
++  await fs.mkdir(path.join(work, 'data'), { recursive: true });
++  if (process.platform === 'linux' && !process.env.DISPLAY) {
++    const binary = process.env.SCRATCH_XVFB || 'Xvfb';
++    const display = process.env.SCRATCH_DISPLAY_NUMBER || '126';
++    virtualDisplay = spawn(binary, [':' + display, '-screen', '0', '1440x1000x24', '-listen', 'tcp', '-nolisten', 'unix', '-nolisten', 'local', '-ac'], { env: process.env, stdio: 'ignore' });
++    process.env.DISPLAY = '127.0.0.1:' + display;
++    await pause(500);
++  }
++  electron = await _electron.launch({ executablePath: require('electron'), args: process.platform === 'linux' ? ['--no-sandbox', '--disable-gpu', root] : [root], env: { ...process.env, SCRATCH_TEST_MODE: '1', SCRATCH_TEST_DATA: path.join(work, 'data') }, timeout: 20000 });
++  page = await electron.firstWindow();
++  page.on('pageerror', error => errors.push(String(error)));
++  await page.waitForSelector(`${active} .tiptap`, { timeout: 15000 });
++  const win = await electron.browserWindow(page);
++  await win.evaluate(window => { window.setBounds({ x: 0, y: 0, width: 1300, height: 900 }); window.focus(); });
++  await expectCount(0, null, 'empty document');
++
++  await toSource();
++  await source().fill(DOCUMENT);
++  await expectCount(32, null, 'source view, nothing selected');
++  await toFormatted();
++  await page.locator(`${active} .tiptap table`).waitFor();
++  await expectCount(32, null, 'formatted view, nothing selected');
++
++  // Formatted view: mouse and keyboard selections.
++  await doubleClick('quick');
++  await expectCount(32, 1, 'one word double-clicked');
++  await page.keyboard.press('Control+Shift+ArrowRight');
++  await page.keyboard.press('Control+Shift+ArrowRight');
++  assert.equal((await selectedText()).trim(), 'quick brown fox');
++  await expectCount(32, 3, 'selection extended by two words');
++  const second = await rectOf('Second paragraph');
++  await page.mouse.click(second.x, second.y, { clickCount: 3 });
++  await expectCount(32, 10, 'a paragraph triple-clicked: bold and linked words counted, the link address not');
++  await page.keyboard.press('Control+A');
++  await expectCount(32, 32, 'everything selected');
++  await clickBefore('jumps');
++  await expectCount(32, null, 'a click removes the selection');
++  // A drag is counted while it grows, before the mouse button is released.
++  const phrase = await rectOf('quick brown fox');
++  const oneWord = await rectNow('quick');
++  await page.mouse.move(phrase.left, phrase.y);
++  await page.mouse.down();
++  await page.mouse.move(oneWord.right, phrase.y, { steps: 6 });
++  await expectCount(32, 1, 'one word dragged over, mouse button still down');
++  await page.mouse.move(phrase.right, phrase.y, { steps: 6 });
++  await expectCount(32, 3, 'three words dragged over, mouse button still down');
++  await page.mouse.up();
++  assert.equal(await selectedText(), 'quick brown fox');
++  await expectCount(32, 3, 'the dragged selection');
++  await clickBefore('jumps');
++  await expectCount(32, null, 'a click removes the selection again');
++  await page.keyboard.press('Shift+ArrowRight');
++  await page.keyboard.press('Shift+ArrowRight');
++  assert.equal(await selectedText(), 'ju');
++  await expectCount(32, 1, 'part of a word is one word');
++  await clickBefore('Last line');
++  await page.keyboard.press('End');
++  await page.keyboard.press('Shift+ArrowLeft');
++  assert.equal(await selectedText(), '.');
++  await expectCount(32, 0, 'a selected period is text without words');
++  await page.keyboard.press('ArrowRight');
++  await expectCount(32, null, 'the caret alone');
++  // From the title down through the first paragraph with the keyboard.
++  await page.keyboard.press('Control+Home');
++  await page.keyboard.press('Shift+ArrowDown');
++  await page.keyboard.press('Shift+End');
++  await expectCount(32, 11, 'title and first paragraph selected with Shift+arrows');
++  // A horizontal rule is selected as an object: no text.
++  await pause(200);
++  await page.locator(`${active} .tiptap hr`).click();
++  await page.locator(`${active} .tiptap hr.ProseMirror-selectednode`).waitFor();
++  await expectCount(32, null, 'a selected rule has no text');
++  // Table cells dragged over.
++  const first = await rectOf('Name');
++  const last = await rectOf('Writer');
++  await page.mouse.move(first.x, first.y);
++  await page.mouse.down();
++  await page.mouse.move(last.x, last.y, { steps: 12 });
++  await page.mouse.up();
++  await page.waitForFunction(active => document.querySelectorAll(`${active} .tiptap .selectedCell`).length === 4, active);
++  await expectCount(32, 4, 'four table cells selected');
++  console.log('PASS: formatted view shows "x of n words" for mouse and keyboard selections, table cells, and none for a caret or a rule');
++
++  // Typing over a selection, and formatting one.
++  await doubleClick('lazy');
++  await expectCount(32, 1, 'word to replace');
++  await page.keyboard.type('sleepy old ');
++  await expectCount(33, null, 'typing over the selection updates the total and drops the selected count');
++  await clickBefore('brown fox');
++  for (let i = 0; i < 'brown fox'.length; i++) await page.keyboard.press('Shift+ArrowRight');
++  await expectCount(33, 2, 'two words selected');
++  await page.keyboard.press('Control+B');
++  await page.locator(`${active} .tiptap strong`, { hasText: 'brown fox' }).waitFor();
++  await expectCount(33, 2, 'the selection is kept after Bold');
++  console.log('PASS: typing over a selection and formatting it keep the count right');
++
++  // Markdown source view: its own selection.
++  await toSource();
++  await expectCount(33, null, 'source view opens with a caret, whatever was selected before');
++  await page.keyboard.press('Control+A');
++  await expectCount(33, 33, 'everything selected in source view');
++  await page.keyboard.press('Control+Home');
++  await expectCount(33, null, 'caret at the top');
++  await page.keyboard.press('Shift+End');
++  assert.equal(await sourceSelection(), '# Field notes');
++  await expectCount(33, 2, 'a heading line: the # is not a word');
++  // The mouse: a double-clicked word, then a drag that is counted while it grows.
++  const inField = await sourcePoint(0, 4.5);
++  await page.mouse.dblclick(inField.x, inField.y);
++  await expectSourceSelection('Field', 'double-click in source view');
++  await expectCount(33, 1, 'a word double-clicked in source view');
++  // Remove the selection first: pressing the mouse on selected text would drag the text.
++  await page.keyboard.press('End');
++  await expectCount(33, null, 'caret at the end of the line');
++  const fieldStart = await sourcePoint(0, 2);
++  const fieldEnd = await sourcePoint(0, 7);
++  const lineEnd = await sourcePoint(0, 13.4);
++  await pause(400);
++  await page.mouse.move(fieldStart.x, fieldStart.y);
++  await page.mouse.down();
++  await page.mouse.move(fieldEnd.x, fieldEnd.y, { steps: 6 });
++  await expectSourceSelection('Field', 'drag over one word');
++  await expectCount(33, 1, 'one word, with the mouse button still down');
++  await page.mouse.move(lineEnd.x, lineEnd.y, { steps: 6 });
++  await expectSourceSelection('Field notes', 'drag over two words');
++  await expectCount(33, 2, 'two words, with the mouse button still down');
++  await page.mouse.up();
++  await expectCount(33, 2, 'the dragged selection');
++  await selectSource('Second paragraph with **bold words** and a [linked phrase](https://example.com/hidden-address) inside.');
++  await expectCount(33, 10, 'markers and the link address are not counted');
++  await selectSource('**bold', 2);
++  await expectCount(33, 0, 'two asterisks are text without words');
++  assert.match(await selectSourceLine('Ada'), /^\| Ada +\| Writer +\|$/);
++  await expectCount(33, 2, 'a table row');
++  await page.keyboard.press('ArrowRight');
++  await expectCount(33, null, 'caret again');
++  // Find selects its match in the source view.
++  await dispatch('find');
++  await page.getByPlaceholder('Find in note...').fill('sleepy old');
++  await page.waitForFunction(active => { const el = document.querySelector(`${active} textarea`); return el.value.slice(el.selectionStart, el.selectionEnd) === 'sleepy old'; }, active);
++  await expectCount(33, 2, 'the match that Find selected');
++  await page.getByRole('button', { name: 'Close (Esc)', exact: true }).click();
++  await source().press('ArrowLeft');
++  await expectCount(33, null, 'Find closed, caret');
++  console.log('PASS: source view counts the selected Markdown as the formatted view would, for keyboard, mouse, script and Find selections');
++
++  // A long document: selections above the size that is counted at once.
++  const total = LONG_PARAGRAPHS * 7;
++  await source().fill(LONG_DOCUMENT);
++  await expectCount(total, null, 'long document');
++  await page.keyboard.press('Control+A');
++  await expectCount(total, total, 'everything selected in a long source');
++  await source().evaluate((el) => {
++    const start = el.value.indexOf('Paragraph 101 ');
++    el.setSelectionRange(start, el.value.length);
++  });
++  await expectCount(total, total - 700, 'a long partial selection');
++  await selectSource('Paragraph 300 has exactly seven words here.');
++  await expectCount(total, 7, 'a short selection in a long source');
++  await source().press('ArrowRight');
++  await expectCount(total, null, 'caret');
++  await toFormatted();
++  await expectCount(total, null, 'back in the formatted view');
++  await page.keyboard.press('Control+A');
++  await expectCount(total, total, 'everything selected in a long formatted document');
++  await page.keyboard.press('ArrowLeft');
++  await expectCount(total, null, 'caret');
++  console.log('PASS: long selections in both views');
++  assert.equal(errors.length, 0, errors.join('\n'));
++}
++
++const watchdog = setTimeout(() => { console.error('Word count checks timed out'); process.exit(1); }, 150000);
++main().then(() => console.log('WORD COUNT CHECKS DONE')).catch(error => {
++  console.error(error);
++  process.exitCode = 1;
++}).finally(async () => {
++  if (electron) { try { await electron.evaluate(({ app }) => app.exit()); } catch {} }
++  virtualDisplay?.kill();
++  clearTimeout(watchdog);
++});
+diff --git a/tests/word-count.test.mts b/tests/word-count.test.mts
+new file mode 100644
+index 0000000..bc96898
+--- /dev/null
++++ b/tests/word-count.test.mts
+@@ -0,0 +1,187 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { Schema, type Node as ProseMirrorNode } from '@tiptap/pm/model';
++import { AllSelection, NodeSelection, TextSelection } from '@tiptap/pm/state';
++import { countWords, countDocumentWords, countSelectedWords, wordCountLabel } from '../src/lib/word-count.ts';
++
++// The node shapes that matter to counting: text blocks, containers, a table,
++// a block without content (rule), and inline nodes without text (image, break).
++const schema = new Schema({
++  nodes: {
++    doc: { content: 'block+' },
++    paragraph: { group: 'block', content: 'inline*' },
++    heading: { group: 'block', content: 'inline*' },
++    blockquote: { group: 'block', content: 'block+' },
++    bulletList: { group: 'block', content: 'listItem+' },
++    listItem: { content: 'paragraph block*' },
++    codeBlock: { group: 'block', content: 'text*', code: true, marks: '' },
++    horizontalRule: { group: 'block' },
++    table: { group: 'block', content: 'tableRow+' },
++    tableRow: { content: 'tableCell+' },
++    tableCell: { content: 'paragraph+' },
++    image: { group: 'inline', inline: true, atom: true },
++    hardBreak: { group: 'inline', inline: true, selectable: false },
++    text: { group: 'inline' },
++  },
++  marks: { bold: {}, italic: {} },
++});
++const n = (type: string, ...content: (ProseMirrorNode | string)[]) =>
++  schema.node(type, null, content.filter(item => item !== '').map(item => typeof item === 'string' ? schema.text(item) : item));
++const p = (...content: (ProseMirrorNode | string)[]) => n('paragraph', ...content);
++const bold = (text: string) => schema.text(text, [schema.mark('bold')]);
++
++const sample = n('doc',
++  n('heading', 'A short title'),
++  p('First paragraph, with ', bold('bold words'), ' and a half-selected wordbreak.'),
++  p(),
++  p(n('image')),
++  n('horizontalRule'),
++  p('Line one', n('hardBreak'), 'line two — and “quotes”, 1,234 numbers.'),
++  n('bulletList', n('listItem', p('Item one')), n('listItem', p('Item two'), n('bulletList', n('listItem', p('Nested item'))))),
++  n('blockquote', p('Quoted text here.'), p('   ')),
++  n('codeBlock', 'let x = 1;\n\nreturn x;'),
++  n('table',
++    n('tableRow', n('tableCell', p('Name')), n('tableCell', p('Two words'))),
++    n('tableRow', n('tableCell', p()), n('tableCell', p('Last cell text')))),
++  p('...'),
++  p('Résumé naïve café.'),
++);
++
++const range = (doc: ProseMirrorNode, from: number, to: number) => ({ $from: doc.resolve(from), $to: doc.resolve(to) });
++// The slow definitions the fast function must match.
++const slowWords = (doc: ProseMirrorNode, from: number, to: number) => countWords(doc.textBetween(from, to, '\n', '\n'));
++const slowHasText = (doc: ProseMirrorNode, from: number, to: number) => doc.textBetween(from, to, '', () => '') !== '';
++
++function checkEveryRange(doc: ProseMirrorNode) {
++  const size = doc.content.size;
++  let checked = 0;
++  for (let from = 0; from <= size; from++) {
++    for (let to = from; to <= size; to++) {
++      const expected = slowHasText(doc, from, to) ? slowWords(doc, from, to) : null;
++      const actual = countSelectedWords(doc, [range(doc, from, to)]);
++      if (actual !== expected) assert.fail(`range ${from}-${to}: got ${actual}, expected ${expected} for ${JSON.stringify(doc.textBetween(from, to, '\n', '\n'))}`);
++      checked++;
++    }
++  }
++  return checked;
++}
++
++test('selected words match the slow count for every range of a mixed document', () => {
++  assert.equal(countDocumentWords(sample), slowWords(sample, 0, sample.content.size));
++  const checked = checkEveryRange(sample);
++  assert(checked > 20000, `only ${checked} ranges checked`);
++});
++
++test('selecting everything gives the document count', () => {
++  const total = countDocumentWords(sample);
++  assert(total > 40);
++  assert.equal(countSelectedWords(sample, new AllSelection(sample).ranges), total);
++  // From the first to the last text position, as a mouse drag or Shift+Ctrl+End gives.
++  assert.equal(countSelectedWords(sample, TextSelection.create(sample, 1, sample.content.size - 1).ranges), total);
++});
++
++test('no text selected gives null; text without words gives 0', () => {
++  const at = (text: string) => { let found = -1; sample.descendants((node, pos) => { if (found < 0 && node.isText && node.text!.includes(text)) found = pos + node.text!.indexOf(text); }); return found; };
++  // A caret.
++  assert.equal(countSelectedWords(sample, TextSelection.create(sample, 3, 3).ranges), null);
++  // An image, a horizontal rule, and an empty paragraph: nothing with text.
++  let image = -1, rule = -1;
++  sample.descendants((node, pos) => { if (node.type.name === 'image') image = pos; if (node.type.name === 'horizontalRule') rule = pos; });
++  assert.equal(countSelectedWords(sample, NodeSelection.create(sample, image).ranges), null);
++  assert.equal(countSelectedWords(sample, NodeSelection.create(sample, rule).ranges), null);
++  const title = sample.child(0).nodeSize;
++  const first = title + sample.child(1).nodeSize;
++  assert.equal(countSelectedWords(sample, [range(sample, first, first + sample.child(2).nodeSize)]), null);
++  // From the end of one paragraph across the empty one, the image and the rule.
++  assert.equal(countSelectedWords(sample, [range(sample, first - 1, rule + 1)]), null);
++  // Spaces and punctuation are text, but not words.
++  const comma = at(', with ');
++  assert.equal(countSelectedWords(sample, [range(sample, comma, comma + 2)]), 0);
++  const dots = at('...');
++  assert.equal(countSelectedWords(sample, [range(sample, dots, dots + 3)]), 0);
++  // Part of a word is a word. "half-selected word" is three: the document
++  // count also takes the two halves of a hyphenated word as two words.
++  const word = at('wordbreak');
++  assert.equal(countSelectedWords(sample, [range(sample, word + 2, word + 6)]), 1);
++  assert.equal(sample.textBetween(word - 14, word + 4), 'half-selected word');
++  assert.equal(countSelectedWords(sample, [range(sample, word - 14, word + 4)]), 3);
++  assert.equal(countSelectedWords(sample, [range(sample, word - 2, word + 4)]), 2);
++  // A selection that runs through bold text counts across the mark.
++  const boldText = at('bold words');
++  assert.equal(countSelectedWords(sample, [range(sample, boldText - 5, boldText + 4)]), 2);
++});
++
++test('several ranges (selected table cells) add up', () => {
++  const cells: Array<{ from: number; to: number; words: number }> = [];
++  sample.descendants((node, pos) => {
++    if (node.type.name === 'tableCell') cells.push({ from: pos + 1, to: pos + node.nodeSize - 1, words: countWords(node.textContent) });
++  });
++  assert.deepEqual(cells.map(cell => cell.words), [1, 2, 0, 3]);
++  const ranges = cells.map(cell => range(sample, cell.from, cell.to));
++  assert.equal(countSelectedWords(sample, ranges), 6);
++  assert.equal(countSelectedWords(sample, [ranges[1], ranges[3]]), 5);
++  // An empty cell alone has no text.
++  assert.equal(countSelectedWords(sample, [ranges[2]]), null);
++  assert.equal(countSelectedWords(sample, [ranges[2], ranges[0]]), 1);
++  assert.equal(countSelectedWords(sample, []), null);
++});
++
++test('random documents and edits keep the fast and slow counts equal', () => {
++  // A small fixed pseudo-random sequence, so a failure can be reproduced.
++  let seed = 20261121;
++  const random = (limit: number) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % limit; };
++  const words = ['alpha', 'beta', 'gamma', "don't", 'co-op', '3.14', 'naïve', '—', '...', 'x', 'and', 'the', '', ' ', 'word,', '(aside)'];
++  const sentence = () => Array.from({ length: random(7) }, () => words[random(words.length)]).join(' ');
++  const inline = () => {
++    const parts: (ProseMirrorNode | string)[] = [];
++    for (let i = random(4); i >= 0; i--) parts.push([sentence(), bold(sentence() || 'b'), n('image'), n('hardBreak')][random(4)]);
++    return parts;
++  };
++  const block = (depth = 0): ProseMirrorNode => {
++    switch (random(depth > 1 ? 4 : 8)) {
++      case 0: return n('heading', ...inline());
++      case 1: return p();
++      case 2: return n('horizontalRule');
++      case 3: return p(...inline());
++      case 4: return n('blockquote', ...Array.from({ length: 1 + random(2) }, () => block(depth + 1)));
++      case 5: return n('bulletList', ...Array.from({ length: 1 + random(3) }, () => n('listItem', p(...inline()), ...(random(3) === 0 ? [block(depth + 1)] : []))));
++      case 6: return n('codeBlock', [sentence(), sentence()].join('\n'));
++      default: return n('table', ...Array.from({ length: 1 + random(2) }, () => n('tableRow', ...Array.from({ length: 1 + random(3) }, () => n('tableCell', p(...inline()))))));
++    }
++  };
++  let ranges = 0;
++  for (let round = 0; round < 40; round++) {
++    let doc = n('doc', ...Array.from({ length: 1 + random(8) }, () => block()));
++    for (let edit = 0; edit < 4; edit++) {
++      const size = doc.content.size;
++      assert.equal(countDocumentWords(doc), slowWords(doc, 0, size));
++      assert.equal(countSelectedWords(doc, new AllSelection(doc).ranges), slowHasText(doc, 0, size) ? countDocumentWords(doc) : null);
++      for (let i = 0; i < 150; i++) {
++        const a = random(size + 1), b = random(size + 1);
++        const from = Math.min(a, b), to = Math.max(a, b);
++        const expected = slowHasText(doc, from, to) ? slowWords(doc, from, to) : null;
++        assert.equal(countSelectedWords(doc, [range(doc, from, to)]), expected, `round ${round}, edit ${edit}, range ${from}-${to}`);
++        ranges++;
++      }
++      // Replace one block; the others keep their identity and cached counts.
++      const index = random(doc.childCount);
++      const children: ProseMirrorNode[] = [];
++      doc.forEach((child, _offset, i) => { children.push(i === index ? block() : child); });
++      doc = schema.node('doc', null, children);
++    }
++  }
++  assert.equal(ranges, 40 * 4 * 150);
++});
++
++test('status bar label', () => {
++  assert.equal(wordCountLabel(0, null), '0 words');
++  assert.equal(wordCountLabel(1, null), '1 word');
++  assert.equal(wordCountLabel(2, null), '2 words');
++  assert.equal(wordCountLabel(1234, null), `${(1234).toLocaleString()} words`);
++  assert.equal(wordCountLabel(1234, 56), `56 of ${(1234).toLocaleString()} words`);
++  assert.equal(wordCountLabel(23456, 1234), `${(1234).toLocaleString()} of ${(23456).toLocaleString()} words`);
++  assert.equal(wordCountLabel(12, 0), '0 of 12 words');
++  assert.equal(wordCountLabel(12, 12), '12 of 12 words');
++  assert.equal(wordCountLabel(1, 1), '1 of 1 word');
++  assert.equal(wordCountLabel(1, 0), '0 of 1 word');
++});

@@ -1,0 +1,2493 @@
+diff --git a/README.md b/README.md
+index caf2d47..6672393 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-# PicoMarQ 1.3.2
++# PicoMarQ 1.3.3
+ 
+ **Website:** https://crotalus65.github.io/PicoMarq/ — what the program is, screenshots, and the download.
+ 
+@@ -52,6 +52,6 @@ Tailwind reads every text file in the folder when it compiles the stylesheet, in
+ 
+ ## History
+ 
+-Version 1.3.2 makes Find and Replace get along with the spelling checker: Find's highlights no longer take the red lines away from the paragraphs they are in, and text put in by Replace is checked. Version 1.3.1 added Ignore All, Clear Custom Dictionary and Help > About.
++Version 1.3.3 stops Undo from emptying a document, keeps the red spelling lines in long paragraphs, makes Find treat what is typed and what Smart Typography makes of it as the same, lets Replace All replace more than 500 matches, and no longer loads pictures from other computers' shared folders. Version 1.3.2 made Find and Replace get along with the spelling checker: Find's highlights no longer take the red lines away from the paragraphs they are in, and text put in by Replace is checked. Version 1.3.1 added Ignore All, Clear Custom Dictionary and Help > About.
+ 
+ What each version changed, and why things are built the way they are: [docs/HISTORY-AND-DESIGN.md](docs/HISTORY-AND-DESIGN.md) and the patches in [history/](history/). The validation of the current version is in [VALIDATION.md](VALIDATION.md).
+diff --git a/START-HERE.txt b/START-HERE.txt
+index fac197f..0fdb9b4 100644
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.3.2
++PICOMARQ — WINDOWS BUILD 1.3.3
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+@@ -11,7 +11,45 @@ folder. Keep the executable in the same place if Windows already uses
+ it to open .md files. Preferences and recovery stay in the existing
+ AppData profile on each machine.
+ 
+-WHAT'S NEW IN 1.3.2
++WHAT'S NEW IN 1.3.3
++Undo can no longer empty a document. Before, Ctrl+Z in a file you had
++just opened, or pressed once more than you had made changes, took out
++the whole text (Ctrl+Y brought it back), and saving at that moment
++saved an empty file. Undo now stops at the text the file was opened
++with.
++
++Red lines stay put in long paragraphs. Before, in a paragraph of more
++than about 170 words, typing an apostrophe, a quotation mark, two
++hyphens or three periods removed the red lines farther than about 85
++words from the cursor; so did Bold, Italic, Undo and Enter. Typing no
++longer costs any red line. After Bold, Italic, Undo or Enter, a red
++line that goes missing is back in a second or two, and the other red
++lines do not blink.
++
++Find understands Smart Typography. A straight apostrophe or quotation
++mark typed in the Find box also finds the curly ones, two hyphens
++also find an em dash, and three periods also find an ellipsis. A
++curly quote, an em dash or an ellipsis pasted into the Find box finds
++only itself. Find also finds a phrase when part of it is italic, bold
++or a link.
++
++Replace follows Smart Typography. When Smart Typography is on, text
++put in by Replace gets curly quotes, em dashes and ellipses as if you
++had typed it there. When it is off, and inside code, the text goes in
++exactly as typed.
++
++Replace All replaces everything. Before, it replaced at most 500
++matches at a time. Find still lists and steps through at most 500
++matches; when there are more, the count reads "1/500+".
++
++Pictures on other computers are not loaded. A picture whose address
++points to a shared folder on another computer is no longer fetched,
++because asking for it makes Windows sign in to that computer. Pictures
++next to the document, anywhere else on this computer (a mapped drive
++letter included) and on the web load as before. A document that itself
++lives in a shared folder still shows the pictures from that computer.
++
++NEW IN 1.3.2
+ Find no longer takes away the red spelling lines. Before, every
+ paragraph in which Find highlighted a match lost its red lines, and
+ they stayed away after Find was closed. Now the red lines stay where
+diff --git a/VALIDATION.md b/VALIDATION.md
+index 39a4871..acb3b32 100644
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,57 +1,68 @@
+-# PicoMarQ 1.3.2 — validation and release status
++# PicoMarQ 1.3.3 — validation and release status
+ 
+-**Changes since 1.3.1** (`history/changes-since-1.3.1.patch`):
++**Changes since 1.3.2** (`history/changes-since-1.3.2.patch`):
+ 
+-- **Find's highlights no longer take away red spelling lines.** Through 1.3.1 every paragraph in which Find highlighted a match lost its red lines, and they did not come back when Find was closed.
+-  - *Why.* The highlights were ProseMirror decorations: an element around every match. To put an element around part of a paragraph, ProseMirror splits the paragraph's text into pieces, and Chromium drops the spelling marks of text that is rewritten. Closing Find rewrote the text once more.
+-  - *How.* The matches are now painted with the CSS Custom Highlight API (`src/components/editor/SearchHighlight.ts`). Chromium is given a list of ranges and paints `::highlight()` behind them; the elements and the text of the document are not touched. The colors are the ones used before. In screenshots of 1.3.1 and 1.3.2 with the same search, the four highlighted rectangles have the same position, size and color.
+-  - *Editing with Find open.* The matches are kept as positions and mapped through every change (`src/lib/search-matches.ts`): a highlight stays on its word when text is typed before it, grows with text typed inside it, and goes when its text is deleted, while the others keep their places in Find's count. The decorations behaved the same way.
+-- **Text put in by Replace and Replace All is spell-checked.** Both now ask for the full recheck that 1.2.7 introduced for pasted text. A recheck made while the caret is in the Find panel would clear every red line and bring none back, so, as since 1.3.1, it waits until the caret is in the document again (Esc, or a click in the text). Until then the paragraphs that Replace changed show no red lines; the other paragraphs keep theirs.
+-- **A recheck no longer waits for the mouse** (`drawFrames` in `src/lib/spelling.ts`). Chromium does a recheck as idle work that starts about a second after it is asked for. In a window in which nothing moves, and with text selected there is not even a blinking caret, that work sometimes did not start: every red line outside the caret's paragraph stayed away until the mouse moved or a key was pressed. Measured on 1.3.1 with text selected: 19 of 48 rechecks. A trace showed that Chromium's whole-document check had not been run, and two frames drawn by hand started it at once. The editor now keeps the window drawing frames for two seconds after it asks for a recheck (longer for a long document: ten seconds for 2 MB). With that, 160 of 160 rechecks completed (with a caret and with a selection, after typing, deleting and Undo). The fault was in every version since 1.2.7 (paste, return from the Markdown source view) and in 1.3.1's Ignore All and Clear Custom Dictionary. It was found now because the Find test rechecks after an Undo, which leaves text selected.
+-- Version 1.3.2 in `package.json`, the documents, the text of the web page, and the executable's properties. The README and `docs/HISTORY-AND-DESIGN.md` now say how the stylesheet depends on the `dist` folder of the previous build (see Build).
++- **Undo can no longer empty a document.** Through 1.3.2, Ctrl+Z in a document that had just been opened, or pressed once more than there were changes, took out the whole text. Ctrl+Y brought it back, but a save in between wrote an empty file.
++  - *Why.* Putting a document's text into its editor was an ordinary change for the editor (TipTap's `setContent`), and so the first step of the undo history.
++  - *How.* The load is marked as not belonging to the history (`addToHistory: false`, `src/components/editor/Editor.tsx`). Revert to Saved starts a new editor and loads the same way. The return from the Markdown source view is still a step of its own, as before: one Undo there changes nothing that can be seen, the next ones take back earlier typing, and they stop at the opened text.
++- **Red lines in long paragraphs.** Chromium rechecks spelling by itself only around the caret: a whole paragraph of up to 1,024 characters, otherwise 512 characters on either side. Through 1.3.2, a paragraph longer than that (about 170 words) lost the red lines farther from the caret whenever the editor changed text itself, and they stayed away. Two causes, two cures:
++  - *Text replaced as a whole* (`src/lib/minimal-text-updates.ts`). When the editor changed a piece of text it assigned the whole new string, and Chromium then drops every spelling mark in that piece. Smart Typography does this for each curly apostrophe, quotation mark, dash and ellipsis, and Undo of typing does it too. Now only the characters that differ are replaced; Chromium keeps the marks before them and moves the ones after them along. Typing with Smart Typography and Undo of typing cost no red line anymore.
++  - *Text built anew* (`src/components/editor/QuietRecheck.ts`, `recheckSpellingQuietly` in `src/lib/spelling.ts`). Bold, Italic, Enter, joining paragraphs, Undo of those, and Edit > Apply Smart Typography put part of a paragraph into new pieces of text, which have no marks. After such a change the editor asks Chromium for a check of the whole document of a kind that does not blink. Chromium makes such a check by itself when the length of the text has changed by more than 1,024 characters since its last one, and it then replaces the marks piece by piece instead of clearing them first. The editor changes the length Chromium counts without touching the document: an invisible filler at the end of the editor element is made 1,100 characters longer or shorter. In the test paragraph (1,672 characters, a misspelling 800 characters before the caret and one 820 after it) the red line after a word made bold or italic was back 1.39 to 1.45 seconds later (8 tries), and no other red line went away. The same now holds in short paragraphs for the cases listed for 1.3.2 (Undo of a deleted selection, Bold on and off, Italic).
++  - *The two kinds of recheck together.* The rechecks of 1.2.7 to 1.3.2 (after a paste, Replace, Ignore All, Clear Custom Dictionary and a return from the source view) clear every red line and bring them back about a second later; they are unchanged. Such a recheck goes over the document one second after it is asked for. A change made before that is covered by it, so no quiet check is asked for then; a change made after it gets its quiet check. A first version skipped the quiet check for a second and a half: Bold between 1.0 and 1.2 seconds after a blinking recheck then lost the red line after the word for good (8 times of 9). With the rule as it is now, the line came back 30 times of 30, for Bold at ten moments between 0.3 and 2.5 seconds after the recheck.
++  - *The filler* is an element at the end of the document, of no size, that cannot be selected, is not read aloud, and is not part of the text, of a copy or of the saved file. Two faults of a trial build, found while measuring speed, were corrected before this release. An empty filler was a place of its own for Chromium's caret: Ctrl+End put the caret behind it and not at the end of the last line, and Chromium does not scroll to a caret there. The editor put the caret right a moment later but scrolls only when that moment is shorter than a twentieth of a second, so in a 2 MB document that had just been opened Ctrl+End left the window where it was. The filler is now never empty, and Ctrl+End, Ctrl+Shift+End and the arrow keys at the end of a document do what they do in 1.3.2, the first movement of the caret included. And the last block of a document was no longer the last child of the editor element, from which the stylesheet takes the bottom margin, so every document was 13 pixels taller; one rule in `src/App.css` gives the block before the filler the same treatment. Pictures of the window with eighteen documents, each ending in a different kind of block (and one of them scrolled to its end), are the same in 1.3.2 and 1.3.3 to the pixel; against the trial build the same comparison showed the 13 pixels in every one.
++  - *Tried and taken out.* Drawing frames after every caret movement, so that Chromium's own check gets its turn in a window that stands still (see Limitations). Without it the red lines were back three seconds after the caret returned in 85 of 86 tries, with it in 16 of 16; those numbers show no difference, so it is not in this version.
++- **Find understands Smart Typography** (`src/lib/find-text.ts`). A straight apostrophe or quotation mark typed in the Find box also finds the curly ones, exactly two hyphens also find an em dash, and three periods also find an ellipsis: the conversions of Smart Typography read backward. It works one way only. A curly quote, an em dash or an ellipsis in the Find box finds itself and nothing else, so an exact search stays possible, and an em dash never matches the hyphens of a table line or of code.
++- **Find finds a phrase across formatting** (`src/lib/find-in-document.ts`). In the formatted view a paragraph is now searched as one text. Through 1.3.2 each stretch of the same formatting was searched by itself: with `the *Odyssey* in` in the text, "the Odyssey" was not found.
++- **Replace follows Smart Typography.** When Smart Typography is on, the text of the Replace box is converted as if it had been typed at that place: curly quotes that open or close by what stands before them, an em dash, an ellipsis. Inside code, and in the source view wherever Smart Typography does not act on typing (code, math, front matter, link addresses, HTML), it goes in as typed; with Smart Typography off, everywhere.
++- **Replace All replaces every match.** Through 1.3.2 it replaced at most 500 at a time. Find still lists, highlights and steps through at most 500 matches and now shows "1/500+" when there are more. Replace All changes each paragraph once, which keeps very many matches from freezing the window (see Speed), and one Undo takes all of it back.
++- **Pictures in shared folders on other computers are not fetched** (`src/lib/desktop.ts`, `desktop/shared-folders.cjs`, `desktop/main.cjs`).
++  - *Why.* On Windows, asking another computer for a file makes Windows sign in to it, which gives that computer the user's name and a form of the password that can be attacked. A document from someone else could point a picture at a computer set up for that (`![](//server/share/x.png)`, or the same written as a `file:` address). Opening the document was enough.
++  - *How.* The page gives such a picture no address, however the address is written (two slashes, `file://server/…`, `file:////server/…`, backslashes, percent signs). And the main process stops every request for a file on another computer before it goes out, whatever in the page asked for it. The computer the document itself is on is the exception, and so is the one PicoMarQ runs from: a document in a shared folder shows the pictures from that computer. A mapped drive letter counts as this computer. The document is not changed; every address stays in its text.
++  - *What else was looked at.* Nothing else in a document asked another computer for anything: markup in a diagram's labels is shown as text, the math commands that fetch are off, other HTML (video, frames, style sheets, objects, styles) is dropped, and a link does nothing until it is clicked and is then opened only as a web or mail link.
++- Version 1.3.3 in `package.json`, the documents, the text of the web page, and the executable's properties.
+ 
+-**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. The compiled stylesheet (`index-Da_GPXCW.css`) is that of 1.3.1 without the two rules for the old highlight elements, 249 bytes less; the new colors are added by the program itself, because the stylesheet compiler does not know `::highlight()`. The JavaScript bundle and `index.html` change. The main-process files in `desktop/` are those of 1.3.1. Rebuilding this source package reproduces `dist/` byte for byte.
+-
+-That holds with the `dist/` folder that comes with the source in place. The stylesheet compiler (Tailwind) reads every text file in the folder, and that includes the compiled program of the previous build in `dist/`: a build started without a `dist/` folder gives a stylesheet about 12 kB smaller, without 95 rules for words that occur only in the compiled program, and a second build gives the released one. No element of the running program was found to use one of those rules (looked at with documents that contain math, seven kinds of diagram, code, tables and task lists). The stylesheets of 1.2.7 to 1.3.1 were built the same way. Nothing was changed here; it is written down because it was noticed while building this version.
++**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. The compiled stylesheet (`index-CyLybaO3.css`) is that of 1.3.2 plus the one rule for the block before the filler. The JavaScript bundle (`index-DJg4t7ss.js`) and `index.html` change. In `desktop/`, `main.cjs` changes (the request check) and `shared-folders.cjs` is new; the other main-process files are those of 1.3.2. Rebuilding this source package reproduces `dist/` byte for byte, with the `dist/` folder that comes with the source in place (see the README).
+ 
+ **Tests** (Linux, Electron 44.6.0 official linux-x64 build, Xvfb, US English dictionary):
+ 
+-- `npm test`: 61 passed (34 + 27). New: `tests/search-matches.test.mts` (5 tests: new results and clearing; matches moving with the text before them; text typed against and inside a match; a deleted match, with the others keeping their places; Next and Previous keeping the moved positions).
+-- New `tests/find-smoke.cjs` (`npm run test:find`), in the real app, reading the highlights from the page and the red lines off the screen. 8 checks: Find highlights four matches, one of them the current one, while every red line stays for 2.5 seconds and the document's text is not touched; Next and Previous; the highlights follow typing before, against and inside a match, four Undos, and a deleted match; closing Find removes the highlights and no red line blinks; Replace All with the caret in the Replace box leaves the red lines of the untouched paragraph alone for 3 seconds, and after Esc every misspelling is marked, the replaced words too; the same for a single Replace far from the caret; Find of an ignored word (Ignore All) highlights the whole word, wrapper and all; Find in the Markdown source view and back. Run against 1.3.1 it fails at the first check: "Red lines disappeared while Find highlighted its matches: peeple, recieve, definately, occured plain".
+-- `tests/ignore-smoke.cjs`: 12 checks. New is the last one: four rechecks in a window that stands still with text selected. The window is left alone for 2.6 seconds, the frames it asked for are counted, and the red lines are read once at the end.
+-- Each safeguard was taken out in turn in a copy of the source, and the tests failed where expected: no recheck after Replace All (Find check 5), none after Replace (Find check 6), highlight ranges never made again (Find check 3), matches not moved with the text (Find check 3), highlights left behind when Find closes (Find check 4), no frames after a recheck (Ignore All check 12, or already its check 1, where the right-clicked word is selected).
+-- `tests/dictionary-smoke.cjs` (5 checks), `tests/spelling-smoke.cjs` (7), `tests/desktop-smoke.cjs` (19), `settings-smoke.cjs`, `word-count-smoke.cjs`, `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`, `npm run test:equivalence`, `tests/theme-browser-smoke.py` and `tests/colors-browser-smoke.py`: passed, unchanged.
+-- The Find, Ignore All and dictionary tests were each run several times in a row without a failure after the last change. Before the third change above, and before a timing fault in the test itself was corrected (it typed before the editor had the keyboard), the Find test failed in 5 of 8 runs; those failures led to the third change.
+-- The packaged `resources/app` from the Windows ZIP passed the Find, Ignore All, dictionary, spelling, settings and desktop checks.
++- `npm test`: 81 passed (37 + 44). New: `tests/find-text.test.mts` (9: what counts as a match), `tests/protected-markdown.test.mts` (4: where Smart Typography does not act in Markdown source, against the existing function at every position of sample and random documents), `tests/shared-folders.test.mts` and `.test.cjs` (7: which addresses are on another computer, the same list of cases for the page and for the main process).
++- `tests/paragraph-smoke.cjs` (`npm run test:paragraph`, new), in the real app, reading the red lines off the screen. 10 checks: an apostrophe, a quotation mark, two hyphens and three periods typed in the long paragraph; Undo of typing and a conversion taken back with Backspace; Bold and Italic; Enter in the middle, joining again, and Undo of the join; Apply Smart Typography with the caret far away; the short-paragraph cases; the filler (no size, not in the text, at the caret, in a copy or in the saved file); Bold 1.1 seconds after a blinking recheck; a recheck cut short by a visit to the Find box; and the end of the document (Ctrl+End goes straight to the end of the last line and the window follows, the arrow keys stay there, the last paragraph keeps the margin of a last child, with the filler short and long). Run against 1.3.2 it fails at the first check ("red line lost under acommodate, embarass").
++- `tests/find-smoke.cjs`: 13 checks, 5 of them new: typed and typeset characters, in both directions; a phrase across italic, bold and a link, and Replace of it; what Replace puts in with Smart Typography on, in code, and with it off; Replace All of 1,200 matches where Find shows "1/500+", and one Undo; the same matches and replacements in the source view. Check 4 no longer asks for a recheck after its four Undos, because the red lines now come back by themselves; run against 1.3.2 the test fails there.
++- `tests/undo-smoke.cjs` (`npm run test:undo`, new), 5 checks: a freshly opened document has nothing to undo, by Ctrl+Z and by the Edit menu; Undo takes back typing and stops at the opened text, a save there keeps the file, Redo works; the same after a visit to the source view; after Revert to Saved; and in a new document. Run against 1.3.2 it fails at the first check.
++- `tests/pictures-smoke.cjs` (`npm run test:pictures`, new), 6 checks: a picture next to the document is shown; pictures on another computer's share get no address, in four spellings, and nothing is asked of that computer; a picture on the web keeps its address; the document's text keeps every address; a request made past the page's own check is stopped in the main process before it goes out (the page is told "blocked"), and files on this computer still load; diagram labels, math, links and other HTML ask no other computer for anything. The computers named in the test end in `.invalid`, which never resolves. Run against 1.3.2 it fails at the second check.
++- Each safeguard was taken out in turn in a copy of the source, and the tests failed where expected: text replaced as a whole (paragraph check 1), no quiet check (check 3), quiet check skipped for a second and a half after a blinking one (check 8), filler empty when short (check 7 by its length; check 10 by the path of the caret, when the test's counts of the length are left out), no margin rule (check 10); a typed apostrophe finding only itself (Find check 9), a match stopped by formatting (check 10), Replace as typed (check 11), Replace All of the listed matches only (check 12), no "+" in the count (check 12); the load in the undo history (Undo check 1); the page keeping share addresses (pictures check 2), the main process letting the request through (check 5).
++- `tests/ignore-smoke.cjs` (12 checks), `tests/dictionary-smoke.cjs` (5), `tests/spelling-smoke.cjs` (7), `tests/desktop-smoke.cjs` (19), `settings-smoke.cjs`, `word-count-smoke.cjs`, `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`, `npm run test:equivalence`, `tests/theme-browser-smoke.py` and `tests/colors-browser-smoke.py`: passed, unchanged.
++- The paragraph, Find and Ignore All tests were each run several times in a row without a failure after the last change.
++- The packaged `resources/app` from the Windows ZIP passed the paragraph, Find, Undo, pictures, Ignore All, dictionary, spelling, settings and desktop checks.
+ 
+-**Speed.** Same machine and method as for 1.3.1; four runs each.
++**Speed.** Same machine and method as for 1.3.2; the 2 MB document (248,000 words, 4,394 paragraphs); four runs each unless said otherwise. The differences between the versions are no larger than those between runs.
+ 
+-- *Find in a 2 MB document* (248,000 words) with 404 matches: the matches are shown 143–193 ms after the last key (203–257 ms in 1.3.1); Next takes 19 ms (21 ms); closing Find 179–306 ms (200–296 ms).
+-- *Typing in that document*: 37 ms per key with Find open and its 404 matches shown (35 ms in 1.3.1), and unchanged with Find closed. The highlight code does no work while Find shows nothing.
+-- *A full recheck of that document*, with the caret at its start, brings the red line under its last word back 2.7–2.9 seconds after it is asked for (2.2–2.3 seconds in 1.3.1; three runs each). The frames drawn meanwhile cost about half a second in a document of this size.
++- *Typing*: 28–32 ms per key (30–34 ms in 1.3.2); with Find open and its 404 matches shown, 27–36 ms (28–32 ms).
++- *Find*: 404 matches are shown 139–155 ms after the last key (158–168 ms in 1.3.2); Next takes 15–19 ms (14–20 ms); closing Find 175–226 ms (198–252 ms). For the letter e, in about 191,000 places, "1/500+" is shown after 114 ms (1.3.2: "1/500" after 118 ms; one run each).
++- *Replace All*: the word "the", in more than 1,800 places, took one second; the letter e, in 191,000 places, 9 seconds, and the window does not respond meanwhile. (With one change for each match, as in a first version, the second did not finish in two minutes.)
++- *A new paragraph* (Enter) takes 90–98 ms (83–95 ms in 1.3.2; three runs of eight). The quiet check that follows runs while the editor is idle. A key that arrives while it is going over the document took about 10 ms longer than in 1.3.2 on average (0 to 30 ms, in six sets of eight keys).
++- *The quiet check* brought a red line at the very end of the document back 3.1 to 3.4 seconds after a change that had taken it, with the caret at the start (in 1.3.2 it stayed away). *A blinking recheck* brings that line back 2.5–2.9 seconds after it is asked for (2.7–3.0 seconds in 1.3.2; three runs each).
+ 
+-**Windows portable distribution.** Assembled by `scripts/repack-windows-from-1.3.1.py` from the 1.3.1 portable release. Its Electron 44.6.0 runtime is unchanged. In `resources/app`, `package.json`, `dist/index.html`, the JavaScript bundle and the stylesheet differ from 1.3.1; `desktop/` is the same; `START-HERE.txt` and `RELEASE-VALIDATION.txt` are this release's. In `PicoMarQ.exe` only the version information changes from 1.3.1 to 1.3.2 (two strings and two numbers of the fixed version record), as checked independently with `pefile`: 4 bytes of `.rsrc` differ, every other section is identical, and the entry point is the same.
+-Baseline (1.3.1) executable SHA-256: `9e0b2b9a293457b1441c819a69e57e65a8454267080655975f70fede2991845c`
+-1.3.2 executable SHA-256: `10eae107fcc76e37b4df72dcff28b8940d23e15e0bf72555bb52f2b37391ffd6`
++**Windows portable distribution.** Assembled by `scripts/repack-windows-from-1.3.2.py` from the 1.3.2 portable release. Its Electron 44.6.0 runtime is unchanged. In `resources/app`, `package.json`, `dist/index.html`, the JavaScript bundle, the stylesheet and `desktop/main.cjs` differ from 1.3.2 and `desktop/shared-folders.cjs` is new; `START-HERE.txt` and `RELEASE-VALIDATION.txt` are this release's. In `PicoMarQ.exe` only the version information changes from 1.3.2 to 1.3.3 (two strings and two numbers of the fixed version record), as checked independently with `pefile`: 4 bytes of `.rsrc` differ, every other section is identical, and the entry point is the same.
++Baseline (1.3.2) executable SHA-256: `10eae107fcc76e37b4df72dcff28b8940d23e15e0bf72555bb52f2b37391ffd6`
++1.3.3 executable SHA-256: `6a7868754bab4fd9a3418698f19404cb30d110ae4a9ba28e502d2bc3b95e4bbf`
+ 
+ **Limitations.**
+ 
+-- Not run on Windows. The highlights and the rechecks are in Chromium's page engine and in the editor, the same on every system.
+-- A paragraph changed by Replace shows no red lines until the caret is back in the text; then every red line is gone for about a second, as after a paste (several seconds in a very long document).
+-- The limitations of 1.3.1 stand, among them: if Settings is opened within about a second of choosing Ignore All, the recheck is abandoned and the red lines far from the ignored word stay away until the caret next moves in the document.
++- Not run on Windows. The red lines, Find and Undo are in Chromium's page engine and in the editor, the same on every system. The picture change is about what Windows does when a file on another computer is asked for, and that cannot be watched here: what is tested is that the page asks for no such file and that the main process stops such a request. On Linux, Chromium reads four slashes after `file:` as a path on this computer; Windows reads them as a share, and the page's check goes by the written address for that reason.
++- A document in a shared folder shows pictures from its own computer only; a picture on a second computer's share is not shown. A picture on the web is fetched as before, which tells that server that the document was opened.
++- The rechecks that blink are the same as in 1.3.2: after a paste, Replace, Ignore All, Clear Custom Dictionary and a return from the source view, every red line is gone for about a second (several seconds in a very long document). Moving them to the quiet check is possible and was left for a later version.
++- If the Find box or Settings is opened within about a second of a recheck that blinks, the recheck is abandoned and the red lines outside the caret's paragraph stay away while the caret is elsewhere. When the caret was back in the document they returned by themselves in 85 of 86 tries (with the Find box); the one time they were still missing three seconds later, and what brought them back then was not recorded.
++- After Bold, Italic, Enter or an Undo of those in a paragraph of more than about 170 words, a red line far from the caret is away for about a second and a half before it returns (three seconds at the far end of a 2 MB document).
++- Find lists at most 500 matches. A typeset character in the Find box finds only itself. A search for spaces alone finds nothing, as before.
++- The limitations of 1.3.2 that concern Replace stand: a paragraph changed by Replace shows no red lines until the caret is back in the text.
+ 
+-**Found while testing, the same in earlier versions, and not changed.**
++**Found earlier, the same in earlier versions, and not changed.**
+ 
+-- *Changes that are not typed can still take red lines away.* The spelling marks belong to a piece of text and go when the editor rewrites that piece instead of letting Chromium type into it. A full recheck brings every line back: a paste, Ignore All, Replace, a visit to the Markdown source view and back (Ctrl+Shift+M twice), or closing and reopening the document. Each case below was tried three times.
+-  - *In a long paragraph* (1,672 characters, about 300 words, with a misspelling 800 characters before the caret and one 820 characters after it) both red lines were lost every time, and more typing did not bring them back, after: typing an apostrophe, a quotation mark, two hyphens or three periods with Smart Typography on (the conversion is such a rewrite); Bold or Italic on a word; Undo; Enter in the middle of the paragraph. With Smart Typography off, typing those characters lost nothing. Typing letters, Backspace, and a paste lost nothing. By its source, Chromium rechecks by itself a whole paragraph of up to 1,024 characters around the caret, and otherwise 512 characters on either side, so this concerns paragraphs longer than about 170 words, away from the caret.
+-  - *In a short paragraph* (77 characters) the red lines were kept, or back within three seconds, after everything tried (typing, deleting, cutting, pasting, Undo and Redo of typing, Bold, Enter, joining two paragraphs, making a heading, a list item or a quotation, the Smart Typography conversions), with three exceptions: Undo of a deleted selection (lost 3 times of 3), Bold switched on and off again (3 of 3), and Italic (1 of 3). There the lines came back when a letter was typed in the paragraph.
+-  - Edit > Apply Smart Typography takes the red lines from the paragraphs it changes, except close to the caret (3 of 3 with the caret in another paragraph).
+-- *Find looks for exactly the characters typed.* A straight apostrophe or quotation mark typed in the Find box does not find the curly one that Smart Typography puts into the text: `don't` does not find `don’t`, in either view. In the formatted view a phrase is not found where the formatting changes inside it: with `the *Odyssey* in` in the text, "the Odyssey" is not found, "Odyssey" is. Capital and small letters count as the same.
+-- *Find counts, and Replace All replaces, at most 500 matches at a time.* In a document with 1,200 occurrences of a word, Find shows "1/500", and one Replace All replaces the first 500; Find then shows "1/500" again for the next ones. It took three Replace All commands to replace them all, in either view.
+ - *The formatted view writes Markdown its own way.* A file is rewritten as a whole when it is saved after an edit in the formatted view (the Markdown source view saves exactly what is in it). 72 small files from other sources were opened, edited without changing anything, and saved. Text, headings, emphasis, quotations, links, images, lists, front matter and math came back with the same meaning, in PicoMarQ's notation: `*` for italics, `-` for list items, `#` headings, `---` rules, backtick fences, inline links for reference-style links, Unix line endings, no byte order mark, single blank lines, and no line break at the end of the file. These changed in meaning:
+   - Footnotes and citations in Pandoc's notation get backslashes: `[^1]` is saved as `\[^1\]`, `[@smith2020]` as `\[@smith2020\]`, `^[note]` as `^\[note\]`. PicoMarQ shows them as plain text either way, but other programs no longer read them as footnotes or citations. A command such as `\newpage` on a line of its own is saved as `\\newpage`, and a subscript `H~2~O` as `H~~2~~O` (struck through).
+   - A code block fenced with tildes (`~~~`) is not shown and is gone from the saved file. Code blocks fenced with backticks or indented are kept.
+   - HTML is dropped: a comment disappears, and tags such as `<sub>`, `<span>`, `<kbd>` or `<div>` are removed while the text inside them stays. `<u>` and `<br>` are understood. The entity `&nbsp;` becomes an ordinary space; other entities (`&amp;`, `&mdash;`) are shown and saved as written. A non-breaking space character is kept.
+   - In tables, the alignment of columns (`:---:`, `---:`) is lost. A link around an image is lost. Two paragraphs in one list item become one, and blank lines between list items go.
+   - A file that ends with a list, a table, an image, a math block or a quotation gets an empty last line with one space in it.
+-- *The parts PicoMarQ is built from have had security fixes since the versions used here.* `npm audit` lists 19 advisories on 2026-11-22 (12 rated high, 3 moderate, 4 low). Most concern tools that only build the program. Four are in the program: Electron 44.6.0 (fixes through 44.11.5 in the same line), TipTap, ProseMirror's handling of pasted HTML, and KaTeX. PicoMarQ shows no web pages, runs no scripts but its own (`script-src 'self'`), denies new windows, navigation and permission requests, and opens only `http`, `https` and `mailto` links, in the browser. What remains exposed is what a document or pasted text can do to the page engine. A document can also make PicoMarQ fetch a picture from the internet (`![](https://…)`), which tells that server the file was opened. Updating the parts changes the runtime and needs a full test pass, so it is a version of its own.
++- *The parts PicoMarQ is built from have had security fixes since the versions used here.* `npm audit` lists 19 advisories on 2026-11-22 (12 rated high, 3 moderate, 4 low). Most concern tools that only build the program. Four are in the program: Electron 44.6.0 (fixes through 44.11.5 in the same line), TipTap, ProseMirror's handling of pasted HTML, and KaTeX. PicoMarQ shows no web pages, runs no scripts but its own (`script-src 'self'`), denies new windows, navigation and permission requests, and opens only `http`, `https` and `mailto` links, in the browser. What remains exposed is what a document or pasted text can do to the page engine. Updating the parts changes the runtime and needs a full test pass, so it is a version of its own.
+diff --git a/desktop/main.cjs b/desktop/main.cjs
+index f422fdf..d1df0eb 100644
+--- a/desktop/main.cjs
++++ b/desktop/main.cjs
+@@ -6,6 +6,10 @@ const fsSync = require('node:fs');
+ const { pathToFileURL } = require('node:url');
+ const { createStore, readDocument, writeDocument, restoreBounds } = require('./store.cjs');
+ const { installedFonts } = require('./fonts.cjs');
++const { refusesRequest } = require('./shared-folders.cjs');
++// The last requests that were refused; read by tests/pictures-smoke.cjs.
++const refusedRequests = [];
++globalThis.picomarqRefusedRequests = refusedRequests;
+ const { captureTheme, parseTheme, fallbackFont, defaultAppearance } = require('./theme-presets.cjs');
+ const { recentFiles } = require('./recent.cjs');
+ const { profileDirectory } = require('./profile.cjs');
+@@ -614,6 +618,21 @@ else {
+     // US English spelling, whatever language Windows is set to.
+     try { session.defaultSession.setSpellCheckerLanguages(['en-US']); }
+     catch (error) { console.warn('Could not set the spelling language:', error.message); }
++    // No file is fetched from another computer's shared folder, except from
++    // the computer an open document is on or PicoMarQ itself runs from (see
++    // shared-folders.cjs). The page already leaves such pictures out; this
++    // holds whatever the page asks for.
++    session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
++      // Every request of the window comes through here, its own files too:
++      // whatever happens, it must get an answer.
++      let cancel = false;
++      try {
++        cancel = refusesRequest(details.url, [__dirname, ...[...windows.values()].map(record => record.path)]);
++        if (cancel) refusedRequests.push(details.url);
++        if (refusedRequests.length > 20) refusedRequests.shift();
++      } catch (error) { console.warn('Could not check a request:', error.message); }
++      callback({ cancel });
++    });
+     const state = await store.load();
+     const restore = await shouldRestoreSession(state, async count => {
+       const result = await dialog.showMessageBox({
+diff --git a/desktop/shared-folders.cjs b/desktop/shared-folders.cjs
+new file mode 100644
+index 0000000..7de94d9
+--- /dev/null
++++ b/desktop/shared-folders.cjs
+@@ -0,0 +1,50 @@
++// Files on other computers' shared folders.
++//
++// Asking another computer for a file makes Windows sign in to it, which
++// gives that computer the user's name and a form of the password that can be
++// attacked. A document from someone else can point a picture at a computer
++// set up for that. The page does not ask for such pictures (resolveImageUrl
++// in src/lib/desktop.ts); this is the second barrier, in the main process:
++// no file is fetched from another computer, except from the one a document
++// that is open here is on, or the one PicoMarQ itself runs from.
++
++/**
++ * The other computer a file: address points at ("file://server/share/x.png",
++ * or the same written with more slashes or with backslashes), or null for a
++ * file on this computer and for any other kind of address.
++ */
++function shareHostOf(address) {
++  // Four or more slashes after "file:" name a share on Windows; other systems
++  // read them as a path on this computer. (Tabs and line breaks inside an
++  // address are ignored by browsers.)
++  const plain = String(address).replace(/[\t\n\r]/g, '').trim();
++  const slashes = /^file:[\\/]{4,}([^\\/?#]*)/i.exec(plain);
++  if (slashes) return slashes[1].toLowerCase();
++  let url;
++  try { url = new URL(plain); } catch { return null; }
++  if (url.protocol !== 'file:') return null;
++  if (url.hostname && url.hostname.toLowerCase() !== 'localhost') return url.hostname.toLowerCase();
++  let path = url.pathname;
++  try { path = decodeURIComponent(path); } catch { /* as it is */ }
++  // A path on this computer starts with one slash: /C:/Users/..., /home/...
++  const share = /^\/{2,}([^/]*)/.exec(path.replace(/\\/g, '/'));
++  return share ? share[1].toLowerCase() : null;
++}
++
++/** The computer a path such as \\server\share\file.md is on, or null for a path on this computer. */
++function shareHostOfPath(file) {
++  const share = /^[\\/]{2,}([^\\/]*)/.exec(String(file || ''));
++  return share ? share[1].toLowerCase() : null;
++}
++
++/**
++ * Whether a request must be refused. `trustedPaths` are the paths of the
++ * open documents and of the program itself.
++ */
++function refusesRequest(address, trustedPaths) {
++  const host = shareHostOf(address);
++  if (host === null) return false;
++  return !trustedPaths.some(file => shareHostOfPath(file) === host);
++}
++
++module.exports = { shareHostOf, shareHostOfPath, refusesRequest };
+diff --git a/docs/HISTORY-AND-DESIGN.md b/docs/HISTORY-AND-DESIGN.md
+index 6fa65a0..e1ef7de 100644
+--- a/docs/HISTORY-AND-DESIGN.md
++++ b/docs/HISTORY-AND-DESIGN.md
+@@ -11,6 +11,7 @@ This version removes folder navigation, folder settings, AI integrations, Git in
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. The build is not code-signed. PicoMarQ is independent of upstream Scratch.
+ 
+ - PicoMarQ uses one independent native window per document. File, Edit, View, and Help keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- Version 1.3.3 mends five things found in a review of 1.3.2. Undo stops at the text a document was opened with (it could take the whole text out, and a save then wrote an empty file). Red lines in long paragraphs survive typing with Smart Typography, and come back by themselves, without the others blinking, after Bold, Italic, Undo or Enter. Find treats a typed apostrophe, quotation mark, two hyphens and three periods as also meaning their typeset forms, and finds a phrase across a change of formatting; Replace typesets its text when Smart Typography is on. Replace All replaces every match, not the first 500. And a picture whose address points at another computer's shared folder is not loaded.
+ - Version 1.3.2 makes Find and Replace get along with the spelling checker. Find's highlights no longer take the red lines away from the paragraphs that contain a match (through 1.3.1 they did, and the lines stayed away after Find was closed); the highlights look the same. Text put in by Replace and Replace All is spell-checked when the caret returns to the document, with the usual second without red lines. And the recheck that follows a paste, Ignore All or Clear Custom Dictionary no longer waits for the mouse to move, which it sometimes did while text was selected.
+ - Version 1.3.1 adds Ignore All, Clear Custom Dictionary, and About. **Ignore All** is in the right-click menu of a word the spelling checker has marked, above Add to Dictionary: every occurrence of that word in the document loses its red line, including occurrences typed later, until the document is closed or PicoMarQ exits. Nothing is written into the Markdown file or the dictionary. The other red lines disappear for about a second and come back, as after a paste. **Settings > Spelling > Clear Custom Dictionary…** removes every word added with Add to Dictionary, after a question that lists the words and has Cancel as its default; the words are then marked as misspelled again in every open document. **Help > About PicoMarQ** (a fourth menu, Alt+H) shows the version and that PicoMarQ is based on Scratch by Eric Li, with buttons that open the two projects' pages on GitHub. A personal name, a university and an address in the test document, the tests, the icon notes and the oldest patch file were replaced with placeholders.
+ - Version 1.3.0 shows the selected words in the status bar: with text selected, the word count reads "56 of 1,234 words" (words in the selection, then the document's total); with nothing selected it reads "1,234 words" as before. It follows the selection as it changes, with the mouse or the keyboard, in both views, for selected table cells, and for the match that Find selects in Markdown source. Selecting everything gives the document's count. A partly selected word counts as a word; a selected image, horizontal rule, or empty line shows no selected count, because no text is selected; selected text without words (a space, a period) shows 0. Settings > Typography now labels the size box **Point Size (12-24)**; the box itself works as in 1.2.7.
+@@ -52,7 +53,7 @@ Markdown source is available through View or Ctrl+Shift+M. The toolbar omits inl
+ 
+ Added/pasted images are embedded as data URLs. Existing relative image links resolve against the document's location. Source and code blocks stay monospace. Switching open documents preserves their undo histories. Recovery after a restart does not restore undo history; opening a recovered document starts a new undo history.
+ 
+-The Windows portable distributions since 1.2.4 are assembled from the previous release's package: the Electron 44.6.0 x64 runtime is kept byte for byte, the application files in `resources/app` are replaced, and only the version information in the `.exe` is updated (`scripts/repack-windows-from-*.py`; 1.3.2 comes from 1.3.1). The 1.2.3 runtime was originally packaged from Electron's official release with checksum verification. Since 1.2.7 the renderer in `dist/` is compiled from this TypeScript source. The app is tested on Linux with the same Electron version; it has not been run on Windows in the build environment. `VALIDATION.md` has the details for this release.
++The Windows portable distributions since 1.2.4 are assembled from the previous release's package: the Electron 44.6.0 x64 runtime is kept byte for byte, the application files in `resources/app` are replaced, and only the version information in the `.exe` is updated (`scripts/repack-windows-from-*.py`; 1.3.3 comes from 1.3.2). The 1.2.3 runtime was originally packaged from Electron's official release with checksum verification. Since 1.2.7 the renderer in `dist/` is compiled from this TypeScript source. The app is tested on Linux with the same Electron version; it has not been run on Windows in the build environment. `VALIDATION.md` has the details for this release.
+ 
+ ## Performance
+ 
+@@ -78,6 +79,21 @@ Version 1.3.1's Ignore All (`src/components/editor/IgnoredSpelling.ts`, `src/lib
+ - When a wrapper appears or disappears, ProseMirror rewrites the text nodes beside it and Chromium drops the spelling marks in them. After typing in a paragraph of up to about 1,000 characters Chromium rechecks that paragraph by itself. In every other case the editor asks for a full recheck (the 1.2.7 mechanism): at once after Ignore All, and one second after editing pauses otherwise (an ignored word typed in a longer paragraph, Undo, Replace). Chromium checks only the editable text that holds the caret, and only text that is displayed, so a recheck never starts while the editor is hidden (Settings, the Markdown source view), while the caret is outside it (the Find panel) or inside an element with spell checking off: it would clear every mark and bring none back. It starts when the editor is on screen and holds the caret.
+ - With no ignored words, the usual case, none of this runs. With them, the cost grows with the number of ignored occurrences: each wrapper adds an element and two text nodes, and after every key press Chromium walks the whole document's text and ProseMirror looks up the decorations of every paragraph. In a 2 MB document (248,000 words) a key press takes about 35 ms; with a word ignored that occurs 4,950 times, about 65 ms. A word that frequent belongs in the dictionary.
+ 
++Version 1.3.3's red lines in long paragraphs. Chromium keeps its spelling marks with each piece of text in the page and rechecks by itself only around the caret: a whole paragraph of up to 1,024 characters, otherwise 512 characters either side. Two things made a longer paragraph lose the marks farther away, and each has its own cure:
++
++- *Text replaced as a whole* (`src/lib/minimal-text-updates.ts`). When ProseMirror changes a piece of text it assigns the whole new string, and Chromium then drops every mark in that piece. Smart Typography does this for each curly apostrophe, quotation mark, dash and ellipsis; Undo and Replace do it too. Inside an editor that assignment now replaces only the stretch that differs, and Chromium keeps the marks before it and moves the ones after it along. Typing with Smart Typography and Undo of typing lose nothing anymore.
++- *Text built anew* (`src/components/editor/QuietRecheck.ts`, `recheckSpellingQuietly` in `src/lib/spelling.ts`). Formatting a word, splitting or joining paragraphs, and Undo of those put part of a paragraph into new pieces of text, which have no marks. For these the editor asks for a whole-document check of a kind that does not blink. Chromium checks a whole document again by itself once the length of its text has changed by more than 1,024 characters since the last whole check, and that check replaces the marks piece by piece instead of clearing them first. The editor changes the length Chromium counts without touching the document: an invisible piece of filler at the end of the editor element (no-break spaces in a ProseMirror widget, of no size, not selectable, not read aloud, not part of the text, a copy or the saved file) is made 1,100 characters longer or shorter, and Chromium is nudged by switching spell checking on for an element that holds nothing. A lost red line is back about a second and a half after the change. The filler must not be clipped by a box of no size: Chromium leaves clipped text out of its count.
++- The filler is an element at the end of the document, and two things about that needed care. *It is never empty* (one character when short). An empty element that cannot be edited is a place of its own for Chromium's caret: Ctrl+End put the caret behind it instead of at the end of the last line, and Chromium does not scroll to a caret there; the editor moved the caret to the right place a moment later, but scrolls only when that moment is shorter than a twentieth of a second, so in a 2 MB document that had just been opened the window stayed where it was. With text in the filler the caret passes it by: Ctrl+End, Ctrl+Shift+End and the arrow keys at the end of the document do what they do without it. *The last block is no longer the last child* of the editor element, and the stylesheet takes the bottom margin from the last child; without a rule of its own (`.prose > :has(+ [data-spelling-filler])` in `src/App.css`) every document was 13 pixels taller. Pictures of eighteen documents, each ending in a different kind of block, are the same in 1.3.2 and 1.3.3 to the pixel.
++- The rechecks of 1.2.7 to 1.3.2 that switch spell checking off and on (after a paste, Replace, Ignore All, Clear Custom Dictionary and a return from the source view) are unchanged: their red lines still blink for about a second. Moving them to the quiet check is possible and was left for later.
++- A blinking recheck and a quiet one can meet. The blinking kind goes over the document one second after it is asked for. A change made before that pass is covered by it, so no quiet check is asked for then (it would only make the blink longer); a change made after it gets its quiet check like any other. The editor cannot see when Chromium's pass runs, only that it cannot start earlier than a second after the switching, so the quiet check is skipped for changes made in the first 0.8 seconds and not later. (A first version skipped it for 1.5 seconds: Bold between 1.0 and 1.2 seconds after a paste then lost the red line after the word for good, 8 times of 9.)
++- If the caret leaves the document within a second of a blinking recheck (for the Find box, say), Chromium's pass finds no caret and gives up, as in earlier versions. Chromium makes a pass of its own when the caret is in the document again, and that pass checks everything, because the document counts as unchecked. A trial of drawing frames after every caret movement, to make sure that pass gets its turn in a window that stands still, was taken out again: without it the red lines were back at one look three seconds after the return in 85 of 86 tries, with it in 16 of 16, and those numbers show no difference.
++
++Version 1.3.3's Find (`src/lib/find-text.ts`, `src/lib/find-in-document.ts`) searches with a pattern built from the Find box: every character stands for itself, capital or small, except that a straight apostrophe or quotation mark also stands for the curly ones, exactly two hyphens also for an em dash, and three periods also for an ellipsis. These are the conversions of Smart Typography, read backward. It works one way only: a typeset character in the Find box finds itself and nothing else, which keeps an exact search possible and keeps an em dash from matching the hyphens of a table line or of code. In the formatted view a paragraph is searched as one text, so a phrase is found across a change of formatting. Find lists, highlights and steps through 500 matches at most and shows "1/500+" when there are more; Replace All takes every match, and changes each paragraph once, which keeps hundreds of thousands of matches from freezing the window. What Replace puts in is the text of the Replace box, converted by `convertTypography` as if typed at that place when Smart Typography is on, and left as typed in code (in the source view: wherever Smart Typography does not act while typing; `protectedMarkdownPlaces` answers that for many places in one reading of the text).
++
++Version 1.3.3's Undo. Putting a document's text into its editor was the first step of the undo history, because TipTap's `setContent` is an ordinary change. Ctrl+Z in a document that had just been opened, or once more than there were edits, took the whole text out again; Ctrl+Y brought it back, but a save in between wrote an empty file. The load now carries `addToHistory: false`. Revert to Saved starts a new editor and so loads the same way. The return from the Markdown source view still is a step of its own in the history, as before: one Undo there changes nothing that can be seen, and the next ones take back earlier typing.
++
++Version 1.3.3's pictures (`resolveImageUrl` in `src/lib/desktop.ts`, `desktop/shared-folders.cjs`). A picture address such as `//server/share/x.png` or `file://server/share/x.png` names a file in a shared folder on another computer, and when Windows is asked for such a file it signs in to that computer with the user's account. A document from someone else could point a picture at a computer set up to collect that. Such a picture now gets no address in the page, however the address is written (two slashes, backslashes, `file:` with a host, four or more slashes, percent signs), and the main process refuses any request for a file on another computer that is made all the same. The exception is the computer the document itself is on, and the one PicoMarQ runs from: a document in a shared folder shows its pictures. A drive letter that is mapped to a share is a path on this computer and works as before. Pictures on the web are still fetched when a document is opened. Nothing else in a document was found to ask another computer for a file: markup in a diagram's labels is shown as text, the math commands that fetch are switched off, other HTML is dropped, and a link is opened only on a click and only as a web or mail link. `tests/pictures-smoke.cjs` checks that too, which matters when the parts PicoMarQ is built from are next updated.
++
+ Version 1.3.2's Find highlights (`src/components/editor/SearchHighlight.ts`, `src/lib/search-matches.ts`) leave the document's text alone:
+ 
+ - Through 1.3.1 the matches were ProseMirror decorations: an element around every match. To put an element around part of a paragraph, ProseMirror splits the paragraph's text into pieces, and Chromium drops its spelling marks from text that is rewritten. So every paragraph with a match lost its red lines, and taking the elements away again when Find closed rewrote the text once more and brought nothing back.
+@@ -105,7 +121,7 @@ npm start
+ 
+ `npm run build` compiles the renderer into `dist/`. Tailwind reads every text file in the folder when it compiles the stylesheet, and that includes the compiled program of the previous build in `dist/` and the patch files in `history`. With the released `dist/` in place the build reproduces it byte for byte. Started without a `dist/` folder, the first build gives a stylesheet about 12 kB smaller, without 95 rules for words that occur only in the compiled program (no element of the running program was found to use one); a second build gives the released stylesheet.
+ 
+-`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.3.2.zip` (named after the version in `package.json`), containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory. The released packages are made another way, which keeps the runtime of the previous release unchanged: after `npm ci && npm run build`, run `python scripts/repack-windows-from-1.3.1.py /path/to/PicoMarQ-Windows-x64-1.3.1.zip` to make `release/PicoMarQ-Windows-x64-1.3.2.zip` (the earlier `repack-windows-from-*.py` scripts made 1.2.4, 1.2.6, 1.2.7, 1.3.0 and 1.3.1 the same way).
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.3.3.zip` (named after the version in `package.json`), containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory. The released packages are made another way, which keeps the runtime of the previous release unchanged: after `npm ci && npm run build`, run `python scripts/repack-windows-from-1.3.2.py /path/to/PicoMarQ-Windows-x64-1.3.2.zip` to make `release/PicoMarQ-Windows-x64-1.3.3.zip` (the earlier `repack-windows-from-*.py` scripts made 1.2.4, 1.2.6, 1.2.7, 1.3.0, 1.3.1 and 1.3.2 the same way).
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+@@ -113,7 +129,7 @@ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it w
+ 
+ `npm run test:close-window` exercises the real File menu, native Ctrl+W, renderer close command, repeated blank closes, exact replacement bounds, fresh Undo, Save/Discard/Cancel, Save As cancellation and saving, replacement-load failure, rapid closes, and restarting without resurrecting an explicitly closed file. `npm run test:close-restore` closes native windows and relaunches the actual application for both two-document close orders, an immediate file launch/close, rapid closes, closing during startup, final-window Save/Discard/Cancel and Save As, and the intentional blank startup in New mode. Its first case reproduces the erased-session bug on 1.2.1.
+ 
+-`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, Markdown escaping, the selected-word count (against a slow reference count, for every possible selection of a mixed document and for random documents), the search for ignored words, how Find's matches follow edits, and the About and Clear Custom Dictionary boxes. `npm run test:ignore` checks Ignore All in the real app against the red lines on screen: every occurrence, occurrences typed later, the other misspellings keeping their marks, the caret at the edges of a wrapper, Undo, a paste, the Markdown source view, Replace All from the Find panel, Revert, and forgetting on close. `npm run test:dictionary` adds words with Add to Dictionary and clears them from Settings, with two documents open, one of them hidden behind Settings. `npm run test:find` checks Find and Replace against the red lines on screen: the highlights and the red lines together, Next and Previous, typing and Undo with Find open, closing Find, Replace and Replace All, an ignored word, and the Markdown source view. All three need a US English dictionary, like `npm run test:spelling`. `npm run test:word-count` checks the status bar's "x of n words" in the real app: mouse and keyboard selections in both views, table cells, typing over a selection, Find in source view, and long selections. `npm run test:settings` covers the Point Size and Custom Width boxes and Restore Default Theme; `npm run test:spelling` covers spell checking of opened, pasted and source-edited text. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:startup` covers the new selector, persistence and live synchronization, legacy defaults, next-launch behavior, saved-file and preference preservation, requested-file launches, and both recovery choices after an actual forced termination. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
++`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, Markdown escaping, the selected-word count (against a slow reference count, for every possible selection of a mixed document and for random documents), the search for ignored words, how Find's matches follow edits, and the About and Clear Custom Dictionary boxes. `npm run test:ignore` checks Ignore All in the real app against the red lines on screen: every occurrence, occurrences typed later, the other misspellings keeping their marks, the caret at the edges of a wrapper, Undo, a paste, the Markdown source view, Replace All from the Find panel, Revert, and forgetting on close. `npm run test:dictionary` adds words with Add to Dictionary and clears them from Settings, with two documents open, one of them hidden behind Settings. `npm run test:find` checks Find and Replace against the red lines on screen: the highlights and the red lines together, Next and Previous, typing and Undo with Find open, closing Find, Replace and Replace All, an ignored word, and the Markdown source view; and what counts as a match: typed and typeset characters, phrases across formatting, what Replace puts in with Smart Typography on and off, and Replace All with more matches than Find lists. `npm run test:paragraph` checks the red lines of long paragraphs through typing, formatting, Undo, splitting and joining, also just after a blinking recheck, and that the filler of the quiet recheck shows nowhere. `npm run test:undo` checks that Undo stops at the text a document was opened with, also after Revert and a visit to the source view. `npm run test:pictures` checks which pictures get an address, which requests the main process stops, and that nothing else in a document (diagram labels, math, links, other HTML) asks another computer for a file. They all use the app with a US English dictionary, like `npm run test:spelling`. `npm run test:word-count` checks the status bar's "x of n words" in the real app: mouse and keyboard selections in both views, table cells, typing over a selection, Find in source view, and long selections. `npm run test:settings` covers the Point Size and Custom Width boxes and Restore Default Theme; `npm run test:spelling` covers spell checking of opened, pasted and source-edited text. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:startup` covers the new selector, persistence and live synchronization, legacy defaults, next-launch behavior, saved-file and preference preservation, requested-file launches, and both recovery choices after an actual forced termination. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
+ 
+ New installations keep recovery data under Electron's per-user app-data directory for PicoMarQ, separately from the original Scratch app. PicoMarQ detects and reuses a valid profile from Quill (0.1.6–0.1.11) or the earlier custom editor, preserving open documents, drafts, recent files, font, zoom, and other preferences. Previously saved preset page widths become Full; an existing Custom width is preserved. No account, AI model, cloud sync, updater, or analytics is configured. Remote images can be loaded if they appear in a document.
+ 
+diff --git a/package-lock.json b/package-lock.json
+index 4f38846..6ec2293 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.3.2",
++  "version": "1.3.3",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.3.2",
++      "version": "1.3.3",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+diff --git a/package.json b/package.json
+index 93cf871..8166e8f 100644
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.3.2",
++  "version": "1.3.3",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -22,7 +22,10 @@
+     "test:word-count": "node tests/word-count-smoke.cjs",
+     "test:ignore": "node tests/ignore-smoke.cjs",
+     "test:dictionary": "node tests/dictionary-smoke.cjs",
+-    "test:find": "node tests/find-smoke.cjs"
++    "test:find": "node tests/find-smoke.cjs",
++    "test:paragraph": "node tests/paragraph-smoke.cjs",
++    "test:undo": "node tests/undo-smoke.cjs",
++    "test:pictures": "node tests/pictures-smoke.cjs"
+   },
+   "dependencies": {
+     "@radix-ui/react-alert-dialog": "^1.1.15",
+diff --git a/scripts/repack-windows-from-1.3.2.py b/scripts/repack-windows-from-1.3.2.py
+new file mode 100644
+index 0000000..d4ade3d
+--- /dev/null
++++ b/scripts/repack-windows-from-1.3.2.py
+@@ -0,0 +1,219 @@
++#!/usr/bin/env python3
++"""Repackage PicoMarQ 1.3.3 from the 1.3.2 portable Windows release.
++
++Keeps the 1.3.2 package's Electron 44.6.0 runtime, replaces the application
++files (resources/app: desktop, dist, package.json) with this source, which
++must already be built (npm ci && npm run build), and updates the version
++information of the unsigned executable from 1.3.2 to 1.3.3: the two version
++strings and the two numbers of the fixed version record that hold the third
++part of the version.
++Usage:
++  python scripts/repack-windows-from-1.3.2.py BASE-1.3.2.zip [OUTPUT-1.3.3.zip]
++"""
++import json
++import hashlib
++import shutil
++import struct
++import sys
++import tempfile
++import zipfile
++from pathlib import Path, PurePosixPath
++
++ROOT = Path(__file__).resolve().parents[1]
++OLD = '1.3.2'
++NEW = '1.3.3'
++
++
++def sha256(path):
++    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++
++def version_numbers(version):
++    """'1.3.2' as the two 32-bit values of VS_FIXEDFILEINFO: (major.minor, patch.0)."""
++    major, minor, patch = (int(part) for part in version.split('.'))
++    return (major << 16) | minor, patch << 16
++
++
++def pe_sections(data):
++    """Return PE section extents and the security directory for sanity checks."""
++    if data[:2] != b'MZ':
++        raise ValueError('Not a Windows PE executable (no MZ).')
++    e_lfanew = struct.unpack_from('<I', data, 0x3C)[0]
++    if data[e_lfanew:e_lfanew + 4] != b'PE\0\0':
++        raise ValueError('Not a PE executable (no PE signature).')
++    coff = e_lfanew + 4
++    count = struct.unpack_from('<H', data, coff + 2)[0]
++    optional = coff + 20
++    opt_size = struct.unpack_from('<H', data, coff + 16)[0]
++    if struct.unpack_from('<H', data, optional)[0] != 0x20b:
++        raise ValueError('Expected 64-bit PE32+ executable.')
++    if struct.unpack_from('<II', data, optional + 112 + 8*4) != (0, 0):
++        raise ValueError('Expected an unsigned executable; refusing to break a signature.')
++    checksum = struct.unpack_from('<I', data, optional + 64)[0]
++    if checksum:
++        raise ValueError('Expected zero PE checksum; refusing to overwrite a checksummed executable.')
++    sections = {}
++    for index in range(count):
++        at = optional + opt_size + index*40
++        name = bytes(data[at:at+8]).split(b'\0')[0].decode('ascii')
++        virtual_size, virtual_addr, raw_size, raw_ptr = struct.unpack_from('<IIII', data, at + 8)
++        if raw_ptr + raw_size > len(data):
++            raise ValueError(f'Invalid section {name} raw size.')
++        sections[name] = (raw_ptr, raw_size)
++    if '.rsrc' not in sections:
++        raise ValueError('Missing PE resource section.')
++    return sections
++
++
++def update_version_resource(exe_path):
++    original = exe_path.read_bytes()
++    sections = pe_sections(original)
++    resource_start, resource_length = sections['.rsrc']
++    new_bytes = bytearray(original)
++    resource = original[resource_start:resource_start+resource_length]
++    old_unicode = OLD.encode('utf-16-le')
++    new_unicode = NEW.encode('utf-16-le')
++    if len(old_unicode) != len(new_unicode):
++        raise ValueError('The version strings must have the same length to be replaced in place.')
++    matches = []
++    where = 0
++    while True:
++        index = resource.find(old_unicode, where)
++        if index == -1:
++            break
++        matches.append(index)
++        where = index + len(old_unicode)
++    # Existing unsigned PicoMarQ.exe contains FileVersion and ProductVersion.
++    if len(matches) != 2:
++        raise ValueError(f'Expected two strings {OLD} in .rsrc; found {len(matches)}')
++    for index in matches:
++        at = resource_start + index
++        new_bytes[at:at+len(old_unicode)] = new_unicode
++    fixed_signature = struct.pack('<I', 0xFEEF04BD)
++    positions = []
++    where = 0
++    while True:
++        index = resource.find(fixed_signature, where)
++        if index == -1:
++            break
++        positions.append(index)
++        where = index + 4
++    if len(positions) != 1:
++        raise ValueError(f'Expected one VS_FIXEDFILEINFO structure, got {len(positions)}')
++    at = resource_start + positions[0]
++    fixed = struct.unpack_from('<13I', original, at)
++    old_parts = version_numbers(OLD)
++    new_parts = version_numbers(NEW)
++    if (fixed[2],fixed[3],fixed[4],fixed[5]) != old_parts*2:
++        raise ValueError(f'Unexpected numeric version metadata: {fixed[2:6]}')
++    # File version and product version, each as (major.minor, patch.0).
++    for rel_offset, value in zip((2,3,4,5), new_parts*2):
++        struct.pack_into('<I', new_bytes, at + rel_offset*4, value)
++    if pe_sections(new_bytes) != sections:
++        raise ValueError('Patch changed PE section layout.')
++    # No original runtime bytes outside the .rsrc section have changed.
++    assert new_bytes[:resource_start] == original[:resource_start]
++    assert new_bytes[resource_start+resource_length:] == original[resource_start+resource_length:]
++    for name,(offset,length) in sections.items():
++        if name != '.rsrc' and new_bytes[offset:offset+length] != original[offset:offset+length]:
++            raise ValueError(f'Non-resource section changed: {name}')
++    old_strings = new_bytes[resource_start:resource_start+resource_length].count(old_unicode)
++    new_strings = new_bytes[resource_start:resource_start+resource_length].count(new_unicode)
++    if old_strings != 0 or new_strings != 2:
++        raise ValueError('Incorrect updated resource version strings.')
++    updated = struct.unpack_from('<13I', new_bytes, at)
++    if (updated[2],updated[3],updated[4],updated[5]) != new_parts*2:
++        raise ValueError('Numeric version verification failed.')
++    exe_path.write_bytes(new_bytes)
++    return {
++        'original_exe_sha256': hashlib.sha256(original).hexdigest(),
++        'updated_exe_sha256': hashlib.sha256(new_bytes).hexdigest(),
++        'version_strings_changed': len(matches),
++        'numeric_version_values_changed': sum(1 for a, b in zip(old_parts*2, new_parts*2) if a != b),
++        'runtime_sections_unchanged': True,
++    }
++
++
++def package(base, output):
++    source_pkg = json.loads((ROOT/'package.json').read_text())
++    if source_pkg['version'] != NEW:
++        raise ValueError('Source package version does not match expected release.')
++    with tempfile.TemporaryDirectory(prefix='picomarq-windows-') as tmp:
++        tmp = Path(tmp)
++        with zipfile.ZipFile(base) as z:
++            names = z.namelist()
++            for member in names:
++                p = PurePosixPath(member)
++                if not p.parts or p.parts[0] != 'PicoMarQ' or '..' in p.parts or p.is_absolute() or '\\' in member:
++                    raise ValueError(f'Unsafe/malformed ZIP entry: {member}')
++            if 'PicoMarQ/PicoMarQ.exe' not in names:
++                raise ValueError('Baseline portable ZIP is missing PicoMarQ.exe')
++            z.extractall(tmp)
++        win = tmp/'PicoMarQ'
++        app = win/'resources/app'
++        prior = json.loads((app/'package.json').read_text())
++        if prior.get('version') != OLD:
++            raise ValueError(f'Baseline app must be {OLD}')
++        # Replace renderer and desktop app with the exact supplied source version.
++        for directory in ('dist','desktop'):
++            shutil.rmtree(app/directory)
++            shutil.copytree(ROOT/directory,app/directory)
++        for filename in ('LICENSE','THIRD-PARTY-NOTICES.txt','app.ico'):
++            shutil.copy2(ROOT/filename,app/filename)
++        (app/'package.json').write_text(json.dumps({
++            'name': source_pkg['name'],
++            'productName': source_pkg['productName'],
++            'version': NEW,
++            'main': source_pkg['main'],
++        },indent=2)+'\n')
++        for name,src in {
++            'START-HERE.txt': 'START-HERE.txt',
++            'KEYBOARD-SHORTCUTS.md':'docs/KEYBOARD-SHORTCUTS.md',
++            'APP-LICENSE.txt':'LICENSE',
++            'THIRD-PARTY-NOTICES.txt':'THIRD-PARTY-NOTICES.txt',
++        }.items():
++            shutil.copy2(ROOT/src,win/name)
++        verification = update_version_resource(win/'PicoMarQ.exe')
++        (win/'RELEASE-VALIDATION.txt').write_text(
++            'PicoMarQ 1.3.3 portable Windows release\n\n'
++            'Assembled from the PicoMarQ 1.3.2 portable release. Its Electron\n'
++            '44.6.0 x64 runtime is unchanged; the application files in\n'
++            'resources\\app are replaced with PicoMarQ 1.3.3, and the version\n'
++            'information of PicoMarQ.exe changes from 1.3.2 to 1.3.3 (two\n'
++            'strings and two numbers of the fixed version record). No\n'
++            'other bytes of the executable or the runtime files change.\n\n'
++            'The 1.3.3 renderer is compiled from the 1.3.3 source (npm ci,\n'
++            'npm run build). Tested on Linux with the same Electron 44.6.0:\n'
++            'unit tests, Chromium browser checks, and the desktop, typography,\n'
++            'startup, close, settings, spelling, word-count, Ignore All,\n'
++            'dictionary, Find, long-paragraph, Undo and pictures checks (see\n'
++            'VALIDATION.md in the source package). Not run on Windows here;\n'
++            'this unsigned build should be checked on Windows 10/11.\n\n'
++            f'Baseline executable SHA-256: {verification["original_exe_sha256"]}\n'
++            f'Updated executable SHA-256:  {verification["updated_exe_sha256"]}\n'
++        )
++        if json.loads((app/'package.json').read_text())['version'] != NEW:
++            raise AssertionError('App metadata version mismatch')
++        output.parent.mkdir(parents=True,exist_ok=True)
++        if output.exists():
++            output.unlink()
++        with zipfile.ZipFile(output,mode='w',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True) as z:
++            for item in sorted(win.rglob('*')):
++                if item.is_file():
++                    z.write(item,arcname=Path('PicoMarQ')/item.relative_to(win))
++        with zipfile.ZipFile(output) as z:
++            corrupt = z.testzip()
++            if corrupt:
++                raise ValueError(f'Archive CRC failure: {corrupt}')
++            assert json.loads(z.read('PicoMarQ/resources/app/package.json'))['version'] == NEW
++            assert z.read('PicoMarQ/PicoMarQ.exe')[:2] == b'MZ'
++        return verification
++
++if __name__ == '__main__':
++    if len(sys.argv) not in (2,3):
++        raise SystemExit(__doc__)
++    base = Path(sys.argv[1]).resolve()
++    target = Path(sys.argv[2]).resolve() if len(sys.argv) == 3 else ROOT/'release'/f'PicoMarQ-Windows-x64-{NEW}.zip'
++    summary = package(base,target)
++    print(f'Created: {target} ({target.stat().st_size:,} bytes)')
++    print(json.dumps(summary,indent=2))
+diff --git a/site/index.html b/site/index.html
+index 1553176..3f0a6e4 100644
+--- a/site/index.html
++++ b/site/index.html
+@@ -39,20 +39,20 @@
+           <blockquote class="aside"><span class="md" aria-hidden="true">&gt;</span>The Markdown is there when you want it and out of sight when you don’t.</blockquote>
+           <div class="actions">
+             <a class="button" id="download" href="https://github.com/Crotalus65/PicoMarq/releases/latest">Download for Windows</a>
+-            <p class="version">Version <span class="v">1.3.2</span>, <span class="mb">156</span> MB. Free and open source.</p>
++            <p class="version">Version <span class="v">1.3.3</span>, <span class="mb">156</span> MB. Free and open source.</p>
+           </div>
+         </article>
+ 
+         <figure class="shot">
+           <img src="screenshot.png" width="1000" height="660" alt="PicoMarQ with a short story open: the title, two chapter headings, paragraphs with italic and bold text, and an indented quotation. The quotation is selected, and the status bar reads 11 of 208 words.">
+-          <figcaption>Version <span class="v">1.3.2</span> with a story in progress. The quotation is selected, so the count at the bottom right reads “11 of 208 words.”</figcaption>
++          <figcaption>Version <span class="v">1.3.3</span> with a story in progress. The quotation is selected, so the count at the bottom right reads “11 of 208 words.”</figcaption>
+         </figure>
+       </section>
+ 
+       <section id="install" aria-labelledby="install-heading">
+         <h2 id="install-heading"><span class="md" aria-hidden="true">##</span>Install</h2>
+         <ol>
+-          <li>Download <code>PicoMarQ-Windows-x64-<span class="v">1.3.2</span>.zip</code> and extract the whole archive to a folder you can write to.</li>
++          <li>Download <code>PicoMarQ-Windows-x64-<span class="v">1.3.3</span>.zip</code> and extract the whole archive to a folder you can write to.</li>
+           <li>Open the extracted <code>PicoMarQ</code> folder and run <code>PicoMarQ.exe</code>. There is no installer and no account. The folder carries its own copy of the engine the program runs on, which is why the download is <span class="mb">156</span> MB.</li>
+           <li>Windows SmartScreen may object the first time, because the program is not code-signed. Choose <b>More info</b>, then <b>Run anyway</b>. Each release page lists SHA-256 checksums if you want to verify the file first.</li>
+           <li>To open Markdown files with a double-click, right-click a <code>.md</code> file, choose <b>Open with</b>, pick <code>PicoMarQ.exe</code> (you may have to browse to it), and choose <b>Always</b>.</li>
+diff --git a/src/App.css b/src/App.css
+index cfbc6d7..0374a78 100644
+--- a/src/App.css
++++ b/src/App.css
+@@ -764,7 +764,10 @@ html.dark {
+   margin-top: 0;
+ }
+ 
+-.prose > :last-child {
++/* The last block of a document is followed by the filler of the quiet
++   spelling recheck (lib/spelling.ts), so it is not the last child anymore. */
++.prose > :last-child,
++.prose > :has(+ [data-spelling-filler]) {
+   margin-bottom: 0;
+ }
+ 
+diff --git a/src/components/editor/Editor.tsx b/src/components/editor/Editor.tsx
+index dd45df4..a7f5f43 100644
+--- a/src/components/editor/Editor.tsx
++++ b/src/components/editor/Editor.tsx
+@@ -23,9 +23,12 @@ import { Markdown } from "@tiptap/markdown";
+ import { countWords, countDocumentWords, countSelectedWords } from "../../lib/word-count";
+ import { createTextareaMeasurer, lastIndexWhere, textareaOffsetTops } from "../../lib/textarea-position";
+ import { resolveAutoDirection } from "../../lib/text-direction";
+-import { recheckSpelling, recheckSpellingSoon } from "../../lib/spelling";
++import { recheckSpelling, recheckSpellingQuietly, recheckSpellingSoon } from "../../lib/spelling";
++import "../../lib/minimal-text-updates";
+ import { ignoreWord, ignoredWords } from "../../lib/ignored-spelling";
+-import { convertMarkdownTypography, convertTypography, insideProtectedMarkdown, keystrokeReplacement } from "../../lib/smart-typography";
++import { convertMarkdownTypography, convertTypography, insideProtectedMarkdown, keystrokeReplacement, protectedMarkdownPlaces } from "../../lib/smart-typography";
++import { findInText, findPattern } from "../../lib/find-text";
++import { findInDocument } from "../../lib/find-in-document";
+ import { SmartTypography } from "./SmartTypography";
+ import { IgnoredSpelling, ignoredSpellingKey } from "./IgnoredSpelling";
+ import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+@@ -35,7 +38,7 @@ import { FastOrderedList, FastTaskList } from "./markdown-tokenizers";
+ import { serializeDocumentMarkdown } from "./markdown-serialize";
+ import { CodeBlockView } from "./CodeBlockView";
+ import { Extension, InputRule, mergeAttributes } from "@tiptap/core";
+-import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
++import { Fragment, Mark, type Node as ProseMirrorNode } from "@tiptap/pm/model";
+ import { closeHistory } from "@tiptap/pm/history";
+ import { TextSelection } from "@tiptap/pm/state";
+ import tippy, { type Instance as TippyInstance } from "tippy.js";
+@@ -67,6 +70,7 @@ import { BlockMathEditor } from "./BlockMathEditor";
+ import { LinkEditor } from "./LinkEditor";
+ import { SearchToolbar } from "./SearchToolbar";
+ import { SearchHighlight, searchHighlightKey } from "./SearchHighlight";
++import { QuietRecheck } from "./QuietRecheck";
+ import { Wikilink } from "./Wikilink";
+ import { EditorWidthHandles } from "./EditorWidthHandle";
+ import { ApplicationMenu } from "./ApplicationMenu";
+@@ -457,6 +461,8 @@ function tableContextMenuItems(editor: TiptapEditor): ContextMenuItem[] {
+ // Source view: a selection up to this many characters is counted for the
+ // status bar on the next frame; a longer one after the selection has rested.
+ const SOURCE_SELECTION_LIVE_LIMIT = 20000;
++// Find lists, highlights and steps through at most this many matches. Replace All takes them all.
++const MAX_SHOWN_MATCHES = 500;
+ 
+ export function Editor({ previewMode, active = true, initialSession, resumeSession, onHandleReady, onWordCountChange, onSelectedWordCountChange }: EditorProps) {
+   const activeRef = useRef(active);
+@@ -526,6 +532,9 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+     Array<{ from: number; to: number }>
+   >([]);
+   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
++  // Find lists and shows at most this many matches; whether there are more is shown as "500+".
++  const [moreMatches, setMoreMatches] = useState(false);
++  const allMatchesRef = useRef(0);
+   const searchInputRef = useRef<HTMLInputElement>(null);
+   const saveTimeoutRef = useRef<number | null>(null);
+   const linkPopupRef = useRef<TippyInstance | null>(null);
+@@ -568,59 +577,43 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+     [],
+   );
+ 
+-  // Find all matches for search query (case-insensitive)
++  // The matches for what is in the Find box (see lib/find-text.ts for what
++  // counts as a match). At most `limit` are listed: Find shows 500, Replace
++  // All asks for all of them. allMatchesRef holds how many there are.
+   const findMatches = useCallback(
+-    (query: string, editorInstance: TiptapEditor | null) => {
++    (query: string, editorInstance: TiptapEditor | null, limit = MAX_SHOWN_MATCHES) => {
++      allMatchesRef.current = 0;
+       if (!editorInstance || !query.trim()) return [];
+-
+-      if (sourceModeRef.current) {
+-        const matches: Array<{ from: number; to: number }> = [];
+-        const text = sourceContentRef.current.toLowerCase();
+-        const needle = query.toLowerCase();
+-        for (let offset = 0; matches.length < 500;) {
+-          const index = text.indexOf(needle, offset);
+-          if (index < 0) break;
+-          matches.push({ from: index, to: index + query.length });
+-          offset = index + needle.length;
+-        }
+-        return matches;
+-      }
+-      const doc = editorInstance.state.doc;
+-      const lowerQuery = query.toLowerCase();
+-      const matches: Array<{ from: number; to: number }> = [];
+-
+-      // Search through each text node
+-      doc.descendants((node, nodePos) => {
+-        if (node.isText && node.text) {
+-          const text = node.text;
+-          const lowerText = text.toLowerCase();
+-
+-          let searchPos = 0;
+-          while (searchPos < lowerText.length && matches.length < 500) {
+-            const index = lowerText.indexOf(lowerQuery, searchPos);
+-            if (index === -1) break;
+-
+-            const matchFrom = nodePos + index;
+-            const matchTo = matchFrom + query.length;
+-
+-            // Make sure the match doesn't extend beyond valid document bounds
+-            if (matchTo <= doc.content.size) {
+-              matches.push({
+-                from: matchFrom,
+-                to: matchTo,
+-              });
+-            }
+-
+-            searchPos = index + 1;
+-          }
+-        }
+-      });
+-
++      const pattern = findPattern(query);
++      if (!pattern) return [];
++      const { matches, total } = sourceModeRef.current
++        ? findInText(sourceContentRef.current, pattern, limit)
++        : findInDocument(editorInstance.state.doc, pattern, limit);
++      allMatchesRef.current = total;
+       return matches;
+     },
+     [],
+   );
+ 
++  // What Replace puts in at a match: the text of the Replace box, converted
++  // as if it had been typed there when Smart Typography is on (curly quotes
++  // by what stands before them, an em dash, an ellipsis), and never in code.
++  // For several matches, ask in ascending order.
++  const replacementWriter = useCallback((replaceText: string, editorInstance: TiptapEditor) => {
++    if (!smartTypographyRef.current || convertTypography(replaceText).count === 0) return () => replaceText;
++    if (sourceModeRef.current) {
++      const content = sourceContentRef.current;
++      const isProtected = protectedMarkdownPlaces(content);
++      return (from: number) => isProtected(from) ? replaceText : convertTypography(replaceText, content.slice(Math.max(0, from - 1), from)).text;
++    }
++    const doc = editorInstance.state.doc;
++    return (from: number) => {
++      const $from = doc.resolve(from);
++      if ($from.parent.type.spec.code || $from.nodeAfter?.marks.some((mark) => mark.type.spec.code)) return replaceText;
++      return convertTypography(replaceText, $from.parent.textBetween(0, $from.parentOffset, undefined, " ").slice(-1)).text;
++    };
++  }, []);
++
+   // Show Find's matches: highlighted in the formatted view, selected in source view
+   const updateSearchHighlights = useCallback(
+     (
+@@ -913,6 +906,7 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+       MarkdownEscape,
+       Underline,
+       SearchHighlight,
++      QuietRecheck,
+       Wikilink,
+       SmartTypography.configure({ enabled: () => smartTypographyRef.current }),
+       IgnoredSpelling.configure({ words: () => ignoredWords(currentNoteIdRef.current) }),
+@@ -1092,25 +1086,27 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+     const match = currentMatches[safeIndex];
+     if (!match) return;
+ 
++    const written = replacementWriter(replaceText, editor)(match.from);
+     if (sourceModeRef.current) {
+-      const content = sourceContentRef.current.slice(0, match.from) + replaceText + sourceContentRef.current.slice(match.to);
++      const content = sourceContentRef.current.slice(0, match.from) + written + sourceContentRef.current.slice(match.to);
+       formattedChangedRef.current = false;
+       markdownDraftRef.current = content;
+       sourceContentRef.current = content;
+       setSourceContent(content);
+       void saveNote(content);
+     } else {
+-      editor.view.dispatch(editor.state.tr.insertText(replaceText, match.from, match.to));
++      editor.view.dispatch(editor.state.tr.insertText(written, match.from, match.to));
+       // Chromium checks only what it sees typed: have the new text checked.
+       recheckSpellingSoon(editor.view.dom);
+     }
+ 
+     const newMatches = findMatches(searchQuery, editor);
+     setSearchMatches(newMatches);
++    setMoreMatches(allMatchesRef.current > newMatches.length);
+ 
+     if (newMatches.length > 0) {
+       // Move to the first match after the replaced range.
+-      const nextPos = match.from + replaceText.length;
++      const nextPos = match.from + written.length;
+       const nextIndex = newMatches.findIndex((m) => m.from >= nextPos);
+       const resolvedIndex = nextIndex === -1 ? 0 : nextIndex;
+       setCurrentMatchIndex(resolvedIndex);
+@@ -1119,45 +1115,68 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+       setCurrentMatchIndex(0);
+       updateSearchHighlights([], 0, editor);
+     }
+-  }, [editor, searchQuery, currentMatchIndex, findMatches, updateSearchHighlights]);
++  }, [editor, searchQuery, currentMatchIndex, findMatches, replacementWriter, updateSearchHighlights]);
+ 
+   const replaceAll = useCallback((replaceText: string) => {
+     if (!editor || !searchQuery) return;
+-    const currentMatches = findMatches(searchQuery, editor);
++    // Every match in the document, not only the ones Find shows.
++    const currentMatches = findMatches(searchQuery, editor, Infinity);
+     if (currentMatches.length === 0) return;
++    const write = replacementWriter(replaceText, editor);
++    const written = currentMatches.map((match) => write(match.from));
+ 
+     if (sourceModeRef.current) {
+-      let content = sourceContentRef.current;
+-      for (let i = currentMatches.length - 1; i >= 0; i--) {
+-        const match = currentMatches[i];
+-        content = content.slice(0, match.from) + replaceText + content.slice(match.to);
+-      }
++      const source = sourceContentRef.current;
++      const parts: string[] = [];
++      let copied = 0;
++      currentMatches.forEach((match, i) => {
++        parts.push(source.slice(copied, match.from), written[i]);
++        copied = match.to;
++      });
++      parts.push(source.slice(copied));
++      const content = parts.join("");
+       formattedChangedRef.current = false;
+       markdownDraftRef.current = content;
+       sourceContentRef.current = content;
+       setSourceContent(content);
+       void saveNote(content);
+       setSearchMatches([]);
++      setMoreMatches(false);
+       return;
+     }
+-    const tr = editor.state.tr;
+-    for (let i = currentMatches.length - 1; i >= 0; i--) {
+-      const match = currentMatches[i];
+-      tr.insertText(replaceText, match.from, match.to);
++    // One change for each paragraph, from the end of the document backward:
++    // from its first match to its last, with the text between the matches
++    // as it was. (One change for each match takes minutes when there are
++    // very many.)
++    const { doc, schema, tr } = editor.state;
++    for (let last = currentMatches.length - 1; last >= 0;) {
++      const paragraphStart = doc.resolve(currentMatches[last].from).start();
++      let first = last;
++      while (first > 0 && currentMatches[first - 1].from >= paragraphStart) first--;
++      let content = Fragment.empty;
++      for (let i = first; i <= last; i++) {
++        const match = currentMatches[i];
++        if (i > first) content = content.append(doc.slice(currentMatches[i - 1].to, match.from).content);
++        if (written[i]) content = content.append(Fragment.from(schema.text(written[i], doc.resolve(match.from).marksAcross(doc.resolve(match.to)) ?? Mark.none)));
++      }
++      tr.replaceWith(currentMatches[first].from, currentMatches[last].to, content);
++      last = first - 1;
+     }
+     editor.view.dispatch(tr);
+     recheckSpellingSoon(editor.view.dom);
+ 
+     const newMatches = findMatches(searchQuery, editor);
+     setSearchMatches(newMatches);
++    setMoreMatches(allMatchesRef.current > newMatches.length);
+     setCurrentMatchIndex(0);
+     updateSearchHighlights(newMatches, 0, editor);
+-  }, [editor, searchQuery, findMatches, updateSearchHighlights]);
++  }, [editor, searchQuery, findMatches, replacementWriter, updateSearchHighlights]);
+ 
+   // Debounced search effect
+   useEffect(() => {
+     if (!searchQuery.trim()) {
+       setSearchMatches([]);
++      setMoreMatches(false);
+       setCurrentMatchIndex(0);
+       // Clear the highlights when search is empty
+       if (editor) {
+@@ -1170,6 +1189,7 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+       if (!editor) return;
+       const matches = findMatches(searchQuery, editor);
+       setSearchMatches(matches);
++      setMoreMatches(allMatchesRef.current > matches.length);
+       setCurrentMatchIndex(0);
+       // Always update the highlights (clears old ones when there are no matches)
+       updateSearchHighlights(matches, 0, editor);
+@@ -1297,18 +1317,23 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+     // Blur editor before setting content to prevent ghost cursor
+     editor.commands.blur();
+ 
+-    // Parse markdown and set content
++    // Parse markdown and set content. Putting a document's text into its
++    // editor is not an edit: it stays out of the undo history. (Through
++    // 1.3.2 it was the first step of that history, so one Undo too many
++    // took the whole text out again, and a save then wrote an empty file.)
++    const load = (content: Parameters<typeof editor.commands.setContent>[0]) =>
++      editor.chain().setMeta("addToHistory", false).setContent(content).run();
+     const manager = editor.storage.markdown?.manager;
+     if (manager) {
+       try {
+         const parsed = manager.parse(currentNote.content);
+-        editor.commands.setContent(parsed);
++        load(parsed);
+       } catch {
+         // Fallback to plain text if parsing fails
+-        editor.commands.setContent(currentNote.content);
++        load(currentNote.content);
+       }
+     } else {
+-      editor.commands.setContent(currentNote.content);
++      load(currentNote.content);
+     }
+ 
+     // Capture note ID to check in RAF callback - prevents race condition
+@@ -1911,6 +1936,8 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+       tr.replaceWith(change.from, change.to, schema.text(change.text, change.marks));
+     }
+     editor.view.dispatch(tr);
++    // A text that changed in several places has lost the red lines in between.
++    recheckSpellingQuietly(editor.view.dom);
+     report(count);
+   }, [editor, handleSourceChange]);
+ 
+@@ -2220,6 +2247,7 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+                   searchMatches.length === 0 ? 0 : currentMatchIndex + 1
+                 }
+                 totalMatches={searchMatches.length}
++                moreMatches={moreMatches}
+                 replaceQuery={replaceQuery}
+                 onReplaceChange={setReplaceQuery}
+                 onReplace={() => replaceCurrent(replaceQuery)}
+diff --git a/src/components/editor/QuietRecheck.ts b/src/components/editor/QuietRecheck.ts
+new file mode 100644
+index 0000000..f92d740
+--- /dev/null
++++ b/src/components/editor/QuietRecheck.ts
+@@ -0,0 +1,69 @@
++import { Extension } from "@tiptap/core";
++import { Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
++import { AddMarkStep, RemoveMarkStep, ReplaceStep } from "@tiptap/pm/transform";
++import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
++import { createSpellingFiller, recheckSpellingQuietly } from "../../lib/spelling";
++
++/**
++ * Red lines after changes that are not typed.
++ *
++ * Typing goes into the page's text directly, and Chromium keeps its spelling
++ * marks around it. Formatting a word, Undo and Redo, splitting or joining
++ * paragraphs and the like make ProseMirror build pieces of the paragraph
++ * anew, and new text has no marks. Chromium rechecks only around the caret
++ * (a whole paragraph of up to 1,024 characters, otherwise 512 characters
++ * either side), so in a long paragraph the red lines farther away were gone
++ * until the next whole-document check.
++ *
++ * This extension asks for that check, the quiet one of lib/spelling.ts,
++ * after every such change. It also keeps the invisible filler that the quiet
++ * check works with at the end of the editor element.
++ */
++
++const key = new PluginKey("quietRecheck");
++
++/** Plain typing and deleting inside one paragraph leave the marks alone; everything else may not. */
++function rebuildsText(transaction: Transaction): boolean {
++  if (!transaction.docChanged) return false;
++  if (transaction.getMeta("history$")) return true;
++  return transaction.steps.some((step, index) => {
++    if (step instanceof AddMarkStep || step instanceof RemoveMarkStep) return true;
++    if (!(step instanceof ReplaceStep)) return true;
++    const { from, to, slice } = step;
++    if (slice.openStart > 0 || slice.openEnd > 0) return true;
++    let blocks = false;
++    slice.content.forEach((node) => { if (!node.isInline) blocks = true; });
++    if (blocks) return true;
++    const before = transaction.docs[index];
++    const start = before.resolve(from);
++    return !start.parent.isTextblock || !start.sameParent(before.resolve(to));
++  });
++}
++
++export const QuietRecheck = Extension.create({
++  name: "quietRecheck",
++
++  addProseMirrorPlugins() {
++    let shown: EditorView | null = null;
++    return [
++      new Plugin({
++        key,
++        props: {
++          decorations(state) {
++            return DecorationSet.create(state.doc, [
++              Decoration.widget(state.doc.content.size, createSpellingFiller, { side: 1, key: "spelling-filler", ignoreSelection: true }),
++            ]);
++          },
++        },
++        view(view) {
++          shown = view;
++          return { destroy() { if (shown === view) shown = null; } };
++        },
++        appendTransaction(transactions) {
++          if (shown && transactions.some(rebuildsText)) recheckSpellingQuietly(shown.dom);
++          return null;
++        },
++      }),
++    ];
++  },
++});
+diff --git a/src/components/editor/SearchToolbar.tsx b/src/components/editor/SearchToolbar.tsx
+index 81f128e..d9cc2bc 100644
+--- a/src/components/editor/SearchToolbar.tsx
++++ b/src/components/editor/SearchToolbar.tsx
+@@ -19,6 +19,8 @@ interface SearchToolbarProps {
+   onClose: () => void;
+   currentMatch: number;
+   totalMatches: number;
++  /** There are more matches than Find lists: the count is shown with a plus sign. */
++  moreMatches?: boolean;
+   inputRef: RefObject<HTMLInputElement | null>;
+   // Replace functionality props
+   replaceQuery: string;
+@@ -37,6 +39,7 @@ export function SearchToolbar({
+   onClose,
+   currentMatch,
+   totalMatches,
++  moreMatches = false,
+   inputRef,
+   replaceQuery,
+   onReplaceChange,
+@@ -115,7 +118,7 @@ export function SearchToolbar({
+         />
+ 
+         <span className="text-xs text-text-muted whitespace-nowrap px-1 min-w-10 text-right">
+-          {totalMatches > 0 ? `${currentMatch}/${totalMatches}` : "0/0"}
++          {totalMatches > 0 ? `${currentMatch}/${totalMatches}${moreMatches ? "+" : ""}` : "0/0"}
+         </span>
+ 
+         <div className="flex items-center gap-px shrink-0">
+diff --git a/src/lib/desktop.ts b/src/lib/desktop.ts
+index e2e7f3d..326b5bc 100644
+--- a/src/lib/desktop.ts
++++ b/src/lib/desktop.ts
+@@ -68,12 +68,50 @@ export function fileUrl(file: string): string {
+   if (normalized.startsWith('//')) return `file:${normalized.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/')}`;
+   return `file://${normalized.startsWith('/') ? '' : '/'}${normalized.split('/').map((part, i) => /^[A-Za-z]:$/.test(part) && i === 0 ? part : encodeURIComponent(part)).join('/')}`;
+ }
+-export function resolveImageUrl(src: string, documentPath: string | null): string {
++/**
++ * The other computer a file: address points at ("file://server/share/x.png",
++ * or the same written with more slashes or with backslashes), or null for a
++ * file on this computer and for any other kind of address.
++ */
++export function shareHostOf(address: string): string | null {
++  // Four or more slashes after "file:" name a share on Windows; other systems
++  // read them as a path on this computer, so the page's own reading of the
++  // address would not show it everywhere. (Tabs and line breaks inside an
++  // address are ignored by browsers.)
++  const plain = address.replace(/[\t\n\r]/g, '').trim();
++  const slashes = /^file:[\\/]{4,}([^\\/?#]*)/i.exec(plain);
++  if (slashes) return slashes[1].toLowerCase();
++  let url: URL;
++  try { url = new URL(plain); } catch { return null; }
++  if (url.protocol !== 'file:') return null;
++  if (url.hostname && url.hostname.toLowerCase() !== 'localhost') return url.hostname.toLowerCase();
++  let path = url.pathname;
++  try { path = decodeURIComponent(path); } catch { /* as it is */ }
++  // A path on this computer starts with one slash: /C:/Users/..., /home/...
++  const share = /^\/{2,}([^/]*)/.exec(path.replace(/\\/g, '/'));
++  return share ? share[1].toLowerCase() : null;
++}
++function resolvedImageUrl(src: string, documentPath: string | null): string {
+   if (/^(?:https?:|data:|file:|blob:)/i.test(src)) return src;
+   if (/^[A-Za-z]:[\\/]|^\//.test(src)) return fileUrl(src);
+   if (!documentPath) return src;
+   return new URL(src.replace(/\\/g, '/'), fileUrl(documentPath)).toString();
+ }
++/**
++ * The address a picture is loaded from. A picture in a shared folder on
++ * another computer is not loaded (the result is empty): asking that computer
++ * for a file makes Windows sign in to it, which gives it the user's name and
++ * a form of the password that can be attacked, and a document from someone
++ * else could point a picture at a computer set up for that. The one share
++ * that is trusted is the one the document itself is on.
++ */
++export function resolveImageUrl(src: string, documentPath: string | null): string {
++  const address = resolvedImageUrl(src, documentPath);
++  // A bare address that starts with two slashes or backslashes would be read by the page as "//server/share/x.png".
++  const host = shareHostOf(/^[\\/]{2}/.test(address) ? `file:${address.replace(/\\/g, '/')}` : address);
++  if (host === null) return address;
++  return documentPath !== null && shareHostOf(fileUrl(documentPath)) === host ? address : '';
++}
+ export interface ContextMenuItem {
+   text?: string;
+   action?: () => void;
+diff --git a/src/lib/find-in-document.ts b/src/lib/find-in-document.ts
+new file mode 100644
+index 0000000..ecb2203
+--- /dev/null
++++ b/src/lib/find-in-document.ts
+@@ -0,0 +1,51 @@
++import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
++import type { Found } from "./find-text";
++
++// Find in the formatted view.
++//
++// A paragraph is searched as one text, whatever its formatting: a phrase is
++// found although one of its words is italic or a link. (Through 1.3.2 each
++// stretch of the same formatting was searched by itself.) Things in a line
++// that are not text, a line break for one, stand in the text as a character
++// nobody types, so a match never runs across them.
++
++const NOT_TEXT = "￼";
++
++/**
++ * The matches in a document, as document positions, in order. At most
++ * `limit` of them are listed; all of them are counted.
++ */
++export function findInDocument(doc: ProseMirrorNode, pattern: RegExp, limit = Infinity): { matches: Found[]; total: number } {
++  const matches: Found[] = [];
++  let total = 0;
++  doc.descendants((block, blockPosition) => {
++    if (!block.isTextblock) return true;
++    // The paragraph's text, and where each stretch of it starts: in the text and in the document.
++    let text = "";
++    const inText: number[] = [];
++    const inDocument: number[] = [];
++    block.descendants((node, position) => {
++      if (!node.isText && !node.isLeaf) return true;
++      inText.push(text.length);
++      inDocument.push(blockPosition + 1 + position);
++      text += node.isText ? node.text : NOT_TEXT;
++      return false;
++    });
++    if (!text) return false;
++    let stretch = 0;
++    const position = (offset: number) => {
++      while (stretch + 1 < inText.length && inText[stretch + 1] <= offset) stretch++;
++      return inDocument[stretch] + offset - inText[stretch];
++    };
++    pattern.lastIndex = 0;
++    for (let match; (match = pattern.exec(text));) {
++      if (match[0].length === 0) { pattern.lastIndex++; continue; }
++      total++;
++      if (matches.length >= limit) continue;
++      const from = position(match.index);
++      matches.push({ from, to: position(match.index + match[0].length - 1) + 1 });
++    }
++    return false;
++  });
++  return { matches, total };
++}
+diff --git a/src/lib/find-text.ts b/src/lib/find-text.ts
+new file mode 100644
+index 0000000..346bef9
+--- /dev/null
++++ b/src/lib/find-text.ts
+@@ -0,0 +1,67 @@
++// What Find looks for.
++//
++// Capital and small letters count as the same. And what the keyboard gives
++// finds what Smart Typography makes of it: a straight apostrophe or
++// quotation mark also finds the curly ones, two hyphens also find an em
++// dash, three periods also find an ellipsis. It works one way only: a curly
++// quote, an em dash or an ellipsis in the Find box (pasted there) finds
++// itself and nothing else, so an exact search stays possible, and an em dash
++// never matches the hyphens of a table line or of code.
++//
++// The rules follow convertTypography in smart-typography.ts: exactly two
++// hyphens are a dash (a longer run is Markdown syntax and is looked for as
++// it is), and periods count in threes from the left.
++
++export interface Found {
++  from: number;
++  to: number;
++}
++
++const SYNTAX = /[\\^$.*+?()[\]{}|]/g;
++
++/** The pattern for a Find query, or null for an empty query. */
++export function findPattern(query: string): RegExp | null {
++  if (!query) return null;
++  let source = "";
++  for (let i = 0; i < query.length;) {
++    const ch = query[i];
++    if (ch === "'") {
++      source += "['‘’]";
++      i++;
++    } else if (ch === '"') {
++      source += '["“”]';
++      i++;
++    } else if (ch === "-") {
++      let run = 1;
++      while (query[i + run] === "-") run++;
++      source += run === 2 ? "(?:--|—)" : "-".repeat(run);
++      i += run;
++    } else if (ch === ".") {
++      let run = 1;
++      while (query[i + run] === ".") run++;
++      source += "(?:\\.\\.\\.|…)".repeat(Math.floor(run / 3)) + "\\.".repeat(run % 3);
++      i += run;
++    } else {
++      const character = String.fromCodePoint(query.codePointAt(i) as number);
++      source += character.replace(SYNTAX, "\\$&");
++      i += character.length;
++    }
++  }
++  return new RegExp(source, "giu");
++}
++
++/**
++ * The matches in one text, in order and without overlaps. At most `limit`
++ * of them are listed; all of them are counted.
++ */
++export function findInText(text: string, pattern: RegExp, limit = Infinity): { matches: Found[]; total: number } {
++  const matches: Found[] = [];
++  let total = 0;
++  pattern.lastIndex = 0;
++  for (let match; (match = pattern.exec(text));) {
++    if (match[0].length === 0) { pattern.lastIndex++; continue; }
++    total++;
++    if (matches.length < limit) matches.push({ from: match.index, to: match.index + match[0].length });
++  }
++  return { matches, total };
++}
+diff --git a/src/lib/minimal-text-updates.ts b/src/lib/minimal-text-updates.ts
+new file mode 100644
+index 0000000..e690587
+--- /dev/null
++++ b/src/lib/minimal-text-updates.ts
+@@ -0,0 +1,45 @@
++// Change only the characters that differ when the editor rewrites text.
++//
++// ProseMirror updates a piece of text by assigning the whole new string to
++// its text node. Chromium keeps its spelling marks per text node, and drops
++// all of them when the node's text is replaced as a whole. So one character
++// changed by something other than typing (Smart Typography putting in a
++// curly apostrophe, Undo, Replace) cost a paragraph its red lines, and in a
++// paragraph of more than about 1,000 characters Chromium brings back only
++// those within about 500 characters of the caret.
++//
++// With only the changed stretch replaced, Chromium keeps the marks before it
++// and moves the ones after it along. The resulting text is the same.
++//
++// This applies to text nodes inside an editor only; everywhere else the
++// assignment works as it always did.
++
++const inherited = Object.getOwnPropertyDescriptor(Node.prototype, "nodeValue");
++
++if (inherited?.get && inherited.set) {
++  const read = inherited.get;
++  const write = inherited.set;
++  Object.defineProperty(Text.prototype, "nodeValue", {
++    configurable: true,
++    enumerable: true,
++    get(this: Text) {
++      return read.call(this);
++    },
++    set(this: Text, value: string | null) {
++      const next = value ?? "";
++      const old = this.data;
++      if (old === next || !this.isConnected || !this.parentElement?.closest(".ProseMirror")) {
++        write.call(this, value);
++        return;
++      }
++      const most = Math.min(old.length, next.length);
++      let start = 0;
++      while (start < most && old.charCodeAt(start) === next.charCodeAt(start)) start++;
++      let end = 0;
++      while (end < most - start && old.charCodeAt(old.length - 1 - end) === next.charCodeAt(next.length - 1 - end)) end++;
++      this.replaceData(start, old.length - start - end, next.slice(start, next.length - end));
++    },
++  });
++}
++
++export {};
+diff --git a/src/lib/smart-typography.ts b/src/lib/smart-typography.ts
+index 3bbe610..cddd3c7 100644
+--- a/src/lib/smart-typography.ts
++++ b/src/lib/smart-typography.ts
+@@ -144,6 +144,51 @@ export function insideProtectedMarkdown(value: string, caret: number): boolean {
+   return false;
+ }
+ 
++/**
++ * The same question as insideProtectedMarkdown, for many places in one text
++ * (Replace All in the Markdown source view): the returned function must be
++ * asked in ascending order. It reads the text once, where asking
++ * insideProtectedMarkdown each time would read everything before each place.
++ */
++export function protectedMarkdownPlaces(value: string): (caret: number) => boolean {
++  const opensFrontMatter = /^---[ \t]*\r?\n/.test(value);
++  // What is known at the start of the current line.
++  let lineStart = 0;
++  let frontMatterOpen = false;
++  let fences = 0;
++  let mathLines = 0;
++  let commentOpen = false;
++  const passLine = (end: number) => {
++    const line = value.slice(lineStart, end);
++    if (lineStart === 0) frontMatterOpen = opensFrontMatter;
++    else if (frontMatterOpen && /^---[ \t]*\r?$/.test(line)) frontMatterOpen = false;
++    if (/^[ \t]{0,3}(?:`{3,}|~{3,})/.test(line)) fences++;
++    if (/^[ \t]*\$\$[ \t]*\r?$/.test(line)) mathLines++;
++    const opened = line.lastIndexOf("<!--");
++    if (opened !== -1) commentOpen = line.indexOf("-->", opened) === -1;
++    else if (commentOpen && line.includes("-->")) commentOpen = false;
++    lineStart = end + 1;
++  };
++  return (caret: number) => {
++    for (let end = value.indexOf("\n", lineStart); end !== -1 && end < caret; end = value.indexOf("\n", lineStart)) passLine(end);
++    const line = value.slice(lineStart, caret);
++    if (frontMatterOpen && !/^---[ \t]*$/.test(line)) return true;
++    if ((fences + (/^[ \t]{0,3}(?:`{3,}|~{3,})/.test(line) ? 1 : 0)) % 2 === 1) return true;
++    if ((mathLines + (/^[ \t]*\$\$[ \t]*$/.test(line) ? 1 : 0)) % 2 === 1) return true;
++    const opened = line.lastIndexOf("<!--");
++    if (opened !== -1 ? line.indexOf("-->", opened) === -1 : commentOpen && !line.includes("-->")) return true;
++    if ((line.match(/`/g) || []).length % 2 === 1) return true;
++    if ((line.match(/\$\$/g) || []).length % 2 === 1) return true;
++    const linkOpen = line.lastIndexOf("](");
++    if (linkOpen !== -1 && line.indexOf(")", linkOpen) === -1) return true;
++    const tagOpen = line.lastIndexOf("<");
++    if (tagOpen !== -1 && /^<[A-Za-z/!]/.test(line.slice(tagOpen)) && line.indexOf(">", tagOpen) === -1) return true;
++    if (REFERENCE_DEFINITION.test(line)) return true;
++    if (line.includes("|") && TABLE_DELIMITER_ROW_SO_FAR.test(line) && /-/.test(line)) return true;
++    return false;
++  };
++}
++
+ // Inline spans inside a prose line that must be copied through unchanged,
+ // starting with a backslash escape and the character it protects.
+ const PROTECTED_INLINE =
+diff --git a/src/lib/spelling.ts b/src/lib/spelling.ts
+index fb4c1fa..e1dd460 100644
+--- a/src/lib/spelling.ts
++++ b/src/lib/spelling.ts
+@@ -19,11 +19,16 @@
+ // the switching waits until the editor is on screen and holds the caret.
+ //
+ // And the idle pass has to get its turn: see drawFrames below.
++//
++// There is a second way to a whole-document check, which leaves the
++// underlines in place while it runs: see recheckSpellingQuietly below.
+ 
+ const pending = new WeakMap<HTMLElement, number>();
+ const scheduled = new WeakMap<HTMLElement, number>();
+ const waiting = new WeakSet<HTMLElement>();
+ const hidden = new WeakMap<HTMLElement, IntersectionObserver>();
++const quiet = new WeakMap<HTMLElement, number>();
++let lastSwitching = 0;
+ let framesUntil = 0;
+ let drawingFrames = false;
+ 
+@@ -168,6 +173,8 @@ export function recheckSpelling(editor: HTMLElement | null | undefined): void {
+     if (editor.getClientRects().length === 0) { recheckWhenShown(editor); return; }
+     keepCaretOutOfIgnoredWords(editor);
+     if (!caretAllowsChecking(editor)) { recheckWhenCaretAllows(editor); return; }
++    cancelQuietRecheck(editor);
++    lastSwitching = performance.now();
+     editor.setAttribute("spellcheck", "false");
+     editor.setAttribute("spellcheck", "true");
+     // Two seconds for a short document; a 2 MB one takes Chromium up to ten.
+@@ -193,3 +200,83 @@ export function recheckSpellingSoon(editor: HTMLElement | null | undefined, dela
+ export function postponeSpellingRecheck(editor: HTMLElement | null | undefined, delay = 1000): void {
+   if (editor && scheduled.has(editor)) recheckSpellingSoon(editor, delay);
+ }
++
++// The quiet whole-document check.
++//
++// Chromium checks a whole document again by itself, without being asked,
++// once the length of its text has changed by more than 1,024 characters
++// since the last whole check. That check replaces the underlines piece by
++// piece: nothing disappears first. The editor asks for it by changing the
++// length of the text Chromium counts, without touching the document: an
++// invisible piece of filler inside the editor element (put there by
++// QuietRecheck.ts) is filled or emptied. Chromium notices at its next idle
++// pass, which is started here by switching spell checking on for an element
++// that holds nothing.
++//
++// If Chromium cannot check now (the caret is elsewhere, the editor is
++// hidden), nothing is lost: the changed length still counts at its next
++// pass, which the next caret movement in the document starts.
++
++const FILLER_LENGTH = 1100;
++// Milliseconds after a recheck by switching in which a change is sure to be
++// in time for that recheck's own pass over the document.
++const SWITCHING_COVERS = 800;
++// The filler is never empty. An empty element that cannot be edited, at the
++// end of the document, is a place of its own for Chromium's caret: Ctrl+End
++// went behind it instead of to the end of the last line, and Chromium does
++// not scroll to a caret there. With text in it, the caret passes it by.
++const FILLER_SHORT = "\u00A0";
++const FILLER_LONG = "\u00A0".repeat(1 + FILLER_LENGTH);
++let poke: HTMLElement | null = null;
++
++/** The filler element for one editor. It takes no room, cannot be selected, and is not read aloud. */
++export function createSpellingFiller(): HTMLElement {
++  const filler = document.createElement("span");
++  filler.setAttribute("data-spelling-filler", "");
++  filler.setAttribute("aria-hidden", "true");
++  filler.setAttribute("spellcheck", "false");
++  // No clipping here: Chromium leaves text out of its count when a box of no size clips it.
++  filler.style.cssText = "position:absolute;font-size:0;line-height:0;white-space:pre;user-select:none;pointer-events:none";
++  filler.textContent = FILLER_SHORT;
++  return filler;
++}
++
++function cancelQuietRecheck(editor: HTMLElement): void {
++  const timer = quiet.get(editor);
++  if (timer === undefined) return;
++  window.clearTimeout(timer);
++  quiet.delete(editor);
++}
++
++/**
++ * Have the whole document checked again without any underline blinking,
++ * shortly after editing pauses. For changes that are not typed (formatting,
++ * Undo, a paragraph split or joined), which leave text without underlines
++ * where Chromium does not look again by itself.
++ */
++export function recheckSpellingQuietly(editor: HTMLElement | null | undefined, delay = 300): void {
++  if (!editor) return;
++  cancelQuietRecheck(editor);
++  const asked = performance.now();
++  quiet.set(editor, window.setTimeout(() => {
++    quiet.delete(editor);
++    if (!editor.isConnected || editor.getAttribute("spellcheck") !== "true") return;
++    // A recheck by switching covers this change if it is still to come, or
++    // if its whole-document pass had not started yet when the change was
++    // made: that pass starts a second after the switching at the earliest.
++    // A change made later than that is not covered by it.
++    if (pending.has(editor) || asked - lastSwitching < SWITCHING_COVERS) return;
++    const filler = editor.querySelector<HTMLElement>(":scope > [data-spelling-filler]");
++    if (!filler) return;
++    filler.textContent = filler.textContent === FILLER_SHORT ? FILLER_LONG : FILLER_SHORT;
++    if (!poke) {
++      poke = document.createElement("span");
++      poke.hidden = true;
++      document.body.appendChild(poke);
++    }
++    poke.setAttribute("spellcheck", "false");
++    poke.setAttribute("spellcheck", "true");
++    drawFrames(2000 + (editor.textContent?.length ?? 0) / 250);
++  }, delay));
++}
++
+diff --git a/tests/find-smoke.cjs b/tests/find-smoke.cjs
+index 8e74a2a..4eda653 100644
+--- a/tests/find-smoke.cjs
++++ b/tests/find-smoke.cjs
+@@ -50,7 +50,7 @@ const allRed = Object.fromEntries(MISSPELLED.map(word => [word, 'red']));
+     for (let i = 0; i < bitmap.length; i += 4) if (bitmap[i + 2] > 235 && bitmap[i + 1] > 215 && bitmap[i] < 232) { count++; blue += bitmap[i]; }
+     return { share: count / (bitmap.length / 4), blue: count ? blue / count : 255 };
+   }, rect);
+-  const counter = () => page().getByText(/^\d+\/\d+$/).first().innerText();
++  const counter = () => page().getByText(/^\d+\/\d+\+?$/).first().innerText();
+   const texts = list => list.map(entry => entry.text.toLowerCase());
+   const findBox = () => page().getByPlaceholder('Find in note...');
+   const replaceBox = () => page().getByPlaceholder('Replace with...');
+@@ -144,9 +144,8 @@ const allRed = Object.fromEntries(MISSPELLED.map(word => [word, 'red']));
+   console.log('PASS: the highlights follow their words through typing before, against and inside them, through Undo, and go with a deleted match');
+ 
+   // 4. Closing Find: the highlights go, the red lines do not even blink.
+-  // (Undo redrew two paragraphs, which costs them their red lines whatever
+-  // Find does; a recheck brings those back first.)
+-  await command('recheck-spelling');
++  // (Undo redrew two paragraphs, which cost them their red lines whatever
++  // Find does; since 1.3.3 those come back by themselves.)
+   await expectMarks({ ...allRed, Qarth: 'red' }, 'before closing Find');
+   await findBox().focus();
+   await pause(1500);
+@@ -218,6 +217,141 @@ const allRed = Object.fromEntries(MISSPELLED.map(word => [word, 'red']));
+   await expectMarks({ Qarth: 'ignored', peeple: 'red', recieve: 'red', definately: 'red', occured: 'red' }, 'back from the source view');
+   console.log('PASS: Find in Markdown source view selects its match, and the formatted view comes back with its red lines');
+ 
++  // 9. What the keyboard gives finds what Smart Typography makes of it; a
++  // typeset character in the Find box finds only itself.
++  const fence = '```';
++  const TYPESET = [
++    '# Find and what is typed', '',
++    'She said “don’t stop” and then—after a pause—nothing… at all.', '',
++    'A plain line: don\'t stop, said "she" -- and so on...', '',
++    'She read the *Odyssey* in a week. He said **stop right there** and left. A [linked phrase](https://example.com) here.', '',
++    'Bran went north. Then Bran came back.', '',
++    'In code: `Bran here` stays.', '',
++    fence, 'Bran in a block -- with "quotes"', fence, '',
++  ].join('\n');
++  const look = async (query) => {
++    await findBox().fill(query);
++    await pause(450);
++    const painted = await highlights();
++    return { count: await counter(), texts: [...painted.current, ...painted.others].map(entry => entry.text) };
++  };
++  await app.open(await app.write('Typeset.md', TYPESET));
++  await command('find');
++  await findBox().waitFor();
++  assert.deepEqual(await look("don't"), { count: '1/2', texts: ['don’t', "don't"] });
++  assert.deepEqual(await look('"'), { count: '1/6', texts: ['“', '”', '"', '"', '"', '"'] });
++  assert.deepEqual(await look('--'), { count: '1/4', texts: ['—', '—', '--', '--'] });
++  assert.deepEqual(await look('...'), { count: '1/2', texts: ['…', '...'] });
++  assert.deepEqual(await look('said "she" --'), { count: '1/1', texts: ['said "she" --'] });
++  assert.deepEqual(await look('—'), { count: '1/2', texts: ['—', '—'] });
++  assert.deepEqual(await look('…'), { count: '1/1', texts: ['…'] });
++  assert.deepEqual(await look('don’t'), { count: '1/1', texts: ['don’t'] });
++  assert.deepEqual(await look('“'), { count: '1/1', texts: ['“'] });
++  console.log('PASS: a typed apostrophe, quotation mark, two hyphens and three periods find the typeset characters too; a typeset character finds only itself');
++
++  // 10. A phrase is found across a change of formatting, and can be replaced.
++  assert.deepEqual(await look('the odyssey in'), { count: '1/1', texts: ['the Odyssey in'] });
++  assert.deepEqual(await look('said stop right'), { count: '1/1', texts: ['said stop right'] });
++  assert.deepEqual(await look('a linked phrase here'), { count: '1/1', texts: ['A linked phrase here'] });
++  await findBox().press('Escape');
++  await command('replace');
++  await replaceBox().waitFor();
++  await findBox().fill('the odyssey in');
++  await replaceBox().fill('the Iliad in');
++  await pause(450);
++  await replaceBox().press('Enter');
++  await pause(400);
++  assert((await markdown()).includes('She read the Iliad in a week.'), `Replace across formatting gave: ${(await markdown()).split('\n')[6]}`);
++  assert.equal(await counter(), '0/0');
++  console.log('PASS: a phrase is found although part of it is italic, bold or a link, and Replace replaces the whole of it');
++
++  // 11. What Replace puts in follows Smart Typography, as if typed at that
++  // place: curly quotes by what stands before them, an em dash, an ellipsis.
++  // Never in code. And exactly as typed when Smart Typography is off.
++  await findBox().fill('bran');
++  await replaceBox().fill('Bran\'s "wolf" -- so...');
++  await pause(450);
++  assert.equal(await counter(), '1/4');
++  await replaceBox().press('Control+Enter');
++  await pause(500);
++  let written = await markdown();
++  assert.equal(written.split('Bran’s “wolf” — so…').length - 1, 2, `Replace did not typeset its text in prose: ${written.split('\n')[8]}`);
++  assert.equal(written.split('Bran\'s "wolf" -- so...').length - 1, 2, 'Replace changed what it puts into code');
++  const smartTypography = async (on) => {
++    await command('settings');
++    const toggle = page().getByRole('switch', { name: 'Smart Typography' });
++    await toggle.waitFor();
++    if ((await toggle.getAttribute('aria-checked')) !== String(on)) await toggle.click();
++    await page().getByRole('button', { name: 'Back to document', exact: true }).click();
++    await pause(400);
++  };
++  await findBox().press('Escape');
++  await smartTypography(false);
++  await command('replace');
++  await replaceBox().waitFor();
++  await findBox().fill('north');
++  await replaceBox().fill('"north" -- it\'s...');
++  await pause(450);
++  await replaceBox().press('Control+Enter');
++  await pause(500);
++  written = await markdown();
++  assert(written.includes('went "north" -- it\'s....'), `With Smart Typography off, Replace should put in what was typed: ${written.split('\n')[8]}`);
++  await findBox().press('Escape');
++  await smartTypography(true);
++  console.log('PASS: Replace typesets its text like typing when Smart Typography is on, leaves code alone, and puts in what was typed when it is off');
++
++  // 12. Replace All replaces every match, also beyond the 500 that Find lists.
++  const MANY = '# Many\n\n' + Array.from({ length: 400 }, (_, i) => `Paragraph ${i + 1}: Qarth is far, and Qarth is old, and the road to Qarth is long.`).join('\n\n') + '\n';
++  await app.open(await app.write('Many.md', MANY));
++  const occurrences = word => page().evaluate(({ active, word }) => document.querySelector(`${active} .tiptap`).editor.getText().split(word).length - 1, { active, word });
++  await command('replace');
++  await replaceBox().waitFor();
++  await findBox().fill('qarth');
++  await replaceBox().fill('Meereen');
++  await pause(600);
++  assert.equal(await counter(), '1/500+');
++  await replaceBox().press('Control+Enter');
++  await pause(1500);
++  assert.deepEqual([await occurrences('Qarth'), await occurrences('Meereen')], [0, 1200], 'Replace All should replace every match');
++  assert.equal(await counter(), '0/0');
++  await findBox().press('Escape');
++  await inEditor();
++  await page().keyboard.press('Control+z');
++  await pause(1200);
++  assert.deepEqual([await occurrences('Qarth'), await occurrences('Meereen')], [1200, 0], 'One Undo should take all of Replace All back');
++  console.log('PASS: Replace All replaces all 1,200 matches where Find lists 500 ("1/500+"), and one Undo takes it back');
++
++  // 13. The Markdown source view: the same matching, and Replace typesets
++  // in prose but not in code.
++  await app.open(await app.write('Typeset source.md', TYPESET));
++  await command('source');
++  await page().waitForSelector(`${active} textarea`);
++  const sourceText = () => page().evaluate(active => document.querySelector(`${active} textarea`).value, active);
++  const selected = () => page().evaluate(active => { const box = document.querySelector(`${active} textarea`); return box.value.slice(box.selectionStart, box.selectionEnd); }, active);
++  await command('replace');
++  await replaceBox().waitFor();
++  await findBox().fill("don't");
++  await pause(500);
++  assert.equal(await counter(), '1/2');
++  assert.equal(await selected(), 'don’t');
++  await findBox().fill('--');
++  await pause(500);
++  assert.equal(await counter(), '1/4');
++  await findBox().fill('—');
++  await pause(500);
++  assert.equal(await counter(), '1/2');
++  await findBox().fill('bran');
++  await replaceBox().fill('Bran\'s "wolf"');
++  await pause(500);
++  assert.equal(await counter(), '1/4');
++  await replaceBox().press('Control+Enter');
++  await pause(600);
++  written = await sourceText();
++  assert.equal(written.split('Bran’s “wolf”').length - 1, 2, 'Replace in source view did not typeset its text in prose');
++  assert(written.includes('`Bran\'s "wolf" here`') && written.includes('\nBran\'s "wolf" in a block'), 'Replace in source view changed what it puts into code');
++  await findBox().press('Escape');
++  console.log('PASS: in Markdown source view the same matches are found, and Replace typesets in prose but not in code');
++
+   assert.deepEqual(app.errors, [], `Renderer errors: ${app.errors.join('\n')}`);
+   await app.stop();
+   console.log('FIND CHECKS DONE');
+diff --git a/tests/find-text.test.mts b/tests/find-text.test.mts
+new file mode 100644
+index 0000000..b1dd404
+--- /dev/null
++++ b/tests/find-text.test.mts
+@@ -0,0 +1,107 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { Schema } from 'prosemirror-model';
++import { findInText, findPattern } from '../src/lib/find-text.ts';
++import { findInDocument } from '../src/lib/find-in-document.ts';
++
++const found = (query: string, text: string) => {
++  const pattern = findPattern(query);
++  return pattern ? findInText(text, pattern).matches.map(match => text.slice(match.from, match.to)) : [];
++};
++
++test('capital and small letters count as the same, and the text is looked for as it is', () => {
++  assert.deepEqual(found('qarth', 'Qarth, QARTH and qarth.'), ['Qarth', 'QARTH', 'qarth']);
++  assert.deepEqual(found('a.b', 'a.b axb'), ['a.b']);
++  assert.deepEqual(found('(x)[y]{z}*+?^$|\\', 'see (x)[y]{z}*+?^$|\\ here'), ['(x)[y]{z}*+?^$|\\']);
++  assert.deepEqual(found('café 😀', 'A CAFÉ 😀 and a cafe 😀'), ['CAFÉ 😀']);
++  assert.equal(findPattern(''), null);
++});
++
++test('a straight apostrophe or quotation mark finds the curly ones too', () => {
++  assert.deepEqual(found("don't", "Don’t, don't, don‘t, dont"), ['Don’t', "don't", 'don‘t']);
++  assert.deepEqual(found('"yes"', 'She said “yes” and "yes" and ”yes“.'), ['“yes”', '"yes"', '”yes“']);
++  assert.deepEqual(found("'", "it’s ‘so’ 'x'").length, 5);
++});
++
++test('two hyphens find an em dash, three periods an ellipsis', () => {
++  assert.deepEqual(found('--', 'a—b a--b a-b'), ['—', '--']);
++  assert.deepEqual(found('word--word', 'word—word, word--word'), ['word—word', 'word--word']);
++  assert.deepEqual(found('...', 'wait… wait... wait..'), ['…', '...']);
++  assert.deepEqual(found('wait....', 'wait…. wait....'), ['wait….', 'wait....']);
++  assert.deepEqual(found('......', '…… ......'), ['……', '......']);
++});
++
++test('a longer run of hyphens is looked for as it is', () => {
++  assert.deepEqual(found('---', '--- —- |---|'), ['---', '---']);
++  assert.deepEqual(found('-', 'a-b — c'), ['-']);
++  // Two typed hyphens are still found inside a longer run, as before.
++  assert.deepEqual(found('--', '---'), ['--']);
++});
++
++test('one way only: the typeset characters find themselves', () => {
++  assert.deepEqual(found('—', 'a—b a--b |---|'), ['—']);
++  assert.deepEqual(found('…', 'wait… wait...'), ['…']);
++  assert.deepEqual(found('don’t', "don’t don't"), ['don’t']);
++  assert.deepEqual(found('“yes”', '“yes” "yes"'), ['“yes”']);
++});
++
++test('matches do not overlap; a limit cuts the list, not the count', () => {
++  const pattern = findPattern('aa') as RegExp;
++  assert.deepEqual(findInText('aaaaa', pattern).matches, [{ from: 0, to: 2 }, { from: 2, to: 4 }]);
++  const many = findInText('x '.repeat(1200), findPattern('x') as RegExp, 500);
++  assert.equal(many.matches.length, 500);
++  assert.equal(many.total, 1200);
++  assert.deepEqual(many.matches[499], { from: 998, to: 999 });
++});
++
++const schema = new Schema({
++  nodes: {
++    doc: { content: 'block+' },
++    paragraph: { group: 'block', content: 'inline*' },
++    codeBlock: { group: 'block', content: 'text*', code: true },
++    blockquote: { group: 'block', content: 'block+' },
++    hardBreak: { group: 'inline', inline: true },
++    text: { group: 'inline' },
++  },
++  marks: { italic: {}, bold: {}, link: { attrs: { href: {} } } },
++});
++const text = (value: string, ...marks: string[]) => schema.text(value, marks.map(name => schema.mark(name, name === 'link' ? { href: 'https://example.com' } : null)));
++const paragraph = (...content: Parameters<typeof schema.node>[2][]) => schema.node('paragraph', null, content as never);
++
++test('a phrase is found across a change of formatting, at the right places', () => {
++  const doc = schema.node('doc', null, [
++    paragraph(text('She read the '), text('Odyssey', 'italic'), text(' in a week.')),
++    schema.node('blockquote', null, [paragraph(text('He said '), text('stop', 'bold'), text(' right there. A '), text('linked phrase', 'link'), text('.'))]),
++    paragraph(text('Plain: read the Odyssey in a week.')),
++  ]);
++  const look = (query: string) => findInDocument(doc, findPattern(query) as RegExp).matches.map(match => doc.textBetween(match.from, match.to));
++  assert.deepEqual(look('the odyssey in'), ['the Odyssey in', 'the Odyssey in']);
++  assert.deepEqual(look('said stop right'), ['said stop right']);
++  assert.deepEqual(look('a linked'), ['A linked']);
++  assert.deepEqual(look('odyssey'), ['Odyssey', 'Odyssey']);
++  // The positions are those of the document: the first paragraph starts at 1.
++  assert.deepEqual(findInDocument(doc, findPattern('read the Odyssey') as RegExp).matches[0], { from: 5, to: 21 });
++});
++
++test('a match does not run across a line break or from one paragraph into the next', () => {
++  const doc = schema.node('doc', null, [
++    paragraph(text('one'), schema.node('hardBreak'), text('two')),
++    paragraph(text('three')),
++    schema.node('codeBlock', null, [text('git log --oneline')]),
++  ]);
++  const look = (query: string) => findInDocument(doc, findPattern(query) as RegExp).matches.map(match => doc.textBetween(match.from, match.to));
++  assert.deepEqual(look('onetwo'), []);
++  assert.deepEqual(look('twothree'), []);
++  assert.deepEqual(look('two'), ['two']);
++  assert.deepEqual(findInDocument(doc, findPattern('two') as RegExp).matches[0], { from: 5, to: 8 });
++  assert.deepEqual(look('--oneline'), ['--oneline']);
++  assert.deepEqual(look('—'), []);
++});
++
++test('in a document too, a limit cuts the list and not the count', () => {
++  const doc = schema.node('doc', null, Array.from({ length: 300 }, () => paragraph(text('Qarth and Qarth and '), text('Qarth', 'italic'))));
++  const result = findInDocument(doc, findPattern('qarth') as RegExp, 500);
++  assert.equal(result.matches.length, 500);
++  assert.equal(result.total, 900);
++  assert(result.matches.every((match, index) => index === 0 || match.from >= result.matches[index - 1].to));
++});
+diff --git a/tests/paragraph-smoke.cjs b/tests/paragraph-smoke.cjs
+new file mode 100644
+index 0000000..1c340f7
+--- /dev/null
++++ b/tests/paragraph-smoke.cjs
+@@ -0,0 +1,279 @@
++// Red lines in long paragraphs, in the real app (Electron with a US English
++// dictionary), read off the screen like tests/ignore-smoke.cjs.
++//
++// What it guards. Chromium rechecks by itself only around the caret: a whole
++// paragraph of up to 1,024 characters, otherwise 512 characters either side.
++// Through 1.3.2 a paragraph longer than that lost its red lines away from
++// the caret whenever the editor changed text itself: Smart Typography
++// putting in a curly apostrophe, Undo, Bold, Italic, a paragraph split.
++// Now (1) the editor changes only the characters that differ, so typing with
++// Smart Typography and Undo of typing lose nothing, and (2) after changes
++// that rebuild text, the editor asks for a whole-document check that leaves
++// the other red lines in place. The filler that check works with must not
++// show anywhere: not in the text, the saved file, a copy, or at the caret.
++//
++// Run with: npm run test:paragraph. Needs a dictionary: see tests/spelling-smoke.cjs.
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const { startSpellingApp, active, pause } = require('./spelling-harness.cjs');
++
++const sentence = 'The road went on through the hills and the travelers kept walking toward the far city. ';
++// The long paragraph: 1,672 characters. Its two misspellings are 800
++// characters before and 820 characters after the word MIDDLE.
++const LONG = `# The Heading has a mispelled word
++
++First paragraph: a recieve error at the start.
++
++Longstart has an acommodate error. ${sentence.repeat(9)}MIDDLE of the paragraph is here. ${sentence.repeat(9)}There is an embarass error at the end.
++
++Third paragraph: a wierd word.
++`;
++const WORDS = ['mispelled', 'recieve', 'acommodate', 'embarass', 'wierd'];
++const QUOTED = `# The Heading has a mispelled word
++
++"Quoted at the start," she said. ${sentence.repeat(8)}Here is an acommodate error. ${sentence.repeat(8)}And it ends with "a quotation."
++
++Third paragraph: a wierd word.
++`;
++const SHORT = `# The Heading has a mispelled word
++
++Second paragraph: a seperate mistake, then plain words, and an occured error.
++
++Third paragraph: a wierd word.
++`;
++
++(async () => {
++  const watchdog = setTimeout(() => { console.error('Paragraph test timed out'); process.exit(1); }, 420000);
++  const app = await startSpellingApp({ name: 'paragraph', display: process.env.SCRATCH_DISPLAY_NUMBER || '131' });
++  const key = name => app.page.keyboard.press(name);
++  const type = text => app.page.keyboard.type(text, { delay: 40 });
++  const red = words => Object.fromEntries(words.map(word => [word, 'red']));
++  const inEditor = () => app.page.waitForFunction(active => document.activeElement === document.querySelector(`${active} .tiptap`), active);
++  const select = async (passage, offset, length = 0) => {
++    await app.page.evaluate(({ active, passage, offset, length }) => {
++      const editor = document.querySelector(`${active} .tiptap`).editor;
++      let from = null;
++      editor.state.doc.descendants((node, pos) => { if (from === null && node.isText && node.text.includes(passage)) from = pos + node.text.indexOf(passage) + offset; });
++      if (from === null) throw new Error(`not in the document: ${passage}`);
++      editor.chain().focus().setTextSelection({ from, to: from + length }).run();
++    }, { active, passage, offset, length });
++    await inEditor();
++    await pause(250);
++  };
++  const open = async (name, text, words) => {
++    await app.open(await app.write(name, text));
++    await app.expectMarks(red(words), `${name}: opened`, 12000);
++  };
++  // Every look at the screen while `during` runs and for a while after: these
++  // words red each time. One look alone does not count as lost: when a line
++  // of text moves (Enter, a word made bold), a look can catch the picture of
++  // the moment before. A red line that blinks is away for about a second,
++  // which is fifteen looks.
++  const neverLost = async (words, during, label, duration = 1800) => {
++    const samples = await app.watch(words, during, { duration });
++    assert(samples.length > 10, `${label}: only ${samples.length} looks at the screen`);
++    const lostIn = sample => words.filter(word => !(sample[word] || []).length || sample[word].some(state => state !== 'red'));
++    samples.forEach((sample, index) => {
++      const next = samples[index + 1];
++      const lost = lostIn(sample).filter(word => !next || lostIn(next).includes(word));
++      assert.equal(lost.length, 0, `${label}: red line lost under ${lost.join(', ')} (looks ${index + 1} and ${index + 2} of ${samples.length})`);
++    });
++  };
++
++  // 1. Typing with Smart Typography in a long paragraph: the conversions
++  // rewrite one or two characters, and no red line anywhere goes away.
++  await open('Long typing.md', LONG, WORDS);
++  for (const [name, text] of [['an apostrophe', "don't "], ['a quotation mark', '"'], ['two hyphens', '--'], ['three periods', '...']]) {
++    await select('of the paragraph is here', 0);
++    await neverLost(WORDS, () => type(text), `Typing ${name} in a long paragraph`);
++  }
++  const typed = await app.markdown();
++  assert(typed.includes('don’t') && typed.includes('“') && typed.includes('—') && typed.includes('…'), 'Smart Typography did not convert what was typed');
++  console.log('PASS: an apostrophe, a quotation mark, two hyphens and three periods typed in a long paragraph cost no red line');
++
++  // 2. Undo of typing, and Backspace taking a conversion back.
++  await select('of the paragraph is here', 0);
++  await neverLost(WORDS, async () => { await type('some words '); await pause(300); await key('Control+z'); }, 'Typing and Undo in a long paragraph');
++  await select('of the paragraph is here', 0);
++  await neverLost(WORDS, async () => { await type('--'); await pause(200); await key('Backspace'); }, 'A conversion taken back with Backspace');
++  console.log('PASS: Undo of typing and a conversion taken back cost no red line');
++  await app.win.evaluate(window => window.destroy());
++
++  // 3. Formatting a word rebuilds the text after it. That red line comes
++  // back by itself; the others never go.
++  await open('Long formatting.md', LONG, WORDS);
++  const others = WORDS.filter(word => word !== 'embarass');
++  for (const [name, shortcut] of [['Bold', 'Control+b'], ['Italic', 'Control+i']]) {
++    await select('MIDDLE', 0, 6);
++    await neverLost(others, () => key(shortcut), `${name} in a long paragraph`, 2600);
++    await app.expectMarks(red(WORDS), `${name} in a long paragraph: the red line after the word`, 1500);
++  }
++  console.log('PASS: Bold and Italic in a long paragraph: the red line after the word comes back, the others stay');
++
++  // 4. A paragraph split and joined again, and Undo of the join.
++  await select(' of the paragraph is here', 0);
++  await neverLost(['mispelled', 'recieve', 'wierd'], () => key('Enter'), 'Enter in a long paragraph', 2600);
++  await app.expectMarks(red(WORDS), 'Enter in a long paragraph', 1500);
++  await neverLost(['mispelled', 'recieve', 'wierd'], () => key('Backspace'), 'Joining the paragraph again', 2600);
++  await app.expectMarks(red(WORDS), 'Joining the paragraph again', 1500);
++  await neverLost(['mispelled', 'recieve', 'wierd'], () => key('Control+z'), 'Undo of the join', 2600);
++  await app.expectMarks(red(WORDS), 'Undo of the join', 1500);
++  console.log('PASS: Enter in the middle of a long paragraph, joining it again, and Undo: every red line is back, the others stay');
++  await app.win.evaluate(window => window.destroy());
++
++  // 5. Edit > Apply Smart Typography changes a text at both ends; the red
++  // line in between comes back. The caret is far away, in the heading.
++  const quotedWords = ['mispelled', 'acommodate', 'wierd'];
++  await open('Quoted.md', QUOTED, quotedWords);
++  await select('The Heading', 0);
++  await neverLost(['mispelled', 'wierd'], () => app.command('smart-typography'), 'Apply Smart Typography', 2600);
++  await app.expectMarks(red(quotedWords), 'Apply Smart Typography', 1500);
++  assert(!(await app.markdown()).includes('"'), 'Apply Smart Typography left a straight quotation mark');
++  console.log('PASS: Apply Smart Typography: the red line between two changes comes back, the others stay');
++  await app.win.evaluate(window => window.destroy());
++
++  // 6. A short paragraph: the two cases that lost red lines until something
++  // was typed there.
++  const shortWords = ['mispelled', 'seperate', 'occured', 'wierd'];
++  await open('Short.md', SHORT, shortWords);
++  await select('then plain', 5, 5);
++  await key('Delete');
++  await pause(300);
++  await key('Control+z');
++  await app.expectMarks(red(shortWords), 'Undo of a deleted selection', 3000);
++  await select('then plain', 5, 5);
++  await key('Control+b');
++  await pause(300);
++  await key('Control+b');
++  await app.expectMarks(red(shortWords), 'Bold switched on and off', 3000);
++  console.log('PASS: a short paragraph: Undo of a deleted selection, and Bold on and off, keep their red lines');
++
++  // 7. The filler the quiet check works with shows nowhere.
++  const file = await app.write('Filler.md', SHORT);
++  await app.open(file);
++  await app.expectMarks(red(shortWords), 'Filler.md: opened', 12000);
++  for (let round = 0; round < 2; round++) {          // long, then short again (it is never empty: see check 10)
++    await select('plain', 0, 5);
++    await key('Control+i');
++    await pause(1800);
++    const state = await app.page.evaluate(active => {
++      const element = document.querySelector(`${active} .tiptap`);
++      const fillers = element.querySelectorAll('[data-spelling-filler]');
++      const box = fillers[0]?.getBoundingClientRect();
++      return { count: fillers.length, length: fillers[0]?.textContent.length, width: box?.width, height: box?.height, text: element.editor.getText(), scroll: element.scrollWidth - element.clientWidth };
++    }, active);
++    assert.equal(state.count, 1, 'There is not exactly one filler');
++    assert.equal(state.length, round === 0 ? 1101 : 1, `The filler was not made ${round === 0 ? 'long' : 'short again'}`);
++    assert(state.width === 0 && state.height === 0, `The filler takes room: ${state.width} x ${state.height}`);
++    assert(!state.text.includes(' '), 'The filler is in the document text');
++    assert(state.scroll <= 0, 'The filler made the editor wider than its window');
++    if (round === 0) {
++      // Long: the end of the document is still the end of its last paragraph.
++      await key('Control+End');
++      await type(' END');
++      const end = await app.page.evaluate(active => { const editor = document.querySelector(`${active} .tiptap`).editor; return { last: editor.state.doc.lastChild.textContent, atEnd: editor.state.selection.head === editor.state.doc.content.size - 1 }; }, active);
++      assert.equal(end.last, 'Third paragraph: a wierd word. END', 'Typing at the end of the document went elsewhere');
++      assert(end.atEnd, 'The caret is not at the end of the last paragraph');
++      await key('Control+a');
++      await app.page.evaluate(() => document.execCommand('copy'));
++      const copied = await app.electron.evaluate(({ clipboard }) => clipboard.readText());
++      assert(copied.includes('seperate') && copied.includes('END'), 'Select All and Copy did not copy the document');
++      assert(!copied.includes(' '), 'The filler was copied with the document');
++    }
++  }
++  await app.command('save');
++  await pause(900);
++  const saved = fs.readFileSync(file, 'utf8');
++  assert(saved.includes('Third paragraph: a wierd word. END') && !saved.includes(' '), 'The filler is in the saved file');
++  console.log('PASS: the filler takes no room and is not in the text, at the caret, in a copy, or in the saved file');
++
++  // 8. Formatting just after a recheck of the kind that blinks (as after a
++  // paste). That recheck goes over the document a second after it is asked
++  // for. A change made right after that pass is not covered by it, and
++  // needs the quiet check like any other.
++  await open('After a recheck.md', LONG, WORDS);
++  await select('MIDDLE', 0, 6);
++  await app.command('recheck-spelling');
++  await pause(1100);
++  await key('Control+b');
++  await app.expectMarks(red(WORDS), 'Bold 1.1 seconds after a recheck', 4000);
++  console.log('PASS: Bold in a long paragraph just after a blinking recheck has passed: the red line after the word still comes back');
++  await app.win.evaluate(window => window.destroy());
++
++  // 9. A recheck that is cut short. The caret leaves for the Find box right
++  // after a recheck is asked for, so Chromium's pass over the document finds
++  // it elsewhere and gives up: the red lines outside the caret's paragraph
++  // stay away. Nothing is done about that here; Chromium makes a pass of its
++  // own when the caret is in the document again, and that pass finds a
++  // document it has not checked. This check keeps an eye on that.
++  await open('Interrupted.md', SHORT, shortWords);
++  await select('plain', 0);
++  await app.command('recheck-spelling');
++  await app.command('find');
++  await app.page.getByPlaceholder('Find in note...').waitFor();
++  await pause(1800);
++  assert.deepEqual(app.byWord(await app.marks(['mispelled', 'wierd'])), { mispelled: ['plain'], wierd: ['plain'] }, 'The visit to the Find box did not cut the recheck short');
++  await app.page.getByPlaceholder('Find in note...').press('Escape');
++  await inEditor();
++  await key('ArrowRight');
++  await app.expectMarks(red(shortWords), 'A recheck cut short by the Find box', 3500);
++  console.log('PASS: a recheck cut short by a visit to the Find box is made up for once the caret is back in the document');
++
++  // 10. The end of the document is where it was. The filler is the last
++  // thing in the editor element. The caret must not stop at it: an empty
++  // filler was a place of its own for Chromium, Ctrl+End went behind it and
++  // the window did not follow (the editor puts the caret right a moment
++  // later, but scrolls only if that moment is short). And the last paragraph
++  // must keep the bottom margin of a last child, none, or every document is
++  // a little taller. Looked at with the filler short and long.
++  const TALL = `# A tall document has a mispelled word\n\n${Array.from({ length: 90 }, (_, i) => `Paragraph ${i + 1} of the tall document.`).join('\n\n')}\n\nThe last paragraph has a wierd word.\n`;
++  await open('Tall.md', TALL, ['mispelled']);
++  await app.page.evaluate(active => {
++    const root = document.querySelector(`${active} .tiptap`);
++    window.caretMoves = [];
++    // In the capture phase: before the editor reads the selection.
++    document.addEventListener('selectionchange', () => {
++      const node = document.getSelection().focusNode;
++      window.caretMoves.push(node === root ? 'the editor element itself' : node?.nodeType === 3 && !node.parentElement.closest('[data-spelling-filler]') ? 'text' : 'elsewhere');
++    }, true);
++  }, active);
++  const atEnd = () => app.page.evaluate(active => {
++    const root = document.querySelector(`${active} .tiptap`);
++    const filler = root.querySelector(':scope > [data-spelling-filler]');
++    const blocks = [...root.children].filter(child => child !== filler);
++    const last = blocks[blocks.length - 1].getBoundingClientRect();
++    const moves = window.caretMoves;
++    window.caretMoves = [];
++    return {
++      moves, filler: filler.textContent.length, fillerIsLast: root.lastElementChild === filler,
++      marginBottom: getComputedStyle(blocks[blocks.length - 1]).marginBottom, marginTop: getComputedStyle(blocks[0]).marginTop,
++      lastOnScreen: last.top >= 0 && last.bottom <= innerHeight, atEnd: root.editor.state.selection.head === root.editor.state.doc.content.size - 1,
++    };
++  }, active);
++  for (const length of ['short', 'long']) {
++    if (length === 'long') { await select('A tall document', 0, 1); await key('Control+b'); await pause(1800); }
++    await key('Control+Home');
++    await pause(400);
++    let end = await atEnd();
++    assert(!end.lastOnScreen, 'The document is not taller than its window');
++    await key('Control+End');
++    await pause(500);
++    end = await atEnd();
++    assert.equal(end.filler, length === 'short' ? 1 : 1101, `The filler should be ${length}`);
++    assert(end.fillerIsLast, 'The filler is not the last thing in the editor element');
++    assert.deepEqual(end.moves, ['text'], `Ctrl+End with the filler ${length}: the caret went to ${end.moves.join(', then to ')}`);
++    assert(end.atEnd && end.lastOnScreen, `Ctrl+End with the filler ${length}: the caret is ${end.atEnd ? '' : 'not '}at the end of the document and its last line is ${end.lastOnScreen ? '' : 'not '}on screen`);
++    assert.equal(end.marginBottom, '0px', 'The last paragraph has a bottom margin, which a last child has not');
++    assert.equal(end.marginTop, '0px', 'The first block has a top margin, which a first child has not');
++    await key('ArrowDown');
++    await key('ArrowRight');
++    await pause(400);
++    end = await atEnd();
++    assert.deepEqual(end.moves, [], `With the filler ${length}, the caret moved at the end of the document, where there is nowhere to go: to ${end.moves.join(', then to ')}`);
++  }
++  console.log('PASS: Ctrl+End goes straight to the end of the last line and the window follows, the arrow keys stay there, and the last paragraph keeps the margin of a last child, with the filler short and long');
++
++  clearTimeout(watchdog);
++  await app.stop();
++  console.log('PARAGRAPH CHECKS DONE');
++})().catch(error => { console.error(error); process.exit(1); });
+diff --git a/tests/pictures-smoke.cjs b/tests/pictures-smoke.cjs
+new file mode 100644
+index 0000000..35f9c0c
+--- /dev/null
++++ b/tests/pictures-smoke.cjs
+@@ -0,0 +1,133 @@
++// Pictures and other computers' shared folders, in the real app.
++//
++// What it guards: a document cannot make PicoMarQ ask another computer for a
++// file. On Windows such a request signs the user in to that computer, which
++// hands it the user's name and a form of the password that can be attacked.
++// The page gives such pictures no address, and the main process refuses the
++// request if one is made all the same. Pictures next to the document and on
++// the web still load, and the document's text keeps every address as it was.
++//
++// No real computer is named: the hosts end in .invalid, which never resolves.
++// Run with: npm run test:pictures. Uses tests/spelling-harness.cjs.
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++const { startSpellingApp, active, pause } = require('./spelling-harness.cjs');
++
++// A 1 x 1 PNG.
++const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
++const DOCUMENT = [
++  '# Pictures', '',
++  '![beside](pictures/beside.png)', '',
++  '![share one](//share-host.invalid/folder/one.png)', '',
++  '![share two](file://share-host.invalid/folder/two.png)', '',
++  '![share three](file:////share-host.invalid/folder/three.png)', '',
++  '<img src="file://share-host.invalid/folder/four.png" alt="share four">', '',
++  '![web](https://web-host.invalid/five.png)', '',
++  'Text after the pictures.', '',
++].join('\n');
++
++// Everything else in a document that could carry an address.
++const OTHER_WAYS = [
++  '# Other ways', '',
++  '```mermaid',
++  'graph TD',
++  '  A["<img src=\'//share-host.invalid/folder/label-one.png\'> label one"] --> B["<img src=\'file://share-host.invalid/folder/label-two.png\'> label two"]',
++  '  B --> C["<a href=\'//share-host.invalid/folder/label-link\'>link</a>"]',
++  '  click A "//share-host.invalid/folder/click-target" "tip"',
++  '```', '',
++  '$$\\includegraphics{//share-host.invalid/folder/math.png}$$', '',
++  'Inline math $\\href{//share-host.invalid/folder/math-link}{x}$, a [link](//share-host.invalid/folder/link.md) and <a href="file://share-host.invalid/folder/raw-link">a raw one</a>.', '',
++  '<video src="//share-host.invalid/folder/video.mp4"></video>', '',
++  '<iframe src="//share-host.invalid/folder/frame.html"></iframe>', '',
++  '<link rel="stylesheet" href="//share-host.invalid/folder/style.css">', '',
++  '<object data="//share-host.invalid/folder/object.bin"></object>', '',
++  '<div style="background:url(//share-host.invalid/folder/style-url.png)">styled</div>', '',
++  'Text after.', '',
++].join('\n');
++
++(async () => {
++  const watchdog = setTimeout(() => { console.error('Pictures test timed out'); process.exit(1); }, 120000);
++  const app = await startSpellingApp({ name: 'pictures', display: process.env.SCRATCH_DISPLAY_NUMBER || '133' });
++  const refused = () => app.electron.evaluate(() => [...globalThis.picomarqRefusedRequests]);
++  const file = await app.write('Pictures.md', DOCUMENT);
++  fs.mkdirSync(path.join(path.dirname(file), 'pictures'), { recursive: true });
++  fs.writeFileSync(path.join(path.dirname(file), 'pictures', 'beside.png'), PNG);
++  await app.open(file);
++  await app.page.waitForFunction(active => [...document.querySelectorAll(`${active} .tiptap img`)].some(img => img.alt === 'beside' && img.complete), active, { timeout: 8000 });
++  await pause(1500);
++  const pictures = await app.page.evaluate(active => Object.fromEntries([...document.querySelectorAll(`${active} .tiptap img`)].map(img => [img.alt, { address: img.getAttribute('src'), width: img.naturalWidth }])), active);
++
++  // 1. The picture next to the document is shown.
++  assert.equal(pictures.beside.width, 1, `The picture beside the document did not load: ${JSON.stringify(pictures.beside)}`);
++  assert(pictures.beside.address.startsWith('file:///') && pictures.beside.address.endsWith('/pictures/beside.png'));
++  console.log('PASS: a picture next to the document is shown');
++
++  // 2. Pictures on another computer's share get no address, and nothing is asked of that computer.
++  for (const name of ['share one', 'share two', 'share three', 'share four']) {
++    assert(pictures[name], `The picture "${name}" is missing from the document`);
++    assert.equal(pictures[name].address, '', `"${name}" was given the address ${pictures[name].address}`);
++  }
++  assert.deepEqual(await refused(), [], 'The page asked for a file on another computer');
++  console.log('PASS: pictures in a shared folder on another computer are given no address, however the address is written');
++
++  // 3. A picture on the web keeps its address (it is asked for, as before).
++  assert.equal(pictures.web.address, 'https://web-host.invalid/five.png');
++  console.log('PASS: a picture on the web keeps its address');
++
++  // 4. The document itself is not changed: every address is still in its text.
++  const markdown = await app.markdown();
++  for (const address of ['pictures/beside.png', '//share-host.invalid/folder/one.png', 'file://share-host.invalid/folder/two.png', 'file:////share-host.invalid/folder/three.png', 'file://share-host.invalid/folder/four.png', 'https://web-host.invalid/five.png']) {
++    assert(markdown.includes(address), `The document lost the address ${address}`);
++  }
++  console.log('PASS: the document keeps every picture address as it was written');
++
++  // 5. The second barrier: a request made past the page's own check is
++  // stopped in the main process, before any file is asked for. (Such a
++  // request fails here in any case, there being no such computer; "blocked"
++  // is the answer that says it was stopped and never went out.)
++  const failed = [];
++  app.page.on('requestfailed', request => failed.push(`${request.url()} ${request.failure()?.errorText}`));
++  const ask = address => app.page.evaluate(address => new Promise(resolve => {
++    const picture = new Image();
++    picture.onload = () => resolve('loaded');
++    picture.onerror = () => resolve('refused');
++    picture.src = address;
++    setTimeout(() => resolve('no answer'), 5000);
++  }), address);
++  assert.equal(await ask('file://share-host.invalid/folder/direct.png'), 'refused');
++  assert.deepEqual(await refused(), ['file://share-host.invalid/folder/direct.png'], 'The main process should have refused the request');
++  for (let waited = 0; failed.length === 0 && waited < 2000; waited += 100) await pause(100);
++  assert.deepEqual(failed, ['file://share-host.invalid/folder/direct.png net::ERR_BLOCKED_BY_CLIENT'], 'The request should have been stopped before it went out');
++  // The page still gets its own files and the document's.
++  assert.equal(await ask(await app.page.evaluate(() => document.querySelector('img[alt="beside"]').src + '?again')), 'loaded');
++  assert.equal((await refused()).length, 1, 'A file on this computer was refused');
++  console.log('PASS: a request for a file on another computer is stopped in the main process too, before it goes out, and files on this computer still load');
++
++  // 6. Nothing else in a document asks another computer for a file: markup
++  // in a diagram's labels is shown as text, the math commands that fetch
++  // are off, other HTML is dropped, and a link does nothing until it is
++  // clicked (and is then opened only as a web or mail link).
++  await app.electron.evaluate(({ session }) => {
++    globalThis.picomarqAskedFor = [];
++    session.defaultSession.webRequest.onSendHeaders(details => globalThis.picomarqAskedFor.push(details.url));
++    session.defaultSession.webRequest.onErrorOccurred(details => globalThis.picomarqAskedFor.push(details.url));
++  });
++  await app.open(await app.write('Other ways.md', OTHER_WAYS));
++  await app.page.waitForFunction(active => [...document.querySelectorAll(`${active} .tiptap svg`)].some(svg => svg.textContent.includes('label one')), active, { timeout: 15000 });
++  await pause(2500);
++  const askedFor = await app.electron.evaluate(() => [...globalThis.picomarqAskedFor]);
++  assert(askedFor.some(address => address.startsWith('file:///')), 'The record of requests is empty: it should hold the window\'s own files');
++  assert.deepEqual(askedFor.filter(address => address.includes('share-host')), [], 'Something in the document asked another computer for a file');
++  assert.equal((await refused()).length, 1, 'A request had to be refused in the main process');
++  const carried = await app.page.evaluate(active => [...document.querySelectorAll(`${active} .tiptap :is([src], [data], [style*="url("])`)].map(element => element.outerHTML.slice(0, 160)), active);
++  assert.deepEqual(carried.filter(html => html.includes('share-host')), [], 'An element in the document carries an address on another computer');
++  const text = await app.page.evaluate(active => document.querySelector(`${active} .tiptap`).textContent, active);
++  assert(text.includes("<img src='//share-host.invalid/folder/label-one.png'> label one"), 'The diagram label should show its markup as text');
++  console.log('PASS: diagram labels, math, links and other HTML in a document ask no other computer for anything');
++
++  assert.deepEqual(app.errors, [], `Renderer errors: ${app.errors.join('\n')}`);
++  clearTimeout(watchdog);
++  await app.stop();
++  console.log('PICTURES CHECKS DONE');
++})().catch(error => { console.error(error); process.exit(1); });
+diff --git a/tests/protected-markdown.test.mts b/tests/protected-markdown.test.mts
+new file mode 100644
+index 0000000..ab19265
+--- /dev/null
++++ b/tests/protected-markdown.test.mts
+@@ -0,0 +1,55 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { insideProtectedMarkdown, protectedMarkdownPlaces } from '../src/lib/smart-typography.ts';
++
++// protectedMarkdownPlaces must give, at every place of every text, the answer
++// insideProtectedMarkdown gives there.
++const same = (markdown: string, step = 1) => {
++  const places = protectedMarkdownPlaces(markdown);
++  for (let caret = 0; caret <= markdown.length; caret += step) {
++    assert.equal(places(caret), insideProtectedMarkdown(markdown, caret), `at ${caret} of ${JSON.stringify(markdown.slice(0, 60))}: ${JSON.stringify(markdown.slice(Math.max(0, caret - 25), caret))}|`);
++  }
++};
++
++test('the same answers as insideProtectedMarkdown in a document with every kind of protected text', () => {
++  same([
++    '---', 'title: "A Book"', 'dashes: --', '---', '',
++    '# Heading', '', 'Prose with "quotes" and `inline "code"` and more "prose".', '',
++    '```js', 'const s = "text" -- ...;', '```', '', 'After the fence.', '',
++    '~~~', "it's code", '~~~', '',
++    '$$', 'x -- y', '$$', '', 'Inline $$a "b"$$ math and $5 for "that".', '',
++    '<!-- a "comment" --> after it "prose"', '<!-- open', 'still "inside"', '--> and "out" again', '',
++    'A [link "text"](https://example.com/a--b "title") and <span class="x">tag</span> and <https://x.example/a--b>.', '',
++    '[ref]: https://example.com "Title"', '',
++    '| a | b |', '|---|:-:|', '| "x" | y |', '',
++    '---', '', 'A rule above. The end "here".',
++  ].join('\n'));
++});
++
++test('the same answers without front matter, with an unclosed fence, and with front matter that never closes', () => {
++  same('Plain "text".\n\n---\n\n```\nunclosed "fence"\nto the end');
++  same('---\ntitle: x\nnever: "closed"\n\n# Heading "here"\n');
++  same('--- \nkey: v\n---   \n"After" front matter with spaces after the fences.\n--- \n');
++  same('$$\nmath "never" closed\n');
++  same('');
++  same('---');
++  same('---\n---');
++});
++
++test('the same answers in generated documents', () => {
++  const pieces = ['---', '```', '~~~', '$$', '<!--', '-->', '`', '"', "'", '--', '...', '](', ')', '<a ', '>', '|', '|---|', '[r]: ', ' ', 'word', '\n', '\n', '\n', '   ', '\t', '$', '---   '];
++  let seed = 12345;
++  const random = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
++  for (let round = 0; round < 400; round++) {
++    let markdown = round % 3 === 0 ? '---\n' : '';
++    const length = 5 + Math.floor(random() * 40);
++    for (let i = 0; i < length; i++) markdown += pieces[Math.floor(random() * pieces.length)];
++    same(markdown);
++  }
++});
++
++test('asked only at some places, in ascending order, the answers are the same', () => {
++  const markdown = ('Prose "one" with `code "x"` here.\n\n```\ncode "block"\n```\n\n').repeat(40);
++  same(markdown, 7);
++  same(markdown, 131);
++});
+diff --git a/tests/shared-folder-cases.cjs b/tests/shared-folder-cases.cjs
+new file mode 100644
+index 0000000..e9d3ed3
+--- /dev/null
++++ b/tests/shared-folder-cases.cjs
+@@ -0,0 +1,27 @@
++// Addresses and the other computer they point at (null: this computer, or not a file at all).
++// Used by tests/shared-folders.test.cjs (the main process) and tests/shared-folders.test.mts (the page).
++module.exports = [
++  ['file://server/share/x.png', 'server'],
++  ['file://SERVER/share/x.png', 'server'],
++  ['file://server.example.com/share/x.png', 'server.example.com'],
++  ['file://192.168.1.20/share/x.png', '192.168.1.20'],
++  ['file:////server/share/x.png', 'server'],
++  ['file://///server/share/x.png', 'server'],
++  ['file:///%5C%5Cserver%5Cshare%5Cx.png', 'server'],
++  ['file:///%2F%2Fserver/share/x.png', 'server'],
++  ['file:///\\\\server\\share\\x.png', 'server'],
++  ['file:\\\\\\\\server\\share\\x.png', 'server'],
++  ['  fi\tle://ser\nver/share/x.png ', 'server'],
++  ['FILE:////SERVER/share/x.png', 'server'],
++  ['file:///C:/Users/a/picture.png', null],
++  ['file:///C:/Users/a/my%20pictures/b.png', null],
++  ['file:///home/a/picture.png', null],
++  ['file://localhost/C:/Users/a/picture.png', null],
++  ['file:///Z:/mapped/drive/picture.png', null],
++  ['https://example.com/picture.png', null],
++  ['http://example.com//double/slash.png', null],
++  ['data:image/png;base64,AAAA', null],
++  ['blob:null/1234', null],
++  ['pictures/relative.png', null],
++  ['', null],
++];
+diff --git a/tests/shared-folders.test.cjs b/tests/shared-folders.test.cjs
+new file mode 100644
+index 0000000..9396bf2
+--- /dev/null
++++ b/tests/shared-folders.test.cjs
+@@ -0,0 +1,31 @@
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const { shareHostOf, shareHostOfPath, refusesRequest } = require('../desktop/shared-folders.cjs');
++const cases = require('./shared-folder-cases.cjs');
++
++test('a file: address on another computer is recognized however it is written', () => {
++  for (const [address, host] of cases) assert.equal(shareHostOf(address), host, address);
++});
++
++test('the computer a path is on', () => {
++  assert.equal(shareHostOfPath('\\\\Server\\share\\folder\\doc.md'), 'server');
++  assert.equal(shareHostOfPath('//server/share/doc.md'), 'server');
++  assert.equal(shareHostOfPath('C:\\Users\\a\\doc.md'), null);
++  assert.equal(shareHostOfPath('/home/a/doc.md'), null);
++  assert.equal(shareHostOfPath(null), null);
++  assert.equal(shareHostOfPath(''), null);
++});
++
++test('requests to other computers are refused, except to the one an open document or the program is on', () => {
++  const local = ['C:\\Program Files\\PicoMarQ\\resources\\app\\desktop', 'C:\\Users\\a\\doc.md', null];
++  assert.equal(refusesRequest('file://evil/share/x.png', local), true);
++  assert.equal(refusesRequest('file:////evil/share/x.png', local), true);
++  assert.equal(refusesRequest('file:///C:/Users/a/pictures/x.png', local), false);
++  assert.equal(refusesRequest('https://example.com/x.png', local), false);
++  const onShare = ['C:\\PicoMarQ\\resources\\app\\desktop', '\\\\fileserver\\home\\a\\doc.md'];
++  assert.equal(refusesRequest('file://fileserver/home/a/pictures/x.png', onShare), false);
++  assert.equal(refusesRequest('file://FILESERVER/other/x.png', onShare), false);
++  assert.equal(refusesRequest('file://evil/share/x.png', onShare), true);
++  // The program itself started from a share: its own files load.
++  assert.equal(refusesRequest('file://apps/tools/PicoMarQ/resources/app/dist/index.html', ['\\\\apps\\tools\\PicoMarQ\\resources\\app\\desktop']), false);
++});
+diff --git a/tests/shared-folders.test.mts b/tests/shared-folders.test.mts
+new file mode 100644
+index 0000000..bbe5eec
+--- /dev/null
++++ b/tests/shared-folders.test.mts
+@@ -0,0 +1,39 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import cases from './shared-folder-cases.cjs';
++import { resolveImageUrl, shareHostOf } from '../src/lib/desktop.ts';
++
++test('the page recognizes a file: address on another computer the same way as the main process', () => {
++  for (const [address, host] of cases as [string, string | null][]) assert.equal(shareHostOf(address), host, address);
++});
++
++test('pictures on this computer and on the web keep their addresses', () => {
++  const document = 'C:\\Users\\a\\book\\chapter.md';
++  assert.equal(resolveImageUrl('pictures/one.png', document), 'file:///C:/Users/a/book/pictures/one.png');
++  assert.equal(resolveImageUrl('..\\shared art\\two.png', document), 'file:///C:/Users/a/shared%20art/two.png');
++  assert.equal(resolveImageUrl('D:\\art\\three.png', document), 'file:///D:/art/three.png');
++  assert.equal(resolveImageUrl('file:///D:/art/three.png', document), 'file:///D:/art/three.png');
++  assert.equal(resolveImageUrl('https://example.com/four.png', document), 'https://example.com/four.png');
++  assert.equal(resolveImageUrl('data:image/png;base64,AAAA', document), 'data:image/png;base64,AAAA');
++  assert.equal(resolveImageUrl('pictures/one.png', null), 'pictures/one.png');
++  assert.equal(resolveImageUrl('pictures/one.png', '/home/a/book/chapter.md'), 'file:///home/a/book/pictures/one.png');
++});
++
++test('a picture in a shared folder on another computer gets no address', () => {
++  for (const document of ['C:\\Users\\a\\book\\chapter.md', '/home/a/chapter.md', null]) {
++    for (const source of [
++      '//evil/share/x.png', '\\\\evil\\share\\x.png', 'file://evil/share/x.png', 'file:////evil/share/x.png',
++      'file://///evil/share/x.png', 'file:///%5C%5Cevil%5Cshare%5Cx.png', 'FILE://EVIL/share/x.png', '//evil.example.com/x.png',
++    ]) assert.equal(resolveImageUrl(source, document), '', `${source} in ${document}`);
++  }
++});
++
++test('a document on a share shows the pictures of its own computer, and of no other', () => {
++  const document = '\\\\fileserver\\home\\a\\book\\chapter.md';
++  assert.equal(resolveImageUrl('pictures/one.png', document), 'file://fileserver/home/a/book/pictures/one.png');
++  assert.equal(resolveImageUrl('\\\\FileServer\\art\\two.png', document), 'file://fileserver/art/two.png');
++  assert.equal(resolveImageUrl('file://fileserver/art/two.png', document), 'file://fileserver/art/two.png');
++  assert.equal(resolveImageUrl('//evil/share/x.png', document), '');
++  assert.equal(resolveImageUrl('file://evil/share/x.png', document), '');
++  assert.equal(resolveImageUrl('C:\\local\\three.png', document), 'file:///C:/local/three.png');
++});
+diff --git a/tests/undo-smoke.cjs b/tests/undo-smoke.cjs
+new file mode 100644
+index 0000000..165ea37
+--- /dev/null
++++ b/tests/undo-smoke.cjs
+@@ -0,0 +1,125 @@
++// Undo and the text a document was opened with, in the real app.
++//
++// What it guards: putting a file's text into the editor is not an edit.
++// Through 1.3.2 it was the first step of the undo history: Ctrl+Z in a
++// document that had just been opened, or once more than there were changes,
++// took the whole text out, and a save in that state wrote an empty file.
++//
++// Run with: npm run test:undo. Uses tests/spelling-harness.cjs (it needs the
++// same dictionary as tests/spelling-smoke.cjs, although no spelling is read).
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const { startSpellingApp, active, pause } = require('./spelling-harness.cjs');
++
++const DOCUMENT = '# A Heading\n\nFirst paragraph of the document.\n\nSecond paragraph of the document.\n';
++const TEXT = 'A Heading\n\nFirst paragraph of the document.\n\nSecond paragraph of the document.';
++
++(async () => {
++  const watchdog = setTimeout(() => { console.error('Undo test timed out'); process.exit(1); }, 180000);
++  const app = await startSpellingApp({ name: 'undo', display: process.env.SCRATCH_DISPLAY_NUMBER || '132' });
++  const key = name => app.page.keyboard.press(name);
++  const state = () => app.page.evaluate(active => {
++    const editor = document.querySelector(`${active} .tiptap`).editor;
++    return { text: editor.getText(), canUndo: editor.can().undo(), canRedo: editor.can().redo() };
++  }, active);
++  const inEditor = () => app.page.waitForFunction(active => document.activeElement === document.querySelector(`${active} .tiptap`), active);
++  const caretAtEnd = async () => {
++    await app.page.evaluate(active => { document.querySelector(`${active} .tiptap`).editor.chain().focus('end').run(); }, active);
++    await inEditor();
++  };
++
++  // 1. A document that was just opened: there is nothing to undo.
++  const file = await app.write('Undo.md', DOCUMENT);
++  await app.open(file);
++  await pause(800);
++  assert.deepEqual(await state(), { text: TEXT, canUndo: false, canRedo: false }, 'A freshly opened document should have nothing to undo');
++  const paragraph = await app.page.locator(`${active} .tiptap p`).first().boundingBox();
++  await app.page.mouse.click(paragraph.x + 40, paragraph.y + paragraph.height / 2);
++  await inEditor();
++  await key('Control+z');
++  await pause(300);
++  assert.equal((await state()).text, TEXT, 'Ctrl+Z in a freshly opened document changed it');
++  await app.command('undo');
++  await pause(300);
++  assert.equal((await state()).text, TEXT, 'Edit > Undo in a freshly opened document changed it');
++  console.log('PASS: a freshly opened document has nothing to undo; Ctrl+Z and Edit > Undo leave its text alone');
++
++  // 2. Undo takes back what was typed and then stops at the opened text.
++  await caretAtEnd();
++  await app.page.keyboard.type(' More.', { delay: 40 });
++  await pause(700);
++  assert.equal((await state()).text, `${TEXT} More.`);
++  for (let press = 1; press <= 4; press++) {
++    await key('Control+z');
++    await pause(250);
++    assert.equal((await state()).text, TEXT, `Ctrl+Z number ${press} should leave the opened text`);
++  }
++  assert.equal((await state()).canUndo, false);
++  // Save in that state: the file keeps its text.
++  await app.command('save');
++  await pause(900);
++  assert(fs.readFileSync(file, 'utf8').includes('Second paragraph of the document.'), 'Saving after one Undo too many emptied the file');
++  await key('Control+y');
++  await pause(300);
++  assert.equal((await state()).text, `${TEXT} More.`, 'Redo should bring the typed text back');
++  console.log('PASS: Undo takes back what was typed and stops at the opened text; a save there keeps the file; Redo still works');
++
++  // 3. After a visit to the Markdown source view, Undo still stops at the opened text.
++  await app.command('source');
++  await app.page.waitForSelector(`${active} textarea`);
++  await app.command('source');
++  await app.page.waitForSelector(`${active} .tiptap`, { state: 'visible' });
++  await pause(900);
++  await inEditor();
++  const seen = [];
++  for (let press = 1; press <= 5; press++) {
++    await key('Control+z');
++    await pause(250);
++    seen.push((await state()).text);
++  }
++  assert(seen.includes(TEXT), 'After the source view, Undo should still take the typed text back');
++  assert(seen.every(text => text.includes('Second paragraph of the document.')), `After the source view, Undo emptied the document: ${JSON.stringify(seen)}`);
++  console.log('PASS: after a visit to the Markdown source view, Undo takes the typed text back and stops at the opened text');
++
++  // 4. Revert to Saved loads the file again: nothing to undo afterward.
++  await caretAtEnd();
++  await app.page.keyboard.type(' Unsaved words.', { delay: 30 });
++  await pause(600);
++  await app.answer(0);
++  await app.command('revert');
++  await app.page.waitForFunction(active => { const element = document.querySelector(`${active} .tiptap`); return element && !element.editor.getText().includes('Unsaved words'); }, active, { timeout: 8000 });
++  await pause(800);
++  const reverted = await state();
++  assert(reverted.text.includes('Second paragraph of the document.') && !reverted.canUndo, `After Revert there should be nothing to undo: ${JSON.stringify(reverted)}`);
++  await caretAtEnd();
++  await key('Control+z');
++  await pause(300);
++  assert.equal((await state()).text, reverted.text, 'Ctrl+Z after Revert changed the document');
++  console.log('PASS: after Revert to Saved there is nothing to undo, and Ctrl+Z leaves the text alone');
++
++  // 5. A new, empty document (it opens in a window of its own): typing can
++  // be undone, and that is all.
++  const opening = app.electron.waitForEvent('window', { timeout: 10000 });
++  await app.command('new');
++  const blank = await opening;
++  await blank.waitForSelector(`${active} .tiptap`);
++  await pause(800);
++  const blankState = () => blank.evaluate(active => {
++    const editor = document.querySelector(`${active} .tiptap`).editor;
++    return { text: editor.getText(), canUndo: editor.can().undo(), canRedo: editor.can().redo() };
++  }, active);
++  assert.deepEqual(await blankState(), { text: '', canUndo: false, canRedo: false }, 'A new document should have nothing to undo');
++  await blank.evaluate(active => { document.querySelector(`${active} .tiptap`).editor.chain().focus('end').run(); }, active);
++  await blank.waitForFunction(active => document.activeElement === document.querySelector(`${active} .tiptap`), active);
++  await blank.keyboard.type('abc', { delay: 40 });
++  await pause(600);
++  await blank.keyboard.press('Control+z');
++  await pause(300);
++  assert.deepEqual(await blankState(), { text: '', canUndo: false, canRedo: true });
++  console.log('PASS: in a new document, typing can be undone and nothing more');
++
++  assert.deepEqual(app.errors, [], `Renderer errors: ${app.errors.join('\n')}`);
++  clearTimeout(watchdog);
++  await app.stop();
++  console.log('UNDO CHECKS DONE');
++})().catch(error => { console.error(error); process.exit(1); });

@@ -1,0 +1,666 @@
+--- a/README.md
++++ b/README.md
+@@ -8,7 +8,9 @@
+ 
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. This is an unsigned personal test build, independent of upstream Scratch.
+ 
+-- Version 1.1.0 uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- PicoMarQ uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- Version 1.2.0 adds Settings > Startup > When PicoMarQ starts: Restore previous session (the default for existing profiles) or Start new session. The choice applies at the next launch, is remembered in AppData on each machine, and keeps preferences and recent files. New-session startup opens one blank document, or the file supplied by Windows when launched through a file association.
++- Restore mode continues automatic draft recovery. In New mode, unsaved recovery snapshots trigger a Restore Session / Start New Session prompt before any previous documents are cleared. Restore is the default and the Escape/close action; explicitly choosing New discards the recovered edits while leaving saved files untouched.
+ - File > New creates another window. File > Open, Open Recent, and file-association launches create a window for each selected file. Reopening an already-open file raises its existing window, preserving unsaved edits and avoiding conflicting copies. Open Recent keeps the last four distinct files opened or saved, including after restarting.
+ - Page width offers Full (the default) or Custom. Custom widths can be set in Settings or adjusted with the page-edge handles; double-click a handle to return to Full.
+ - Right-click menus with spelling suggestions: a misspelled word's suggestions and Add to Dictionary come first, then Bold and Italic (with their shortcuts; in source view they wrap the selection in `**` or `*`), Cut, Copy, Paste, and the table commands when the cursor is in a table. An existing selection is retained. (The editor registers its items synchronously from the DOM event and lets the browser's own context-menu request through, since only that request carries Chromium's suggestions.)
+@@ -21,7 +23,7 @@
+ - A live word count beside zoom in the status bar. It counts document text in both editing views, excluding Markdown formatting markers and hidden link URLs. The settings sample preview has been removed.
+ - Markdown files are saved manually. Recovery snapshots merge independently for each window, retaining drafts, selection, scroll, source mode, size, position, and maximized state. Preferences remain in the existing AppData profile and changes apply to every open window.
+ - File > Close Window (Ctrl+W), the title-bar close button, and Alt+F4 close only that window after Save/Discard/Cancel. Explicitly closed windows are removed from the restored workspace. Closing the last window exits the app.
+-- File > Exit (Ctrl+Shift+Q) checks all windows and restores the remaining saved documents as separate windows next time. Discard choices take effect only after every prompt succeeds; a later Cancel preserves all drafts and windows. Cancelling Save As also cancels closing. Recovery after an unexpected termination restores unsaved drafts.
++- File > Exit (Ctrl+Shift+Q) checks all windows and retains the remaining saved documents for the next launch when Restore is selected. Discard choices take effect only after every prompt succeeds; a later Cancel preserves all drafts and windows. Cancelling Save As also cancels closing. Unsaved drafts remain available for recovery after an unexpected termination.
+ - Revert to Saved confirms before rereading the current file from disk in the same window and clearing its undo history. It is disabled for untitled documents. A failed read preserves current text. The Refresh control for external edits uses the same operation.
+ - Find and Replace stays above the scrolling text in both views until explicitly closed. Each window has independent Find and Undo state.
+ - Conflict checking before replacing a file that changed elsewhere; Save As preserves both versions.
+@@ -68,13 +70,13 @@
+ npm start
+ ```
+ 
+-`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.1.0.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.2.0.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+ ## Verification
+ 
+-`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, and Markdown escaping. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
++`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, and Markdown escaping. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:startup` covers the new selector, persistence and live synchronization, legacy defaults, next-launch behavior, saved-file and preference preservation, requested-file launches, and both recovery choices after an actual forced termination. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
+ 
+ New installations keep recovery data under Electron's per-user app-data directory for PicoMarQ, separately from the original Scratch app. PicoMarQ detects and reuses a valid profile from Quill (0.1.6–0.1.11) or the earlier custom editor, preserving open documents, drafts, recent files, font, zoom, and other preferences. Previously saved preset page widths become Full; an existing Custom width is preserved. No account, AI model, cloud sync, updater, or analytics is configured. Remote images can be loaded if they appear in a document.
+ 
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.1.0
++PICOMARQ — WINDOWS BUILD 1.2.0
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+@@ -10,6 +10,21 @@
+ folder. Keep the executable in the same place if Windows already uses
+ it to open .md files. Preferences and recovery stay in the existing
+ AppData profile on each machine.
++
++STARTUP CHOICE
++Settings > Startup > When PicoMarQ starts offers Restore previous session
++(the default) or Start new session. The change takes effect at the next
++launch and does not close the documents you are currently editing.
++
++Start new session opens one blank document. Fonts, appearance settings,
++and recent files are kept. Opening a Markdown file from Windows opens
++that file under either startup setting.
++
++After an unexpected shutdown, Restore previous session recovers drafts
++automatically. With Start new session selected, PicoMarQ first offers
++Restore Session or Start New Session if it finds unsaved work. Restore is
++the default; choosing Start New Session explicitly discards recovered
++edits, without altering saved files.
+ 
+ ONE DOCUMENT PER WINDOW
+ New, Open, Open Recent, and opening a Markdown file from Windows create
+@@ -33,10 +48,10 @@
+ time. Closing the last window exits the application.
+ 
+ File > Exit (Ctrl+Shift+Q) checks every window and keeps the saved documents
+-for restoration as separate windows next time. A later Cancel keeps all
++for restoration as separate windows next time when Restore is selected. A later Cancel keeps all
+ windows and drafts, including those marked Discard earlier in that exit
+ attempt. Cancelling Save As also cancels closing. After an unexpected
+-termination, recovery restores unsaved drafts. Undo histories start fresh
++termination, unsaved drafts remain available for recovery. Undo histories start fresh
+ after restarting.
+ 
+ Revert to Saved confirms before replacing the current window's text with
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,4 +1,4 @@
+-# PicoMarQ 1.1.0 validation
++# PicoMarQ 1.2.0 validation
+ 
+ The source and Windows bundle were prepared from the same build. The existing
+ AppData profile selection is unchanged. Each recovered document becomes an
+@@ -7,9 +7,10 @@
+ ## Completed checks
+ 
+ - `npm run build`: TypeScript and production Vite build pass.
+-- `npm test`: 24 tests pass, including independent document recovery merges,
++- `npm test`: 28 tests pass, including independent document recovery merges,
+   atomic saving, external-edit conflicts, backup recovery, old-profile handling,
+-  context menus, Markdown escapes, and smart typography.
++  context menus, Markdown escapes, smart typography, legacy startup defaults,
++  and the separation of startup preferences from unsaved-draft recovery.
+ - `npm run test:desktop`: passes in the actual Electron 44.6.0 application on
+   Linux with Xvfb. Covers the existing compact layout and editing controls;
+   separate windows for New/Open; duplicate Open protection; cross-window native
+@@ -22,9 +23,18 @@
+   AppData profile including an unsaved untitled draft.
+ - `npm run test:typography`: passes in Electron, including both editing views,
+   settings, the Heading 4 style, and whole-document conversions and undo.
+-- `npm run test:equivalence`: 64 documents and 3,392 edited states compared;
+-  81 documents round-trip. Parsing, serialization, word counts and highlighting
+-  match the reference behavior.
++- `npm run test:startup`: passes in the actual Electron application. Covers
++  the Settings > Startup selector, default restoration of old profiles,
++  preference persistence and synchronization, retaining the current session
++  until the next launch, starting with one blank document, preserving files
++  and appearance/recent files, shell-supplied filenames, actual forced-exit
++  recovery of named and untitled drafts, accepting and declining recovery,
++  and retaining the saved preference after one-time recovery. The Settings
++  layout was also inspected visually.
++
++The unchanged editing engine passed the Markdown-equivalence suite for 1.1.0
++(64 documents, 3,392 edited states, and 81 document round-trips). This release
++changes startup and settings only; that suite was not rerun.
+ 
+ ## Platform coverage
+ 
+--- a/desktop/main.cjs
++++ b/desktop/main.cjs
+@@ -9,6 +9,7 @@
+ const { recentFiles } = require('./recent.cjs');
+ const { profileDirectory } = require('./profile.cjs');
+ const { contextMenuTemplate, sanitizeExtras } = require('./context-menu.cjs');
++const { shouldRestoreSession } = require('./startup.cjs');
+ 
+ app.setName('PicoMarQ');
+ app.setAppUserModelId('io.picomarq.markdown');
+@@ -465,8 +466,18 @@
+   });
+   app.whenReady().then(async () => {
+     const state = await store.load();
++    const restore = await shouldRestoreSession(state, async count => {
++      const result = await dialog.showMessageBox({
++        type: 'question', title: 'Recover Unsaved Work',
++        message: `PicoMarQ found unsaved work in ${count === 1 ? 'a document' : `${count} documents`} from the previous session.`,
++        detail: 'Restore Session reopens the previous documents with their unsaved edits. Start New Session discards those recovered edits. Your saved files and preferences are kept.',
++        buttons: ['Restore Session', 'Start New Session'], defaultId: 0, cancelId: 0, noLink: true,
++      });
++      return result.response === 0;
++    });
++    if (!restore) await store.update({ documents: [], activeDocumentId: null, settingsOpen: false });
+     // Each document in an existing v1 profile becomes a window, preserving drafts.
+-    for (const doc of state.documents) {
++    for (const doc of restore ? state.documents : []) {
+       const restored = { ...doc, view: { ...doc.view, settingsOpen: doc.view?.settingsOpen ?? (doc.id === state.activeDocumentId && state.settingsOpen) } };
+       await store.updateDocument(restored);
+       await createDocumentWindow(restored, { restored: true });
+@@ -478,7 +489,7 @@
+     }
+     if (!windows.size) await newDocumentWindow();
+     else {
+-      const wanted = requested.length ? store.get().activeDocumentId : state.activeDocumentId;
++      const wanted = requested.length ? store.get().activeDocumentId : restore ? state.activeDocumentId : null;
+       const record = [...windows.values()].find(record => record.id === wanted) || focusedRecord();
+       record?.window.focus();
+     }
+--- a/desktop/startup.cjs
++++ b/desktop/startup.cjs
+@@ -0,0 +1,10 @@
++// Startup preference and crash recovery are separate decisions. A dirty
++// recovery snapshot is never silently dropped by the blank-start preference.
++async function shouldRestoreSession(state, askToRestore) {
++  if (state.settings?.startupBehavior !== 'new') return true;
++  const unsaved = (state.documents || []).filter(doc => doc.content !== doc.diskContent);
++  if (!unsaved.length) return false;
++  return askToRestore(unsaved.length);
++}
++
++module.exports = { shouldRestoreSession };
+--- a/docs/KEYBOARD-SHORTCUTS.md
++++ b/docs/KEYBOARD-SHORTCUTS.md
+@@ -1,6 +1,6 @@
+ # PicoMarQ keyboard shortcuts
+ 
+-Version 1.1.0. Windows keys are shown; on a Mac, read Cmd for Ctrl and Option for Alt.
++Version 1.2.0. Windows keys are shown; on a Mac, read Cmd for Ctrl and Option for Alt.
+ 
+ PicoMarQ has two views: the **formatted view** (the normal writing view, with the icon toolbar) and the **Markdown source view** (the raw text of your file). Shortcuts in the first two sections work in both views unless noted.
+ 
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.1.0",
++  "version": "1.2.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.1.0",
++      "version": "1.2.0",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.1.0",
++  "version": "1.2.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -13,7 +13,8 @@
+     "test:desktop": "node tests/desktop-smoke.cjs",
+     "build:icon": "node scripts/build-icon.cjs",
+     "test:equivalence": "vite build --config tests/markdown-equivalence/vite.config.ts && node tests/markdown-equivalence/run.cjs",
+-    "test:typography": "node tests/typography-smoke.cjs"
++    "test:typography": "node tests/typography-smoke.cjs",
++    "test:startup": "node tests/startup-smoke.cjs"
+   },
+   "dependencies": {
+     "@radix-ui/react-alert-dialog": "^1.1.15",
+--- a/src/components/settings/EditorSettingsSection.tsx
++++ b/src/components/settings/EditorSettingsSection.tsx
+@@ -7,6 +7,7 @@
+   FontFamily,
+   EditorWidth,
+   ThemeColorKey,
++  StartupBehavior,
+ } from "../../types/note";
+ import { ChevronRightIcon, MinusIcon, PlusIcon } from "../icons";
+ import { cn } from "../../lib/utils";
+@@ -70,6 +71,8 @@
+ 
+ export function AppearanceSettingsSection() {
+   const {
++    startupBehavior,
++    setStartupBehavior,
+     resolvedTheme,
+     setTheme,
+     editorFontSettings,
+@@ -150,6 +153,29 @@
+ 
+   return (
+     <div className="space-y-8 py-8">
++      <section>
++        <h2 className="text-xl font-medium mb-3">Startup</h2>
++        <div className="rounded-[10px] border border-border p-4 space-y-3">
++          <div className="flex flex-wrap items-center justify-between gap-3">
++            <label htmlFor="startup-behavior" className="text-sm text-text font-medium">When PicoMarQ starts</label>
++            <Select
++              id="startup-behavior"
++              value={startupBehavior}
++              onChange={event => setStartupBehavior(event.target.value as StartupBehavior)}
++              aria-describedby="startup-description"
++              className="w-64 max-w-full"
++            >
++              <option value="restore">Restore previous session</option>
++              <option value="new">Start new session</option>
++            </Select>
++          </div>
++          <p id="startup-description" className="text-xs text-text-muted">
++            Applies the next time PicoMarQ starts. Preferences and recent files are kept. After an unexpected shutdown, unsaved work can still be recovered.
++          </p>
++        </div>
++      </section>
++      <div className="border-t border-border border-dashed" />
++
+       {/* Theme Section */}
+       <section className="pb-2">
+         <h2 className="text-xl font-medium mb-3">Theme</h2>
+--- a/src/context/ThemeContext.tsx
++++ b/src/context/ThemeContext.tsx
+@@ -1,7 +1,7 @@
+ import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+ import { toast } from 'sonner';
+ import { invoke } from '../lib/desktop';
+-import type { Settings, EditorFontSettings, EditorWidth, CustomColors, ThemeColorKey } from '../types/note';
++import type { Settings, EditorFontSettings, EditorWidth, CustomColors, ThemeColorKey, StartupBehavior } from '../types/note';
+ import { defaultThemeColors } from './theme-colors';
+ export { defaultThemeColors } from './theme-colors';
+ 
+@@ -16,6 +16,8 @@
+   return fonts.baseFontFamily === 'system-font' && fonts.systemFontFamily ? `${JSON.stringify(fonts.systemFontFamily)}, sans-serif` : fontPresets[fonts.baseFontFamily as keyof typeof fontPresets] || fontPresets['system-sans'];
+ }
+ interface ThemeContextType {
++  startupBehavior: StartupBehavior;
++  setStartupBehavior: (value: StartupBehavior) => void;
+   theme: ThemeMode;
+   resolvedTheme: 'light' | 'dark';
+   setTheme: (theme: ThemeMode) => void;
+@@ -126,6 +128,8 @@
+     patch({ [settingKey]: colors });
+   }
+   return <ThemeContext.Provider value={{
++    startupBehavior: settings.startupBehavior === 'new' ? 'new' : 'restore',
++    setStartupBehavior: value => patch({ startupBehavior: value }),
+     theme, resolvedTheme, setTheme: value => patch({ theme: { mode: value } }),
+     editorFontSettings: fonts,
+     setEditorFontSetting: (key, value) => patch({ editorFont: { ...defaultEditorFontSettings, ...settingsRef.current.editorFont, [key]: value } }),
+--- a/src/types/note.ts
++++ b/src/types/note.ts
+@@ -20,6 +20,7 @@
+ export type FontFamily = "system-sans" | "serif" | "monospace" | "system-font";
+ export type TextDirection = "auto" | "ltr" | "rtl";
+ export type EditorWidth = "full" | "custom";
++export type StartupBehavior = 'restore' | 'new';
+ 
+ export interface EditorFontSettings {
+   baseFontFamily?: FontFamily;
+@@ -47,6 +48,8 @@
+ // Appearance settings, saved separately from document files.
+ export interface Settings {
+   theme: ThemeSettings;
++  /** Behavior on the next launch; existing profiles default to restore. */
++  startupBehavior?: StartupBehavior;
+   editorFont?: EditorFontSettings;
+   editorWidth?: EditorWidth;
+   customEditorWidthPx?: number;
+--- a/tests/desktop-smoke.cjs
++++ b/tests/desktop-smoke.cjs
+@@ -10,6 +10,13 @@
+ let electron;
+ let page;
+ const errors = [];
++let completed = false;
++process.on('exit', () => { if (!completed) { console.error('Desktop checks exited before completion'); process.exitCode = 1; } });
++const watchdog = setTimeout(() => { console.error('Desktop checks timed out before completion'); process.exit(1); }, 180000);
++async function clipboardText() {
++  // Run the synchronous native request outside the inspector evaluation stack.
++  return electron.evaluate(({ clipboard }) => new Promise(resolve => setImmediate(() => resolve(clipboard.readText()))));
++}
+ async function dispatch(action, extra = {}) {
+   const win = await electron.browserWindow(page);
+   await win.evaluate((window, command) => window.webContents.send('scratch:command', command), { action, ...extra });
+@@ -174,7 +181,7 @@
+   await assertWordCount(2);
+   await page.keyboard.press('Control+A');
+   await page.keyboard.press('Control+C');
+-  await until(async () => (await electron.evaluate(({ clipboard }) => clipboard.readText())).includes('Clipboard selection'), 'Native Copy did not update the clipboard');
++  await until(async () => (await clipboardText()).includes('Clipboard selection'), 'Native Copy did not update the clipboard');
+   await page.keyboard.press('Control+X');
+   await until(async () => !(await editor.innerText()).includes('Clipboard selection'), 'Native Cut did not delete the selection');
+   await assertWordCount(0);
+@@ -198,7 +205,7 @@
+     item.click(item, win, win.webContents);
+     entry.options.callback();
+   });
+-  assert((await electron.evaluate(({ clipboard }) => clipboard.readText())).includes('Clipboard selection'));
++  assert((await clipboardText()).includes('Clipboard selection'));
+   console.log('PASS: right-click retains the selection and enables clipboard menu items');
+ 
+   await page.keyboard.press('Control+E');
+@@ -206,7 +213,7 @@
+   await page.keyboard.press('Control+E');
+   assert.equal(await page.locator('[data-document-id][aria-hidden="false"] .tiptap p code').count(), 0);
+   await menuItem('Edit', 'Copy');
+-  assert((await electron.evaluate(({ clipboard }) => clipboard.readText())).includes('Clipboard selection'));
++  assert((await clipboardText()).includes('Clipboard selection'));
+   await menuItem('Edit', 'Cut');
+   await until(async () => !(await editor.innerText()).includes('Clipboard selection'), 'Relocated Edit > Cut did not remove selection');
+   await menuItem('Edit', 'Paste');
+@@ -657,7 +664,7 @@
+   assert.equal(errors.length, 0, errors.join('\n'));
+   console.log('PASS: old AppData profiles migrate to separate windows with stable identities, drafts, settings, and view state; Exit Discard removes untitled drafts');
+ }
+-main().catch(async error => {
++main().then(() => { completed = true; console.log('ALL DESKTOP CHECKS PASSED'); }).catch(async error => {
+   console.error(error);
+   if (electron) console.error('Desktop errors:', await electron.evaluate(() => global.testErrors || []));
+   if (page && !page.isClosed()) console.error('Page text:', (await page.locator('body').innerText()).slice(-1800));
+@@ -665,4 +672,5 @@
+ }).finally(async () => {
+   if (electron) { try { await electron.evaluate(({ app }) => app.exit()); } catch {} }
+   virtualDisplay?.kill();
++  clearTimeout(watchdog);
+ });
+--- a/tests/startup-harness.cjs
++++ b/tests/startup-harness.cjs
+@@ -0,0 +1,13 @@
++// Launches the actual application with deterministic native-dialog responses.
++// This harness is test-only and is not included in the Windows runtime.
++const { dialog } = require('electron');
++global.startupPrompts = [];
++global.startupErrors = [];
++global.startupResponses = JSON.parse(process.env.PICOMARQ_STARTUP_TEST_RESPONSES || '[]');
++dialog.showMessageBox = async (...args) => {
++  const options = args.at(-1);
++  global.startupPrompts.push(options);
++  return { response: global.startupResponses.length ? global.startupResponses.shift() : options.title === 'Recover Unsaved Work' ? 0 : 1 };
++};
++dialog.showErrorBox = (title, message) => global.startupErrors.push({ title, message });
++require('../desktop/main.cjs');
+--- a/tests/startup-smoke.cjs
++++ b/tests/startup-smoke.cjs
+@@ -0,0 +1,232 @@
++const assert = require('node:assert/strict');
++const fs = require('node:fs/promises');
++const path = require('node:path');
++const { spawn } = require('node:child_process');
++const { _electron } = require('playwright');
++const root = path.resolve(__dirname, '..');
++const work = path.join(__dirname, 'tmp', 'startup-smoke');
++const profile = path.join(work, 'data');
++const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
++let application;
++let display;
++const pageErrors = [];
++
++async function until(test, message, timeout = 15000) {
++  const start = Date.now();
++  while (Date.now() - start < timeout) {
++    if (await test()) return;
++    await pause(75);
++  }
++  throw new Error(message);
++}
++async function session() { return JSON.parse(await fs.readFile(path.join(profile, 'session.json'), 'utf8')); }
++async function seed(state) {
++  await fs.mkdir(profile, { recursive: true });
++  await fs.writeFile(path.join(profile, 'session.json'), JSON.stringify(state));
++}
++async function launch({ files = [], responses = [] } = {}) {
++  application = await _electron.launch({
++    executablePath: require('electron'),
++    args: [...(process.platform === 'linux' ? ['--no-sandbox', '--disable-gpu'] : []), path.join(__dirname, 'startup-harness.cjs'), ...files],
++    env: { ...process.env, SCRATCH_TEST_MODE: '1', SCRATCH_TEST_DATA: profile, PICOMARQ_STARTUP_TEST_RESPONSES: JSON.stringify(responses) },
++    timeout: 20000,
++  });
++  const watch = page => page.on('pageerror', error => pageErrors.push(String(error)));
++  application.windows().forEach(watch);
++  application.on('window', watch);
++  await application.firstWindow();
++}
++async function documents(expected) {
++  let result;
++  await until(async () => {
++    result = [];
++    for (const page of application.windows()) {
++      if (page.isClosed()) continue;
++      try {
++        if (!await page.locator('[data-document-id]').count()) continue;
++        const state = await page.evaluate(() => window.desktop.invoke('get_session'));
++        result.push({ page, document: state.documents[0] });
++      } catch {}
++    }
++    return result.length === expected;
++  }, `Expected ${expected} initialized document windows`);
++  return result;
++}
++async function dispatch(page, action) {
++  const window = await application.browserWindow(page);
++  await window.evaluate((win, action) => win.webContents.send('scratch:command', { action }), action);
++}
++async function quit() {
++  const closed = application.waitForEvent('close', { timeout: 20000 });
++  await application.evaluate(({ app }) => app.quit());
++  await closed;
++  application = null;
++}
++async function crash() {
++  const closed = application.waitForEvent('close');
++  await application.evaluate(({ app }) => app.exit(0));
++  await closed;
++  application = null;
++}
++async function errors() {
++  assert.deepEqual(await application.evaluate(() => global.startupErrors), []);
++  assert.deepEqual(pageErrors, []);
++}
++
++async function main() {
++  await fs.rm(work, { recursive: true, force: true });
++  await fs.mkdir(profile, { recursive: true });
++  if (process.platform === 'linux' && !process.env.DISPLAY) {
++    const number = process.env.SCRATCH_DISPLAY_NUMBER || '124';
++    display = spawn(process.env.SCRATCH_XVFB || 'Xvfb', [':' + number, '-screen', '0', '1440x1000x24', '-listen', 'tcp', '-nolisten', 'unix', '-nolisten', 'local', '-ac'], { stdio: 'ignore' });
++    process.env.DISPLAY = '127.0.0.1:' + number;
++    await pause(500);
++  }
++  const alpha = path.join(work, 'Alpha.md');
++  const beta = path.join(work, 'Beta.md');
++  const requested = path.join(work, 'Requested.md');
++  await fs.writeFile(alpha, 'Alpha saved text');
++  await fs.writeFile(beta, 'Beta saved text');
++  await fs.writeFile(requested, 'Requested file text');
++  const savedDocuments = [alpha, beta].map((file, index) => ({
++    id: ['alpha', 'beta'][index], path: file, content: ['Alpha saved text', 'Beta saved text'][index], diskContent: ['Alpha saved text', 'Beta saved text'][index],
++    view: { sourceMode: true, sourceSelection: { start: 2, end: 5 } },
++  }));
++  const original = { version: 1, settings: { theme: { mode: 'dark' }, editorFont: { baseFontSize: 18 }, interfaceZoom: 1.2 }, documents: savedDocuments, activeDocumentId: 'alpha', settingsOpen: false, window: { x: 15, y: 25, width: 850, height: 650 }, recentFiles: [beta, alpha] };
++  await seed(original);
++  await launch();
++  let windows = await documents(2);
++  const alphaWindow = windows.find(entry => entry.document.id === 'alpha');
++  assert.equal(await alphaWindow.page.getByRole('textbox', { name: 'Markdown source' }).inputValue(), 'Alpha saved text');
++  assert.deepEqual(await application.evaluate(() => global.startupPrompts), []);
++  await dispatch(alphaWindow.page, 'settings');
++  const startup = alphaWindow.page.getByLabel('When PicoMarQ starts', { exact: true });
++  await startup.waitFor();
++  assert.equal(await startup.inputValue(), 'restore');
++  assert.deepEqual(await startup.locator('option').allTextContents(), ['Restore previous session', 'Start new session']);
++  assert.equal(await startup.evaluate(el => el.closest('section').querySelector('h2').textContent), 'Startup');
++  await startup.selectOption('new');
++  await until(async () => (await session()).settings.startupBehavior === 'new', 'Startup preference was not saved');
++  assert.equal((await documents(2)).length, 2, 'Changing startup preference closed the current session');
++  await alphaWindow.page.screenshot({ path: path.join(work, 'settings.png') });
++  const betaWindow = windows.find(entry => entry.document.id === 'beta');
++  await dispatch(betaWindow.page, 'settings');
++  assert.equal(await betaWindow.page.getByLabel('When PicoMarQ starts', { exact: true }).inputValue(), 'new');
++  for (const entry of windows) await entry.page.getByRole('button', { name: 'Back to document', exact: true }).click();
++  await errors();
++  await quit();
++  assert.equal((await session()).documents.length, 2);
++  console.log('PASS: old profiles default to Restore, Startup selector persists and synchronizes, current session stays open');
++
++  await launch();
++  windows = await documents(1);
++  assert.equal(windows[0].document.path, null);
++  assert.equal(windows[0].document.content, '');
++  assert.deepEqual(await application.evaluate(() => global.startupPrompts), []);
++  const freshState = await session();
++  assert.equal(freshState.documents.length, 1);
++  assert.deepEqual(freshState.recentFiles, [beta, alpha]);
++  assert.deepEqual(freshState.settings.editorFont, original.settings.editorFont);
++  assert.equal(freshState.settings.theme.mode, 'dark');
++  assert.equal(freshState.settings.interfaceZoom, 1.2);
++  assert.equal(await fs.readFile(alpha, 'utf8'), 'Alpha saved text');
++  assert.equal(await fs.readFile(beta, 'utf8'), 'Beta saved text');
++  await errors();
++  await quit();
++  console.log('PASS: Start new session opens exactly one blank document and retains saved files, appearance, and recent files');
++
++  // An initial file-association launch must open its requested file instead of
++  // creating a blank window or restoring the last saved documents.
++  await seed({ ...original, settings: { ...original.settings, startupBehavior: 'new' } });
++  await launch({ files: [requested] });
++  windows = await documents(1);
++  assert.equal(windows[0].document.path, requested);
++  assert.equal(windows[0].document.content, 'Requested file text');
++  await errors();
++  await quit();
++  console.log('PASS: file-association startup honors the requested file under Start new session');
++
++  // Create real recovery snapshots, terminate the app, then accept recovery.
++  await seed({ ...original, settings: { ...original.settings, startupBehavior: 'new' } });
++  await launch({ files: [alpha] });
++  windows = await documents(1);
++  await dispatch(windows[0].page, 'source');
++  const source = windows[0].page.getByRole('textbox', { name: 'Markdown source' });
++  await source.waitFor();
++  await source.fill('Alpha unsaved recovery text');
++  await dispatch(windows[0].page, 'new');
++  windows = await documents(2);
++  const untitled = windows.find(entry => !entry.document.path);
++  await untitled.page.locator('.tiptap').fill('Untitled recovery text');
++  await until(async () => (await session()).documents.some(doc => doc.content.includes('Untitled recovery text')) && (await session()).documents.some(doc => doc.content === 'Alpha unsaved recovery text'), 'Recovery drafts did not persist');
++  await crash();
++  const crashedState = await session();
++  await launch({ responses: [0] });
++  windows = await documents(2);
++  const recoveredAlpha = windows.find(entry => entry.document.path === alpha);
++  assert.equal(await recoveredAlpha.page.getByRole('textbox', { name: 'Markdown source' }).inputValue(), 'Alpha unsaved recovery text');
++  assert((await windows.find(entry => !entry.document.path).page.locator('.tiptap').innerText()).includes('Untitled recovery text'));
++  const prompts = await application.evaluate(() => global.startupPrompts);
++  assert.equal(prompts.length, 1);
++  assert.equal(prompts[0].title, 'Recover Unsaved Work');
++  assert.deepEqual(prompts[0].buttons, ['Restore Session', 'Start New Session']);
++  assert.equal(prompts[0].defaultId, 0);
++  assert.equal(prompts[0].cancelId, 0);
++  assert(prompts[0].detail.includes('discards those recovered edits'));
++  assert.equal((await session()).settings.startupBehavior, 'new', 'One-time recovery changed the saved startup preference');
++  assert.equal(await fs.readFile(alpha, 'utf8'), 'Alpha saved text');
++  await errors();
++  await quit();
++  console.log('PASS: interrupted named and untitled drafts prompt for recovery in New mode, restore safely, and retain the startup preference');
++
++  // Explicitly choosing New acknowledges discarding recovered edits.
++  await seed(crashedState);
++  await launch({ responses: [1] });
++  windows = await documents(1);
++  assert.equal(windows[0].document.path, null);
++  assert.equal(windows[0].document.content, '');
++  assert.equal((await session()).documents.length, 1);
++  assert.equal(await fs.readFile(alpha, 'utf8'), 'Alpha saved text');
++  await errors();
++  await quit();
++  console.log('PASS: explicit Start New Session after recovery prompt discards only recovered edits');
++
++  // The recovery decision also respects a file supplied by the shell.
++  await seed(crashedState);
++  await launch({ responses: [1], files: [requested] });
++  windows = await documents(1);
++  assert.equal(windows[0].document.path, requested);
++  await quit();
++  await seed(crashedState);
++  await launch({ responses: [0], files: [requested] });
++  windows = await documents(3);
++  assert(windows.some(entry => entry.document.path === requested));
++  assert(windows.some(entry => entry.document.content === 'Alpha unsaved recovery text'));
++  await errors();
++  await quit();
++  console.log('PASS: requested files open after either recovery choice without an extra blank window');
++
++  await seed({ ...crashedState, settings: { ...crashedState.settings, startupBehavior: 'restore' } });
++  await launch();
++  windows = await documents(2);
++  assert.equal(await application.evaluate(() => global.startupPrompts.length), 0);
++  assert(windows.some(entry => entry.document.content === 'Alpha unsaved recovery text'));
++  const page = windows[0].page;
++  await dispatch(page, 'settings');
++  await page.getByLabel('When PicoMarQ starts', { exact: true }).selectOption('new');
++  await page.getByLabel('When PicoMarQ starts', { exact: true }).selectOption('restore');
++  await until(async () => (await session()).settings.startupBehavior === 'restore', 'Switching back to Restore did not persist');
++  await page.getByRole('button', { name: 'Back to document', exact: true }).click();
++  await errors();
++  await quit();
++  console.log('PASS: Restore retains existing automatic draft recovery, and the preference can be switched back');
++  console.log('ALL STARTUP CHECKS PASSED');
++}
++main().catch(async error => {
++  console.error(error);
++  if (application) console.error(await application.evaluate(() => ({ prompts: global.startupPrompts, errors: global.startupErrors })));
++  process.exitCode = 1;
++}).finally(async () => {
++  if (application) try { await application.evaluate(({ app }) => app.exit(1)); } catch {}
++  display?.kill();
++});
+--- a/tests/startup.test.cjs
++++ b/tests/startup.test.cjs
+@@ -0,0 +1,33 @@
++const { test } = require('node:test');
++const assert = require('node:assert/strict');
++const { shouldRestoreSession } = require('../desktop/startup.cjs');
++
++const saved = { id: 'file', path: 'Notes.md', content: 'saved text', diskContent: 'saved text' };
++const draft = { id: 'draft', path: null, content: 'unsaved text', diskContent: '' };
++
++test('existing profiles and unknown startup values keep automatic restoration', async () => {
++  for (const startupBehavior of [undefined, 'restore', 'unknown']) {
++    assert.equal(await shouldRestoreSession({ settings: { startupBehavior }, documents: [saved, draft] }, () => { throw new Error('Unexpected prompt'); }), true);
++  }
++});
++
++test('new-session startup skips saved documents and empty untitled windows without a recovery prompt', async () => {
++  for (const documents of [[], [saved], [{ ...draft, content: '' }]]) {
++    assert.equal(await shouldRestoreSession({ settings: { startupBehavior: 'new' }, documents }, () => { throw new Error('Unexpected prompt'); }), false);
++  }
++});
++
++test('new-session startup offers recovery for both named and untitled drafts', async () => {
++  const state = { settings: { startupBehavior: 'new' }, documents: [{ ...saved, content: '' }, draft] };
++  let count;
++  assert.equal(await shouldRestoreSession(state, value => { count = value; return true; }), true);
++  assert.equal(count, 2, 'Deleting saved text is also an unsaved edit');
++  assert.equal(state.documents[1].content, 'unsaved text');
++  assert.equal(await shouldRestoreSession(state, () => false), false);
++});
++
++test('a failed recovery prompt aborts startup instead of silently dropping drafts', async () => {
++  const state = { settings: { startupBehavior: 'new' }, documents: [draft] };
++  await assert.rejects(shouldRestoreSession(state, async () => { throw new Error('Dialog failed'); }), /Dialog failed/);
++  assert.equal(state.documents[0].content, 'unsaved text');
++});

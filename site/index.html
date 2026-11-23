@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PicoMarQ — a Markdown editor for writers, for Windows</title>
+  <meta name="description" content="PicoMarQ is a Markdown editor for writers of prose, for Windows 10 and 11. Formatted text as you type, plain .md files underneath, a spelling checker, a live word count, and smart quotes and dashes. No installer, free and open source.">
+  <link rel="canonical" href="https://crotalus65.github.io/PicoMarq/">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="stylesheet" href="style.css">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PicoMarQ — a Markdown editor for writers">
+  <meta property="og:description" content="Formatted text as you type, plain .md files underneath, a spelling checker, a live word count, and smart quotes and dashes. For Windows 10 and 11.">
+  <meta property="og:url" content="https://crotalus65.github.io/PicoMarq/">
+  <meta property="og:image" content="https://crotalus65.github.io/PicoMarq/screenshot.png">
+  <meta property="og:image:width" content="1000">
+  <meta property="og:image:height" content="660">
+  <meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <a class="brand" href="#"><img src="icon.svg" alt="" width="22" height="22">PicoMarQ</a>
+      <nav aria-label="Site">
+        <a href="#install">Install</a>
+        <a href="https://github.com/Crotalus65/PicoMarq">Source on GitHub</a>
+        <a href="https://github.com/Crotalus65/PicoMarq/releases">Releases</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <article class="lede">
+          <h1 class="title" id="title"><span class="md" aria-hidden="true">#</span>PicoMarQ</h1>
+          <p class="kicker">A Markdown editor for writers, for Windows 10 and 11</p>
+          <p>PicoMarQ is for writing prose: chapters, articles, essays, letters. You see formatted text as you type, with headings, <em>italics</em>, <strong>bold</strong>, quotations and lists, and your work is saved as a plain Markdown file that any other program can read. The Markdown itself is one keystroke away.</p>
+          <p>Most Markdown editors are made for programmers and note-takers. PicoMarQ leaves out the file trees, tags, code tools and AI, and keeps what a writer reaches for every day: a spelling checker, a live word count, smart quotes and dashes, Find and Replace, and a page you can set up the way you like.</p>
+          <blockquote class="aside"><span class="md" aria-hidden="true">&gt;</span>The Markdown is there when you want it and out of sight when you don’t.</blockquote>
+          <div class="actions">
+            <a class="button" id="download" href="https://github.com/Crotalus65/PicoMarq/releases/latest">Download for Windows</a>
+            <p class="version">Version <span class="v">1.3.4</span>, <span class="mb">153</span> MB. Free and open source.</p>
+          </div>
+        </article>
+
+        <figure class="shot">
+          <img src="screenshot.png" width="1000" height="660" alt="PicoMarQ with a short story open: the title, two chapter headings, paragraphs with italic and bold text, and an indented quotation. The quotation is selected, and the status bar reads 11 of 208 words.">
+          <figcaption>Version <span class="v">1.3.4</span> with a story in progress. The quotation is selected, so the count at the bottom right reads “11 of 208 words.”</figcaption>
+        </figure>
+      </section>
+
+      <section id="install" aria-labelledby="install-heading">
+        <h2 id="install-heading"><span class="md" aria-hidden="true">##</span>Install</h2>
+        <ol>
+          <li>Download <code>PicoMarQ-Windows-x64-<span class="v">1.3.4</span>.zip</code> and extract the whole archive to a folder you can write to.</li>
+          <li>Open the extracted <code>PicoMarQ</code> folder and run <code>PicoMarQ.exe</code>. There is no installer and no account. The folder carries its own copy of the engine the program runs on, which is why the download is <span class="mb">153</span> MB.</li>
+          <li>Windows SmartScreen may object the first time, because the program is not code-signed. Choose <b>More info</b>, then <b>Run anyway</b>. Each release page lists SHA-256 checksums if you want to verify the file first.</li>
+          <li>To open Markdown files with a double-click, right-click a <code>.md</code> file, choose <b>Open with</b>, pick <code>PicoMarQ.exe</code> (you may have to browse to it), and choose <b>Always</b>.</li>
+        </ol>
+        <p>Updating: close every PicoMarQ window, then replace the contents of your PicoMarQ folder with the new one. Your settings and recovered drafts live in your Windows user profile and are kept. If you saved themes, keep the <code>Themes</code> folder.</p>
+        <p>Every release, with its source archive and checksums, is on the <a href="https://github.com/Crotalus65/PicoMarq/releases">Releases</a> page.</p>
+      </section>
+
+      <section id="writing" aria-labelledby="writing-heading">
+        <h2 id="writing-heading"><span class="md" aria-hidden="true">##</span>Writing in PicoMarQ</h2>
+        <p><b>Spelling.</b> The whole document is checked in US English as you write, including text you open or paste. Right-click a word with a red line for suggestions, <b>Ignore All</b> (for this document), or <b>Add to Dictionary</b> (for good). Settings can clear the words you have added.</p>
+        <p><b>Word count.</b> The count at the bottom right follows every keystroke. Select some text and it reads “56 of 1,234 words.”</p>
+        <p><b>Smart quotes and dashes.</b> Straight quotes become curly ones, two hyphens an em dash, and three periods an ellipsis, as you type. <kbd>Backspace</kbd> takes the change back, and <b>Edit &gt; Apply Smart Typography</b> converts a document you wrote elsewhere.</p>
+        <p><b>Two views of one file.</b> The formatted view is where you write. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> shows the Markdown source, for when you want to see exactly what is in the file. Tables, links, images, task lists, math and diagrams work too.</p>
+        <figure class="shot inline">
+          <img src="screenshot-source-dark.png" width="1000" height="660" alt="The same story in PicoMarQ's dark theme, shown as Markdown source: pound signs before the headings, asterisks around italic and bold text, and a greater-than sign before the quotation.">
+          <figcaption>The same file in the dark theme, as Markdown source.</figcaption>
+        </figure>
+        <p><b>Your page.</b> Light or dark, any font installed on your computer, a point size from 12 to 24, your own colors for headings, bold and italic, the width of the page, and the zoom. Save the whole look as a theme file and load it on another computer.</p>
+        <p><b>One window per document.</b> Put two drafts side by side or on separate monitors. Saving is yours to do (<kbd>Ctrl</kbd>+<kbd>S</kbd>), but unsaved work is kept: if Windows or the computer stops unexpectedly, PicoMarQ brings your drafts back. It also warns you before overwriting a file that another program has changed.</p>
+        <p>All the shortcuts are listed in <a href="https://github.com/Crotalus65/PicoMarq/blob/main/docs/KEYBOARD-SHORTCUTS.md">KEYBOARD-SHORTCUTS.md</a>, which also comes with the program.</p>
+      </section>
+
+      <section id="scope" aria-labelledby="scope-heading">
+        <h2 id="scope-heading"><span class="md" aria-hidden="true">##</span>What it does not do</h2>
+        <p>There is no notes library, no folders or tags, no cloud or sync, no AI, and no export to Word or PDF. Spelling is checked in US English only. It runs on 64-bit Windows 10 and 11, and nowhere else. PicoMarQ edits one Markdown file per window and stays out of your way.</p>
+      </section>
+
+      <section id="origin" aria-labelledby="origin-heading">
+        <h2 id="origin-heading"><span class="md" aria-hidden="true">##</span>Where it comes from</h2>
+        <p>PicoMarQ is built on <a href="https://github.com/erictli/scratch">Scratch</a>, a Markdown note-taking app by Eric Li and its contributors. It keeps Scratch’s editor and its calm, and reshapes them for writers rather than note-takers. If you want a notes library with folders, links between notes, AI editing or Git sync, or a version for the Mac or Linux, use <a href="https://www.ericli.io/scratch">Scratch</a> itself.</p>
+        <p>PicoMarQ is MIT-licensed, as Scratch is. The program runs on Electron. The notices for everything it includes ship with it in <code>THIRD-PARTY-NOTICES.txt</code>. This page is set in Literata, under the SIL Open Font License.</p>
+      </section>
+    </main>
+
+    <footer>
+      <p><a href="https://github.com/Crotalus65/PicoMarq">Source and releases are on GitHub.</a> PicoMarQ is provided as is, without warranty. The checksums on each release page identify the exact files.</p>
+    </footer>
+  </div>
+
+  <script>
+    // Show the current release on the page without editing it for each version.
+    // The download button goes straight to the Windows archive of the latest release;
+    // if the lookup fails, the links and text above already point at the latest release page.
+    (async () => {
+      try {
+        const response = await fetch("https://api.github.com/repos/Crotalus65/PicoMarq/releases/latest",
+          { headers: { Accept: "application/vnd.github+json" } });
+        if (!response.ok) return;
+        const release = await response.json();
+        const version = (release.tag_name || "").replace(/^v/, "");
+        const asset = (release.assets || []).find(a => /-Windows-x64-[\d.]+\.zip$/.test(a.name));
+        if (!version || !asset) return;
+        document.getElementById("download").href = asset.browser_download_url;
+        document.querySelectorAll(".v").forEach(el => { el.textContent = version; });
+        document.querySelectorAll(".mb").forEach(el => { el.textContent = String(Math.round(asset.size / 1048576)); });
+      } catch (_) {
+        // Offline or rate-limited: the static text and the latest-release link stand.
+      }
+    })();
+  </script>
+</body>
+</html>

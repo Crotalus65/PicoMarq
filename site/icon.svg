@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <path d="M30 10 H194 L244 60 V228 Q244 246 226 246 H30 Q12 246 12 228 V28 Q12 10 30 10 Z" fill="#ffffff" stroke="#870121" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M194 10 V60 H244 Z" fill="#870121" stroke="#870121" stroke-width="16" stroke-linejoin="round"/>
+  <g transform="translate(65.51578947368422 78.80000000000001) scale(1.5621052631578944) translate(-30 -30)"><path d="M30 98 V30 h20 l20 25 20-25 h20 V101 h12 L100 125 L78 101 h12 V59 L70 84 50 59 V98 z" fill="#870121"/></g>
+</svg>

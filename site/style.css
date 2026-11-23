@@ -1,0 +1,256 @@
+/* PicoMarQ — project page.
+   The page is set like a Markdown document seen in PicoMarQ: Literata (OFL,
+   self-hosted) for the text, the system UI face for controls, the icon's red as
+   the single accent, and the Markdown marks (#, ##, >) hanging faintly in the
+   margin, there when you look for them and out of the way when you don't. */
+
+@font-face {
+  font-family: "Literata";
+  src: url("fonts/Literata-latin.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("fonts/Literata-Italic-latin.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --paper: #faf9f7;
+  --ink: #1d1b1c;
+  --muted: #625b5e;
+  --faint: #c9b9bf;
+  --rule: #e2dcdd;
+  --accent: #870121;
+  --accent-strong: #66001a;
+  --accent-ink: #ffffff;
+  --key-face: #ffffff;
+  --key-edge: #c4bcbf;
+  --shadow: 0 20px 44px rgba(45, 20, 28, 0.16), 0 2px 6px rgba(45, 20, 28, 0.1);
+
+  --serif: "Literata", "Charter", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
+
+  --measure: 64ch;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1c1a1b;
+    --ink: #ece7e8;
+    --muted: #aaa0a4;
+    --faint: #5c4a51;
+    --rule: #3a3336;
+    --accent: #f2a2b6;
+    --accent-strong: #f7c3d0;
+    --accent-ink: #2a0610;
+    --key-face: #2a2628;
+    --key-edge: #4e464a;
+    --shadow: 0 20px 44px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.125rem;
+  line-height: 1.65;
+  font-optical-sizing: auto;
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 0.14em; }
+a:hover { color: var(--accent-strong); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+code, kbd {
+  font-family: var(--mono);
+  font-size: 0.86em;
+}
+
+kbd {
+  font-family: var(--sans);
+  font-size: 0.78em;
+  line-height: 1;
+  padding: 0.22em 0.5em 0.28em;
+  border: 1px solid var(--key-edge);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--key-face);
+  color: var(--ink);
+  white-space: nowrap;
+  vertical-align: 0.1em;
+}
+
+.page {
+  width: min(100% - 2.5rem, 66rem);
+  margin: 0 auto;
+}
+
+/* The Markdown marks, hung in the left margin. */
+.md {
+  position: absolute;
+  right: 100%;
+  margin-right: 0.45em;
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 0.62em;
+  line-height: inherit;
+  color: var(--faint);
+  white-space: nowrap;
+  user-select: none;
+}
+.title, section h2, .aside { position: relative; }
+
+/* Top bar */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.1rem 0;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+.brand img { width: 22px; height: 22px; }
+.top nav { display: flex; gap: 1.5rem; }
+.top nav a { color: var(--ink); text-decoration: none; }
+.top nav a:hover { color: var(--accent); text-decoration: underline; }
+
+/* The opening and the screenshot */
+.hero { padding: 3.5rem 0 4rem; }
+
+.lede { max-width: var(--measure); }
+.lede p { margin: 0 0 1rem; }
+
+.title {
+  font-size: clamp(2.4rem, 1.6rem + 2.6vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  margin: 0;
+}
+.title .md { font-size: 0.5em; top: 0.62em; }
+.kicker {
+  margin: 0.6rem 0 1.6rem !important;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.aside {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  font-style: italic;
+  color: var(--muted);
+}
+.aside .md { font-size: 0.8em; top: 0.28em; font-style: normal; }
+
+.actions {
+  margin-top: 2.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem 1.6rem;
+  font-family: var(--sans);
+}
+.button {
+  display: inline-block;
+  padding: 0.8rem 1.35rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.button:hover { background: var(--accent-strong); color: var(--accent-ink); }
+.version { margin: 0 !important; font-size: 0.95rem; color: var(--muted); }
+
+.shot { margin: 3.25rem 0 0; max-width: 100%; }
+.shot img {
+  display: block;
+  width: 100%;
+  max-width: 1000px;
+  height: auto;
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+}
+.shot figcaption {
+  margin-top: 1rem;
+  max-width: var(--measure);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.shot.inline { margin: 2rem 0 2.25rem; width: min(1000px, calc(100vw - 2.5rem)); max-width: none; }
+
+/* Sections */
+main section + section { border-top: 1px solid var(--rule); }
+
+section:not(.hero) {
+  padding: 3.25rem 0 3.5rem;
+  max-width: var(--measure);
+}
+section h2 {
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.008em;
+  margin: 0 0 1.1rem;
+}
+section h2 .md { font-size: 0.6em; top: 0.42em; }
+section p { margin: 0 0 1rem; }
+section ol { margin: 0 0 1rem; padding-left: 1.7em; }
+section ol li { margin-bottom: 0.7rem; padding-left: 0.2em; }
+section ol li::marker { color: var(--muted); }
+section p:last-child, section ol:last-child { margin-bottom: 0; }
+
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 2rem 0 3rem;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+footer p { margin: 0; max-width: var(--measure); }
+
+/* Without room in the margin, the marks sit before the text instead. */
+@media (max-width: 72rem) {
+  .md { position: static; margin-right: 0.5em; vertical-align: 0.15em; }
+  .title .md { vertical-align: 0.5em; }
+}
+
+@media (max-width: 40rem) {
+  body { font-size: 1.0625rem; }
+  .top { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .top nav { gap: 1.25rem; }
+  .hero { padding: 2.5rem 0 3rem; }
+  section:not(.hero) { padding: 2.5rem 0 2.75rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .button { transition: background-color 120ms ease-out; }
+}

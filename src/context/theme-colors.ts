@@ -1,0 +1,38 @@
+import type { ThemeColorKey } from "../types/note";
+export const defaultThemeColors: Record<"light" | "dark", Record<ThemeColorKey, string>> = {
+  light: {
+    bg: "#ffffff",
+    "bg-secondary": "#fafaf9",
+    "bg-muted": "rgba(28, 25, 23, 0.06)",
+    "bg-emphasis": "rgba(28, 25, 23, 0.09)",
+    text: "#000000",
+    "heading-1": "#000000",
+    "heading-2": "#000000",
+    "heading-3": "#000000",
+    "heading-4": "#000000",
+    bold: "#000000",
+    italic: "#000000",
+    "text-muted": "#78716c",
+    border: "rgba(28, 25, 23, 0.08)",
+    accent: "#1c1917",
+    selection: "rgba(250, 204, 21, 0.4)",
+  },
+  dark: {
+    bg: "rgb(22, 20, 19)",
+    "bg-secondary": "rgb(14, 12, 11)",
+    "bg-muted": "rgba(250, 249, 249, 0.05)",
+    "bg-emphasis": "rgba(250, 249, 249, 0.08)",
+    text: "#ffffff",
+    "heading-1": "#ffffff",
+    "heading-2": "#ffffff",
+    "heading-3": "#ffffff",
+    "heading-4": "#ffffff",
+    bold: "#ffffff",
+    italic: "#ffffff",
+    "text-muted": "#a8a29e",
+    border: "rgba(250, 249, 249, 0.07)",
+    accent: "#fafaf9",
+    selection: "rgba(253, 224, 71, 0.35)",
+  },
+};
+

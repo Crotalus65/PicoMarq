@@ -1,0 +1,1667 @@
+diff --git a/README.md b/README.md
+index a71c38f..b8d51ac 100644
+--- a/README.md
++++ b/README.md
+@@ -9,15 +9,17 @@ This version removes folder navigation, folder settings, AI integrations, Git in
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. This is an unsigned personal test build, independent of upstream Scratch.
+ 
+ - PicoMarQ uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- Version 1.2.7 fixes three things. Spell checking now covers opened files and pasted text, not only what you type, and always uses US English. Settings > Size (and Custom Width) accept typed numbers: a size from 12 to 24 takes effect as you type it, and anything outside the range moves to the nearest limit when you press Enter or leave the box; the arrow keys still step it. Settings > Saved Themes adds Restore Default Theme…, which, after asking, returns colors (Light and Dark), typography, and User Interface settings to their defaults, keeping Light or Dark, Startup, and Smart Typography as they are.
+ - Version 1.2.6 adds Save Theme… and Load Theme… under Settings > Saved Themes. Themes are portable JSON files in a Themes folder beside PicoMarQ.exe (or any location you select in the Windows dialog). They contain light/dark appearance and both color palettes, typography, page width, text zoom, and formatting icon size; no Markdown, startup choice, or smart-typing behavior is stored. Missing installed fonts fall back to Sans. Heading 4 is now bold, without changing its size. This release is based directly on 1.2.4 and retains its original hex color picker, deliberately omitting the 1.2.5 picker changes.
+ - Version 1.2.4 displays blockquotes in regular text with their existing gray left rule and no automatic quotation marks; explicitly italicized words inside quotations remain italic. Settings > Theme > Customize colors now has separate Text and UI groups, with six additional per-theme colors for Headings 1–4, Bold, and Italic. Normal paragraph text and those six categories default to black in light mode and white in dark mode. Colors are display-only preferences, not Markdown document formatting.
+-- Version 1.2.3 makes File > Close Window and Ctrl+W leave a fresh blank document when closing the last document. The replacement keeps the same size, position and maximized state. Save/Discard/Cancel still applies, and a cancelled Save As retains the original draft. With several windows, Close Window closes only the selected one. Repeatedly closing the blank document keeps the app open.
++- Version 1.2.3 makes File > Close Window and Ctrl+W leave a fresh blank document when closing the last document. The replacement keeps the same size, position and maximized state. Save/Discard/Cancel still applies, and a canceled Save As retains the original draft. With several windows, Close Window closes only the selected one. Repeatedly closing the blank document keeps the app open.
+ - Version 1.2.2 fixes restoration after using the title-bar close button or Alt+F4 on the final window. These use the same session-preserving exit as File > Exit. Closing immediately after a file launch waits for startup to finish; rapid window closes are processed in order so the final document is retained.
+ - Version 1.2.1 places Startup at the bottom of Settings, below User Interface.
+ - Version 1.2.0 adds Settings > Startup > When PicoMarQ starts: Restore previous session (the default for existing profiles) or Start new session. The choice applies at the next launch, is remembered in AppData on each machine, and keeps preferences and recent files. New-session startup opens one blank document, or the file supplied by Windows when launched through a file association.
+ - Restore mode continues automatic draft recovery. In New mode, unsaved recovery snapshots trigger a Restore Session / Start New Session prompt before any previous documents are cleared. Restore is the default and the Escape/close action; explicitly choosing New discards the recovered edits while leaving saved files untouched.
+ - File > New creates another window. File > Open, Open Recent, and file-association launches create a window for each selected file. Reopening an already-open file raises its existing window, preserving unsaved edits and avoiding conflicting copies. Open Recent keeps the last four distinct files opened or saved, including after restarting.
+ - Page width offers Full (the default) or Custom. Custom widths can be set in Settings or adjusted with the page-edge handles; double-click a handle to return to Full.
++- Spell checking (US English) covers the whole document: opened files, restored drafts, pasted or dragged-in text, and text edited in Markdown source view are checked as well as what you type. Chromium, the engine inside PicoMarQ, normally checks only text it sees typed, a privacy rule for websites that PicoMarQ turns off at startup (`desktop/main.cjs`) because it shows no websites. After a paste the whole document is rechecked, so other underlines disappear for about a second (a few seconds in very long documents).
+ - Right-click menus with spelling suggestions: a misspelled word's suggestions and Add to Dictionary come first, then Bold and Italic (with their shortcuts; in source view they wrap the selection in `**` or `*`), Cut, Copy, Paste, and the table commands when the cursor is in a table. An existing selection is retained. (The editor registers its items synchronously from the DOM event and lets the browser's own context-menu request through, since only that request carries Chromium's suggestions.)
+ - Installed font families in Settings, with Refresh fonts.
+ - Text zoom from 50% to 200% with Ctrl+plus (Ctrl+= or Ctrl+Shift+=), Ctrl+minus, their numeric-keypad equivalents, Ctrl+0, and Ctrl+mouse wheel.
+@@ -28,12 +30,12 @@ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64.
+ - A live word count beside zoom in the status bar. It counts document text in both editing views, excluding Markdown formatting markers and hidden link URLs. The settings sample preview has been removed.
+ - Markdown files are saved manually. Recovery snapshots merge independently for each window, retaining drafts, selection, scroll, source mode, size, position, and maximized state. Preferences remain in the existing AppData profile and changes apply to every open window.
+ - File > Close Window (Ctrl+W) removes the current document from the session after Save/Discard/Cancel. It closes that window when others remain, or replaces the final document with a blank at the same position when no other window remains. A failed replacement load keeps the original document and recovery data. The title-bar close button and Alt+F4 close the native window; on the last window they exit and retain its saved document for restoration when Restore is selected. Discard during Exit keeps the saved version of a named document and removes an untitled draft.
+-- File > Exit (Ctrl+Shift+Q) checks all windows and retains the remaining saved documents for the next launch when Restore is selected. Discard choices take effect only after every prompt succeeds; a later Cancel preserves all drafts and windows. Cancelling Save As also cancels closing. Unsaved drafts remain available for recovery after an unexpected termination.
++- File > Exit (Ctrl+Shift+Q) checks all windows and retains the remaining saved documents for the next launch when Restore is selected. Discard choices take effect only after every prompt succeeds; a later Cancel preserves all drafts and windows. Canceling Save As also cancels closing. Unsaved drafts remain available for recovery after an unexpected termination.
+ - Revert to Saved confirms before rereading the current file from disk in the same window and clearing its undo history. It is disabled for untitled documents. A failed read preserves current text. The Refresh control for external edits uses the same operation.
+ - Find and Replace stays above the scrolling text in both views until explicitly closed. Each window has independent Find and Undo state.
+ - Conflict checking before replacing a file that changed elsewhere; Save As preserves both versions.
+ - Smart typography (Settings > Typography, on by default): two hyphens become an em dash, three periods an ellipsis, and straight quotes become curly quotes as you type, in both views. A third hyphen gives `---` back so horizontal rules, front matter, and table rows can still be typed; code blocks, inline code, math, link addresses, HTML, and front matter are never changed. Backspace in the formatted view or Ctrl+Z in the source view restores what you typed. Edit > Apply Smart Typography converts an existing document in a single undo step and reports how many changes it made.
+-- Heading 4 is italic and regular weight, sized halfway between Heading 3 and body text.
++- Heading 4 is bold like the other headings (italic and regular weight before 1.2.6), sized halfway between Heading 3 and body text.
+ - Settings groups Page Width, Text Zoom, and Icon Size under User Interface; Typography and User Interface each have their own Reset to defaults.
+ - `/` is an ordinary character. Scratch's slash-command menu (which opened on `/` at the start of a line and kept Enter until a command matched) is removed; every command it offered remains in the toolbar, the menus, or Markdown syntax.
+ - Version 0.1.12 renames the app from Quill to PicoMarQ (window title, executable, metadata); 0.1.13 brings the final icon and the capital-Q spelling.
+@@ -91,10 +93,12 @@ New installations keep recovery data under Electron's per-user app-data director
+ 
+ Upstream commit: `9126a5adf78abbabd111302ca0b659ca9278d43a`. See `UPSTREAM-README.md`, `LICENSE`, and `THIRD-PARTY-NOTICES.txt`. Electron's own licenses accompany the portable runtime.
+ 
+-## Theme preset files (1.2.6)
++## Theme preset files (1.2.6, Restore Default Theme in 1.2.7)
+ 
+ Open **Settings > Saved Themes**. **Save Theme…** opens the standard Windows Save dialog and writes a versioned `.json` theme file. **Load Theme…** opens the standard Windows Open dialog and restores the selected theme immediately across open windows. Both dialogs start in the `Themes` directory alongside `PicoMarQ.exe`, which is created automatically; if that directory is not writable, the user's Documents folder is offered instead. You may navigate to any directory. PicoMarQ verifies format and settings before applying a theme. A theme that names an unavailable system font switches to the built-in Sans family, while keeping its size and other typography settings. Invalid files leave the existing preferences unchanged.
+ 
++**Restore Default Theme…** asks for confirmation, then returns colors for Light and Dark, typography (font, size, bold weight, line height), and User Interface settings (page width, text zoom, icon size) to the defaults a new profile starts with. Light or Dark, Startup, Smart Typography, documents, and saved theme files are not changed. To keep the current look, use Save Theme first.
++
+ Appearance preferences remain stored in the local profile and survive restarts; Save Theme creates an additional copy that can be moved or shared. Theme file operations do not modify Markdown files. When updating the portable application, retain your `Themes` folder. Theme presets exclude the Startup setting and the Smart Typography switch.
+ 
+-**Offline build note:** The source release includes a 1.2.4-derived prebuilt renderer and an external `public/theme-presets-ui.js` module that adds the Saved Themes panel in both the prepared portable distribution and subsequent normal Vite builds. This lets the release work without unavailable npm downloads. For a full source compilation and independent verification, run `npm ci && npm run build` on a machine with npm connectivity.
++**Build note:** The Saved Themes panel is a separate script, `public/theme-presets-ui.js`, which Vite copies into `dist/`. Since 1.2.7 the renderer in `dist/` is compiled from this source with `npm ci && npm run build` (see `VALIDATION.md`).
+diff --git a/START-HERE.txt b/START-HERE.txt
+index 66806e6..98111ed 100644
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.2.6
++PICOMARQ — WINDOWS BUILD 1.2.7
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+@@ -11,6 +11,23 @@ folder. Keep the executable in the same place if Windows already uses
+ it to open .md files. Preferences and recovery stay in the existing
+ AppData profile on each machine.
+ 
++WHAT'S NEW IN 1.2.7
++Spelling: opened files and pasted text are now spell-checked, not only
++what you type, and spelling is always US English. After a paste the
++whole document is rechecked, so other red underlines disappear for
++about a second (a few seconds in very long documents) and come back.
++
++Settings > Typography > Size: you can type a size. A size from 12 to 24
++takes effect as you type it; a number outside that range moves to 12 or
++24 when you press Enter or leave the box. The Up and Down arrow keys
++still work. Custom Width (under Page Width) works the same way.
++
++Settings > Saved Themes > Restore Default Theme... asks first, then
++returns colors (Light and Dark), typography, and User Interface settings
++to PicoMarQ's defaults. Light or Dark, Startup, Smart Typography, your
++documents, and saved theme files are not changed. Use Save Theme first
++if you want to keep your current look.
++
+ SAVING AND LOADING APPEARANCE THEMES
+ Settings > Saved Themes > Save Theme... or Load Theme... opens the
+ standard Windows file dialog. Both start in the Themes folder next to
+@@ -64,7 +81,7 @@ File > Close Window (Ctrl+W) checks the current document's unsaved changes.
+ With several windows open, it closes only that window. With one window
+ open, it closes that document and leaves a fresh blank document at the
+ same size and position, including maximized state. The app stays open.
+-Cancel or a cancelled Save As leaves the original document open. An
++Cancel or a canceled Save As leaves the original document open. An
+ explicitly closed document is removed from the next session.
+ 
+ Alt+F4 and the title-bar X close the native window. Closing the final
+@@ -75,7 +92,7 @@ also works when a file is closed immediately after opening from Windows.
+ File > Exit (Ctrl+Shift+Q) checks every window and keeps all remaining saved
+ documents for restoration as separate windows next time when Restore is
+ selected. A later Cancel keeps all windows and drafts, including those
+-marked Discard earlier in that exit attempt. Cancelling Save As also
++marked Discard earlier in that exit attempt. Canceling Save As also
+ cancels closing. Discard removes an untitled draft; for a named document,
+ it keeps the saved text for restoration. After an unexpected termination,
+ unsaved drafts remain available for recovery. Undo histories start fresh
+diff --git a/VALIDATION.md b/VALIDATION.md
+index f9a3bb6..1beb9e9 100644
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,16 +1,25 @@
+-# PicoMarQ 1.2.6 — validation and release status
++# PicoMarQ 1.2.7 — validation and release status
+ 
+-**Baseline:** All modifications were made directly to the PicoMarQ 1.2.4 source and its supplied prebuilt UI, not 1.2.5. The source and bundled renderer keep the original 1.2.4 `ColorPicker` implementation.
++**Changes since 1.2.6** (`changes-since-1.2.6.patch`):
+ 
+-**Changes:** JSON theme Save/Load via native dialogs, default portable `Themes` directory, fully validated appearance-only theme files, both light/dark color overrides, missing-font fallback to built-in Sans, and bold roman Heading 4 with its existing font size. Startup preferences, Smart Typography behavior, and all Markdown documents remain untouched by theme operations.
++- **Spelling of opened and pasted text, in US English.** Recent Chromium versions (from 143 or 144; Electron 44.6.0 has Chromium 152) spell-check only text they see typed into a text box the user clicked into: a privacy rule against websites probing the user's dictionary. PicoMarQ focuses its editor itself when a document opens and inserts pastes itself, so opened files and pasted text were never checked. `desktop/main.cjs` turns the rule off with the Chromium switch `UnrestrictSpellingAndGrammarForTesting` (PicoMarQ shows no websites) and sets the spelling language to `en-US`. After a change it did not see typed, Chromium rechecks only about 128 characters around the cursor, so after a paste or drop, and when returning from Markdown source view, `src/lib/spelling.ts` switches the editor's `spellcheck` attribute off and on, which makes Chromium recheck the whole document. Other underlines disappear until that recheck is done: about a second, 2.6 s in a 2 MB document.
++- **Settings > Size and Custom Width accept typed numbers** (`NumberBox` in `src/components/settings/EditorSettingsSection.tsx`). The old boxes forced every keystroke into range: the "1" of "18" became 12, then "128" became 24. A number in range now takes effect as it is typed; an out-of-range number moves to the nearest limit on Enter or on leaving the box; a box left empty shows the current value again. The arrow keys still step the value. Line Height already worked and is unchanged.
++- **Settings > Saved Themes > Restore Default Theme…** (`public/theme-presets-ui.js`, `restore_default_theme` in `desktop/main.cjs`, `defaultAppearance` in `desktop/theme-presets.cjs`). It asks first (Cancel is the default button). It then resets colors for Light and Dark, typography, and User Interface settings to the defaults a new profile starts with, the same values as the existing Reset buttons, and updates every open window the way Load Theme does. Light or Dark, Startup, Smart Typography, documents and theme files are not changed.
+ 
+-**Tests performed:**
+-- `node --test tests/*.test.cjs`: **28 passed** (including six new theme tests).
+-- `node --experimental-strip-types --test tests/smart-typography.test.mts`: **5 passed**.
+-- `python tests/colors-browser-smoke.py`: **passed** in Chromium, checking quotation rules, colors, themes and Markdown unchanged.
+-- `python tests/theme-browser-smoke.py`: **passed** in Chromium, checking Heading 4 weight and size, appearance panel controls and invocations, source Markdown preservation and 1.2.4 picker operation.
+-- All modified CommonJS and browser scripts pass Node syntax checking.
++**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. Before any change, the 1.2.6 source compiled to a JavaScript bundle byte-identical to the shipped 1.2.6 `index-N7AKkEmi.js`. 1.2.4–1.2.6 used a hand-patched stylesheet; 1.2.7 uses the stylesheet compiled from `src/App.css`. Every computed style of the torture-test document and of the whole Settings page, in Light and Dark (2,294 elements), is identical under the two stylesheets. Rebuilding this source package reproduces `dist/` byte for byte.
+ 
+-**Limitations:** npm packages could not be downloaded (registry DNS failure); therefore a clean `npm ci && npm run build` / TypeScript build and the complete npm test suite could not be performed. This 1.2.6 release uses the prebuilt 1.2.4 renderer plus a shared standalone theme-settings UI script, rather than claiming to have recompiled the minified React bundle. Chromium UI tests do not exercise Electron's native Save/Open dialogs or Windows font enumeration. These require a native Windows test.
++**Tests** (Linux, Electron 44.6.0 official linux-x64 build with its published SHA-256, Xvfb):
+ 
+-**Windows portable distribution:** Assembled offline from the **supplied PicoMarQ Windows x64 1.2.4 runtime**, replacing resources/app/desktop and resources/app/dist with this source release. The unsigned executable's FileVersion and ProductVersion resources were changed from 1.2.4 to 1.2.6, without changing executable code sections or Electron dependencies. ZIP integrity and source/resource equivalence are checked. This is offline packaging, not a rebuilt Electron executable.
++- `npm test`: 39 passed (29 + 10), including new Restore Default Theme tests.
++- `tests/theme-browser-smoke.py` (updated for the third button) and `tests/colors-browser-smoke.py`: passed in Chrome for Testing 153.
++- `tests/desktop-smoke.cjs` (18 checks), `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`: passed. The typography test still expected the pre-1.2.6 italic Heading 4 and failed the same way on 1.2.6; it now expects the bold Heading 4.
++- New `tests/settings-smoke.cjs`: typing in Size and Custom Width; Restore Default Theme with Cancel, then Restore.
++- New `tests/spelling-smoke.cjs`: 24 misspellings (including the British "colour" and "organise") in an opened file, one- and three-paragraph pastes, typing, a source-view edit, and a ten-paragraph paste. All are underlined within about 1.2 s, with no underline under any correctly spelled word. The same test fails on 1.2.6 (none of the opened file's misspellings underlined, even with US English set). The dictionary is Ubuntu's US English Hunspell (`hunspell-en-us`, SCOWL 2020.12.07), converted by `scripts/hunspell-to-bdic.py`, a port of Chromium's converter. Loaded into Electron, it accepts all 78,990 of its words and marks British spellings and common typos.
++- Large documents (2 MB, 4,400 paragraphs): typing latency to the next frame is a median of 34 ms (33 ms in 1.2.6). The whole document is checked within 7 s of opening. After a short paste, the paragraph is underlined in 0.2 s and the whole document is rechecked in 2.6 s, against 1.2 s for 100 KB.
++- The packaged `resources/app` from the Windows ZIP passed the same spelling, settings, and Restore checks.
++
++**Windows portable distribution.** Assembled by `scripts/repack-windows-from-1.2.6.py` from the 1.2.6 portable release. Its Electron 44.6.0 runtime is unchanged; `resources/app` (desktop, dist, package.json) and the text files are replaced. Only four version-resource fields of `PicoMarQ.exe` change, from 1.2.6 to 1.2.7, as checked independently with `pefile`: every section except `.rsrc` is identical, 4 bytes of `.rsrc` differ, and the entry point is the same.
++Baseline executable SHA-256: `23f746841b54f40d90f7e0ed019232d664d4c321080e627af89774060d159713`
++1.2.7 executable SHA-256: `914236887c47e0583bdb6acd394c4159dfacab023baf5229a1ee11b5f8056ccb`
++
++**Limitations.** Not run on Windows. On Windows, Electron may use the Windows spell checker instead of Hunspell, but the rule and the recheck are in Chromium's page engine, so the behavior should be the same; confirm with a file that has a typo. The switch's name ends in "ForTesting". It exists in Electron 44.6.0 (Chromium 152), and if a later Electron drops it, `tests/spelling-smoke.cjs` fails. The drag-and-drop recheck uses the same code as paste but is not exercised by a test.
+diff --git a/desktop/main.cjs b/desktop/main.cjs
+index a120557..29ea5e0 100644
+--- a/desktop/main.cjs
++++ b/desktop/main.cjs
+@@ -1,4 +1,4 @@
+-const { app, BrowserWindow, Menu, dialog, ipcMain, clipboard, shell, nativeTheme, screen } = require('electron');
++const { app, BrowserWindow, Menu, dialog, ipcMain, clipboard, shell, nativeTheme, screen, session } = require('electron');
+ const path = require('node:path');
+ const crypto = require('node:crypto');
+ const fs = require('node:fs/promises');
+@@ -6,7 +6,7 @@ const fsSync = require('node:fs');
+ const { pathToFileURL } = require('node:url');
+ const { createStore, readDocument, writeDocument, restoreBounds } = require('./store.cjs');
+ const { installedFonts } = require('./fonts.cjs');
+-const { captureTheme, parseTheme, fallbackFont } = require('./theme-presets.cjs');
++const { captureTheme, parseTheme, fallbackFont, defaultAppearance } = require('./theme-presets.cjs');
+ const { recentFiles } = require('./recent.cjs');
+ const { profileDirectory } = require('./profile.cjs');
+ const { contextMenuTemplate, sanitizeExtras } = require('./context-menu.cjs');
+@@ -14,6 +14,15 @@ const { shouldRestoreSession } = require('./startup.cjs');
+ 
+ app.setName('PicoMarQ');
+ app.setAppUserModelId('io.picomarq.markdown');
++// Spell-check opened files and pasted text, not only what is typed. Recent
++// Chromium versions skip spelling in a text box that a script focused and in
++// text the user did not type, so that websites cannot probe the words in
++// the user's dictionary (explainers-by-googlers.github.io/user-dictionary-leaks).
++// PicoMarQ focuses its editor itself when a document opens and inserts pastes
++// itself, so neither was checked. PicoMarQ shows no websites, so the rule
++// protects nothing here. This Chromium switch lifts it (Electron 44.6.0,
++// Chromium 152; tests/spelling-smoke.cjs fails if a later Electron drops it).
++app.commandLine.appendSwitch('enable-features', 'UnrestrictSpellingAndGrammarForTesting');
+ const userData = process.env.SCRATCH_TEST_DATA || profileDirectory(app.getPath('appData'));
+ fsSync.mkdirSync(userData, { recursive: true });
+ app.setPath('userData', userData);
+@@ -295,6 +304,24 @@ async function handleInvoke(event, action, args = {}) {
+       }
+       return { path: target, fontFallback: appearance.editorFont.baseFontFamily !== parsed.editorFont.baseFontFamily };
+     }
++    case 'restore_default_theme': {
++      const result = await dialog.showMessageBox(window, {
++        type: 'question', title: 'Restore Default Theme',
++        message: 'Restore the default theme?',
++        detail: 'Colors for Light and Dark, typography, and User Interface settings return to PicoMarQ’s defaults. Light or Dark stays as it is. Documents, Startup, Smart Typography, and saved theme files are not changed. To keep the current look, choose Cancel and use Save Theme first.',
++        buttons: ['Restore', 'Cancel'], defaultId: 1, cancelId: 1, noLink: true,
++      });
++      if (result.response !== 0) return null;
++      const current = store.get().settings;
++      const mode = args.mode === 'dark' || args.mode === 'light' ? args.mode : current.theme?.mode;
++      // Same single update and broadcast as Load Theme.
++      const next = { ...current, ...defaultAppearance(mode) };
++      await store.update({ settings: next });
++      for (const targetWindow of windows.values()) {
++        if (!targetWindow.window.isDestroyed()) targetWindow.window.webContents.send('scratch:settings', next);
++      }
++      return { restored: true };
++    }
+     case 'get_session': {
+       const doc = currentDocument(record);
+       return { documents: [doc], activeDocumentId: doc.id, settingsOpen: doc.view?.settingsOpen === true };
+@@ -550,6 +577,9 @@ else {
+     if (record) record.contextMenuExtras = { items: sanitizeExtras(extras), at: Date.now() };
+   });
+   startupReady = app.whenReady().then(async () => {
++    // US English spelling, whatever language Windows is set to.
++    try { session.defaultSession.setSpellCheckerLanguages(['en-US']); }
++    catch (error) { console.warn('Could not set the spelling language:', error.message); }
+     const state = await store.load();
+     const restore = await shouldRestoreSession(state, async count => {
+       const result = await dialog.showMessageBox({
+diff --git a/desktop/theme-presets.cjs b/desktop/theme-presets.cjs
+index 5ac62ae..0183097 100644
+--- a/desktop/theme-presets.cjs
++++ b/desktop/theme-presets.cjs
+@@ -76,6 +76,22 @@ function captureTheme(settings) {
+     }),
+   };
+ }
++// Settings > Saved Themes > Restore Default Theme: the appearance a new
++// profile starts with (the defaults in src/context/ThemeContext.tsx and
++// theme-colors.ts). No custom colors in either mode, default typography and
++// User Interface settings. Light or Dark stays as it is.
++function defaultAppearance(mode) {
++  return validateAppearance({
++    theme: { mode: mode === 'dark' ? 'dark' : 'light' },
++    editorFont: { ...DEFAULT_FONT },
++    editorWidth: 'full',
++    customEditorWidthPx: 768,
++    interfaceZoom: 1,
++    toolbarIconScale: 1,
++    customColorsLight: {},
++    customColorsDark: {},
++  });
++}
+ function parseTheme(text) {
+   let value;
+   try { value = JSON.parse(text); } catch { throw new Error('The selected file is not valid JSON.'); }
+@@ -90,4 +106,4 @@ function fallbackFont(appearance, installed) {
+   if (requested && installed.some(name => typeof name === 'string' && name.trim().toLocaleLowerCase() === requested)) return appearance;
+   return { ...appearance, editorFont: { ...appearance.editorFont, baseFontFamily: 'system-sans', systemFontFamily: '' } };
+ }
+-module.exports = { captureTheme, parseTheme, fallbackFont, COLOR_KEYS };
++module.exports = { captureTheme, parseTheme, fallbackFont, defaultAppearance, COLOR_KEYS };
+diff --git a/package-lock.json b/package-lock.json
+index 87b018e..28e549e 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.2.6",
++  "version": "1.2.7",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.2.6",
++      "version": "1.2.7",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+diff --git a/package.json b/package.json
+index 136d321..a85b755 100644
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.2.6",
++  "version": "1.2.7",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -16,7 +16,9 @@
+     "test:typography": "node tests/typography-smoke.cjs",
+     "test:startup": "node tests/startup-smoke.cjs",
+     "test:close-restore": "node tests/close-restore-smoke.cjs",
+-    "test:close-window": "node tests/close-command-smoke.cjs"
++    "test:close-window": "node tests/close-command-smoke.cjs",
++    "test:settings": "node tests/settings-smoke.cjs",
++    "test:spelling": "node tests/spelling-smoke.cjs"
+   },
+   "dependencies": {
+     "@radix-ui/react-alert-dialog": "^1.1.15",
+diff --git a/public/theme-presets-ui.js b/public/theme-presets-ui.js
+index feca8df..7af9a71 100644
+--- a/public/theme-presets-ui.js
++++ b/public/theme-presets-ui.js
+@@ -1,6 +1,7 @@
+-/* PicoMarQ 1.2.6: Save/Load Theme controls.
++/* PicoMarQ Saved Themes controls: Save Theme, Load Theme (1.2.6) and
++ * Restore Default Theme (1.2.7).
+  * Kept as a self-contained enhancement so the offline Windows distribution
+- * can reuse the verified 1.2.4 renderer bundle without recompiling it.
++ * could reuse the verified 1.2.4 renderer bundle without recompiling it.
+  * The same file is shipped by Vite from public/ during normal source builds.
+  */
+ (() => {
+@@ -15,10 +16,11 @@
+     section.innerHTML = `
+       <h2 class="text-xl font-medium mb-3">Saved Themes</h2>
+       <div class="rounded-[10px] border border-border p-4 space-y-3">
+-        <p class="text-xs text-text-muted">Save Theme and Load Theme use JSON files. By default, files are stored in the Themes folder beside PicoMarQ.exe.</p>
++        <p class="text-xs text-text-muted">Save Theme and Load Theme use JSON files. By default, files are stored in the Themes folder beside PicoMarQ.exe. Restore Default Theme returns colors, typography, and User Interface settings to their defaults.</p>
+         <div class="flex flex-wrap gap-2">
+           <button type="button" data-theme-action="save" class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors h-9 px-4 bg-accent text-text-inverse hover:bg-accent/90 rounded-md">Save Theme…</button>
+           <button type="button" data-theme-action="load" class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors h-9 px-4 border border-border bg-transparent hover:bg-bg-muted text-text rounded-md">Load Theme…</button>
++          <button type="button" data-theme-action="restore" class="inline-flex items-center justify-center whitespace-nowrap font-medium cursor-pointer transition-colors h-9 px-4 border border-border bg-transparent hover:bg-bg-muted text-text rounded-md">Restore Default Theme…</button>
+         </div>
+         <p data-theme-status role="status" aria-live="polite" class="text-xs text-text-muted" hidden></p>
+       </div>`;
+@@ -33,17 +35,22 @@
+         }
+         buttons.forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+         status.hidden = true;
++        const action = button.dataset.themeAction;
+         try {
+-          const loading = button.dataset.themeAction === 'load';
+-          const result = await window.desktop.invoke(loading ? 'load_theme' : 'save_theme');
++          const result = action === 'restore'
++            // Light or Dark stays as it is on screen.
++            ? await window.desktop.invoke('restore_default_theme', { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' })
++            : await window.desktop.invoke(action === 'load' ? 'load_theme' : 'save_theme');
+           if (result) {
+             const name = String(result.path || '').split(/[\\/]/).pop();
+-            status.textContent = `${loading ? 'Loaded' : 'Saved'} theme: ${name}${result.fontFallback ? '. Font not installed; using Sans.' : ''}`;
++            status.textContent = action === 'restore'
++              ? 'Restored the default theme.'
++              : `${action === 'load' ? 'Loaded' : 'Saved'} theme: ${name}${result.fontFallback ? '. Font not installed; using Sans.' : ''}`;
+             status.style.color = 'var(--color-text-muted)';
+             status.hidden = false;
+           }
+         } catch (error) {
+-          status.textContent = `Could not ${button.dataset.themeAction} theme: ${error?.message || String(error)}`;
++          status.textContent = `Could not ${action === 'restore' ? 'restore the default' : action} theme: ${error?.message || String(error)}`;
+           status.style.color = 'var(--color-text)';
+           status.hidden = false;
+         } finally {
+diff --git a/scripts/hunspell-to-bdic.py b/scripts/hunspell-to-bdic.py
+new file mode 100644
+index 0000000..1aee37f
+--- /dev/null
++++ b/scripts/hunspell-to-bdic.py
+@@ -0,0 +1,416 @@
++#!/usr/bin/env python3
++"""Hunspell .aff/.dic -> Chromium .bdic dictionary converter (test tool).
++
++PicoMarQ's spelling test (tests/spelling-smoke.cjs) needs a US English
++dictionary in Chromium's .bdic format. Electron normally downloads it from
++Google, which is not reachable everywhere tests run, so the test builds one
++from the system's Hunspell en_US files (Debian/Ubuntu package hunspell-en-us).
++
++This is a line-by-line Python port of Chromium's chrome/tools/convert_dict
++(aff_reader.cc, dic_reader.cc, hunspell_reader.cc) and
++third_party/hunspell/google/bdict_writer.cc.
++Copyright 2011 The Chromium Authors. Use of the ported code is governed by
++Chromium's BSD-style license.
++
++Usage: python3 scripts/hunspell-to-bdic.py /usr/share/hunspell/en_US OUT.bdic
++       (reads en_US.aff and en_US.dic)
++"""
++import hashlib
++import struct
++import sys
++
++WS = b' \t\n\x0b\x0c\r'  # base::kWhitespaceASCII
++sys.setrecursionlimit(10000)
++
++
++def trim_line(line):
++    if len(line) > 3 and line[:3] == b'\xef\xbb\xbf':
++        line = line[3:]
++    return line.strip(WS)
++
++
++def read_lines(path):
++    with open(path, 'rb') as handle:
++        data = handle.read()
++    for raw in data.split(b'\n'):
++        nul = raw.find(b'\0')
++        if nul >= 0:
++            raw = raw[:nul]
++        yield trim_line(raw)
++
++
++def strip_comment(line):
++    index = line.find(b'#')
++    if index >= 0:
++        return trim_line(line[:index])
++    return line
++
++
++def collapse_spaces(line):
++    out = bytearray()
++    previous_space = False
++    for byte in line:
++        if byte == 0x20:
++            if previous_space:
++                continue
++            previous_space = True
++        else:
++            previous_space = False
++        out.append(byte)
++    return bytes(out)
++
++
++class AffReader:
++    def __init__(self, path):
++        self.path = path
++        self.encoding = 'ISO8859-1'
++        self.has_indexed_affixes = False
++        self.intro_comment = b''
++        self.affix_groups = {}
++        self.affix_rules = []
++        self.replacements = []
++        self.other_commands = []
++
++    def to_utf8(self, encoded):
++        return encoded.decode(self.encoding, errors='strict').encode('utf-8')
++
++    def read(self):
++        got_command = got_first_af = got_first_rep = False
++        for line in read_lines(self.path):
++            if not got_command and line[:1] == b'#':
++                self.intro_comment += line + b'\n'
++                continue
++            line = strip_comment(line)
++            if not line:
++                continue
++            got_command = True
++            line = line.replace(b'\t', b' ')
++            if line.startswith(b'SET '):
++                self.encoding = trim_line(line[4:]).decode('ascii')
++            elif line.startswith(b'AF '):
++                self.has_indexed_affixes = True
++                if got_first_af:
++                    self.add_affix_group(line[3:])
++                else:
++                    got_first_af = True
++            elif line.startswith(b'SFX ') or line.startswith(b'PFX '):
++                self.add_affix(line)
++            elif line.startswith(b'REP '):
++                if got_first_rep:
++                    self.add_replacement(line[4:])
++                else:
++                    got_first_rep = True
++            elif line.startswith(b'TRY ') or line.startswith(b'MAP '):
++                self.other_commands.append(self.to_utf8(line))
++            elif line.startswith(b'IGNORE ') or line.startswith(b'COMPLEXPREFIXES '):
++                raise SystemExit('Unsupported aff command: %r' % line)
++            elif line.startswith(b'AM '):
++                pass
++            else:
++                self.other_commands.append(line)
++
++    def add_affix_group(self, rule):
++        rule = trim_line(rule)
++        affix_id = len(self.affix_groups) + 1
++        self.affix_groups.setdefault(rule, affix_id)
++        return affix_id
++
++    def af_index(self, af_string):
++        if af_string in self.affix_groups:
++            return self.affix_groups[af_string]
++        return self.add_affix_group(af_string)
++
++    def get_affix_groups(self):
++        max_id = max(self.affix_groups.values(), default=0)
++        groups = [b''] * max_id
++        for key, value in self.affix_groups.items():
++            groups[value - 1] = b'AF ' + key
++        return groups
++
++    def add_affix(self, rule):
++        rule = collapse_spaces(trim_line(rule))
++        found_spaces = 0
++        token = b''
++        for i in range(len(rule)):
++            if rule[i] == 0x20:
++                found_spaces += 1
++                if found_spaces == 3:
++                    part_start = i
++                    if token[:1] not in (b'Y', b'N'):
++                        part_start = i - len(token)
++                    part = rule[part_start:]
++                    fields = part.split(b' ')
++                    if len(fields) > 3:
++                        part = b' '.join(fields[:3])
++                    slash = part.find(b'/')
++                    if slash >= 0 and not self.has_indexed_affixes:
++                        before_flags = part[:slash + 1]
++                        after = [piece.strip(WS) for piece in part[slash + 1:].split(b' ')]
++                        if len(after) == 1:
++                            after.append(b'.')
++                        part = before_flags + str(self.af_index(after[0])).encode() + b' ' + after[1]
++                    rule = rule[:part_start] + self.to_utf8(part)
++                    break
++                token = b''
++            else:
++                token += rule[i:i + 1]
++        self.affix_rules.append(rule)
++
++    def add_replacement(self, rule):
++        rule = self.to_utf8(collapse_spaces(trim_line(rule)))
++        space = rule.find(b' ')
++        if space < 0:
++            raise SystemExit('No space in replacement %r' % rule)
++        self.replacements.append((rule[:space].replace(b'_', b' '), rule[space + 1:].replace(b'_', b' ')))
++
++
++def split_dic_line(line):
++    slash = len(line)
++    for i in range(len(line)):
++        if line[i] == 0x2F and i > 0 and line[i - 1] != 0x5C:
++            slash = i
++            break
++    parts = [line[:slash].replace(b'\\/', b'/')]
++    if slash < len(line) - 1:
++        parts.append(line[slash + 1:])
++    return parts
++
++
++def read_dic(path, aff):
++    words = {}
++    first = True
++    for line in read_lines(path):
++        line = strip_comment(line)
++        if not line:
++            continue
++        if first:
++            first = False  # word count line
++            continue
++        parts = split_dic_line(line)
++        word = parts[0] if aff.encoding == 'UTF-8' else aff.to_utf8(parts[0])
++        affix_index = 0
++        if len(parts) == 2:
++            flags = parts[1]
++            tab = flags.find(b'\t')
++            if tab >= 0:
++                flags = flags[:tab]
++            affix_index = int(flags) if aff.has_indexed_affixes else aff.af_index(flags)
++        tab = word.find(b'\t')
++        if tab >= 0:
++            word = word[:tab]
++        words.setdefault(word, set()).add(affix_index)
++    return sorted((word, sorted(affixes, reverse=True)) for word, affixes in words.items())
++
++
++LEAF, LEAFMORE, LIST16, LIST8, LOOKUP32, LOOKUP16 = range(1, 7)
++
++
++class Node:
++    __slots__ = ('addition', 'children', 'leaf_addition', 'affix_indices', 'storage')
++
++    def __init__(self):
++        self.addition = 0
++        self.children = []
++        self.leaf_addition = b''
++        self.affix_indices = []
++        self.storage = 0
++
++
++def nth_char_is(word, n, ch):
++    if len(word) < n:
++        return False
++    return (word[n] if n < len(word) else 0) == ch
++
++
++def build_trie(words, begin, end, depth, node):
++    begin_str = words[begin][0]
++    if len(begin_str) < depth:
++        node.addition = 0
++        node.affix_indices = words[begin][1]
++        return begin + 1
++    if depth == 0 and begin == 0:
++        match_count = end - begin
++        node.addition = 0
++    else:
++        match_count = 0
++        node.addition = begin_str[depth - 1]
++        while begin + match_count < end and nth_char_is(words[begin + match_count][0], depth - 1, node.addition):
++            match_count += 1
++    if match_count == 1:
++        node.affix_indices = words[begin][1]
++        node.leaf_addition = begin_str[depth:]
++        return begin + 1
++    i = begin
++    while i < begin + match_count:
++        child = Node()
++        i = build_trie(words, i, begin + match_count, depth + 1, child)
++        node.children.append(child)
++    return begin + match_count
++
++
++def lookup_details(children):
++    if not children:
++        return False, 0, 0
++    first_offset = 0
++    has_0th = False
++    if children[0].addition == 0:
++        has_0th = True
++        first_offset = 1
++    if len(children) == first_offset:
++        return has_0th, 0, 0
++    first = children[first_offset].addition
++    last = children[-1].addition
++    return has_0th, first, last - first + 1
++
++
++def compute_storage(node):
++    if not node.children:
++        supplementary = 0
++        if node.affix_indices[0] > 0x1FFE:
++            supplementary = len(node.affix_indices) * 2 + 2
++        elif len(node.affix_indices) > 1:
++            supplementary = len(node.affix_indices) * 2
++        if not node.leaf_addition:
++            node.storage = LEAF
++            return 2 + supplementary
++        node.storage = LEAFMORE
++        return 3 + len(node.leaf_addition) + supplementary
++    child_size = sum(compute_storage(child) for child in node.children)
++    count = len(node.children)
++    if count < 16 and child_size <= 0xFF:
++        node.storage = LIST8
++        return 1 + count * 2 + child_size
++    if count < 16 and child_size <= 0xFFFF:
++        node.storage = LIST16
++        return 1 + count * 3 + child_size
++    has_0th, _first, table_count = lookup_details(node.children)
++    if child_size + 2 + (2 if has_0th else 0) + table_count * 2 < 0xFFFF:
++        node.storage = LOOKUP16
++        return 2 + (2 if has_0th else 0) + table_count * 2 + child_size
++    node.storage = LOOKUP32
++    return 2 + (4 if has_0th else 0) + table_count * 4 + child_size
++
++
++def serialize_leaf(node, out):
++    first_affix = node.affix_indices[0] if node.affix_indices else 0
++    first_in_supplementary = 1
++    if first_affix > 0x1FFE:
++        first_in_supplementary = 0
++        first_affix = 0x1FFF
++    id_byte = (first_affix >> 8) & 0x1F
++    if node.storage == LEAFMORE:
++        id_byte |= 0x40
++    if len(node.affix_indices) > 1 or first_in_supplementary == 0:
++        id_byte |= 0x20
++    out.append(id_byte)
++    out.append(first_affix & 0xFF)
++    if node.storage == LEAFMORE:
++        out += node.leaf_addition + b'\0'
++    if len(node.affix_indices) > first_in_supplementary:
++        for i in range(first_in_supplementary, min(len(node.affix_indices), 32)):
++            value = node.affix_indices[i]
++            out.append(value & 0xFF)
++            out.append((value >> 8) & 0xFF)
++        out += b'\xff\xff'
++
++
++def serialize_list(node, out):
++    is_8_bit = node.storage == LIST8
++    out.append((0xE0 | (0 if is_8_bit else 0xF0) | len(node.children)) & 0xFF)
++    per_entry = 2 if is_8_bit else 3
++    table_begin = len(out)
++    out += bytes(len(node.children) * per_entry)
++    children_begin = len(out)
++    for i, child in enumerate(node.children):
++        out[table_begin + i * per_entry] = child.addition
++        offset = len(out) - children_begin
++        if is_8_bit:
++            out[table_begin + i * per_entry + 1] = offset & 0xFF
++        else:
++            struct.pack_into('<H', out, table_begin + i * per_entry + 1, offset & 0xFFFF)
++        serialize_trie(child, out)
++
++
++def serialize_lookup(node, out):
++    has_0th, first, table_count = lookup_details(node.children)
++    is_32_bit = node.storage == LOOKUP32
++    id_byte = 0xC0
++    if is_32_bit:
++        id_byte |= 0xC2
++    if has_0th:
++        id_byte |= 0xC1
++    begin_offset = len(out)
++    out += bytes([id_byte, first & 0xFF, table_count & 0xFF])
++    per_entry = 4 if is_32_bit else 2
++    zeroth = len(out)
++    if has_0th:
++        out += bytes(per_entry)
++    table_begin = len(out)
++    out += bytes(table_count * per_entry)
++    for i, child in enumerate(node.children):
++        if i == 0 and has_0th:
++            where = zeroth
++        else:
++            where = table_begin + (child.addition - first) * per_entry
++        if is_32_bit:
++            struct.pack_into('<I', out, where, len(out))
++        else:
++            struct.pack_into('<H', out, where, (len(out) - begin_offset) & 0xFFFF)
++        serialize_trie(child, out)
++
++
++def serialize_trie(node, out):
++    if node.storage in (LEAF, LEAFMORE):
++        serialize_leaf(node, out)
++    elif node.storage in (LIST8, LIST16):
++        serialize_list(node, out)
++    elif node.storage in (LOOKUP16, LOOKUP32):
++        serialize_lookup(node, out)
++
++
++def string_list(strings, out):
++    for value in strings:
++        out += value if value else b' '
++        out.append(0)
++    out.append(0)
++
++
++def main(base, output):
++    aff = AffReader(base + '.aff')
++    aff.read()
++    words = read_dic(base + '.dic', aff)
++    root = Node()
++    build_trie(words, 0, len(words), 0, root)
++
++    out = bytearray(32)
++    aff_offset = len(out)
++    aff_header = len(out)
++    out += bytes(16)
++    out += b'\n' + aff.intro_comment + b'\n'
++    groups = aff.get_affix_groups()
++    group_offset = len(out)
++    out += b'AF %d' % len(groups) + b'\0'
++    string_list(groups, out)
++    rule_offset = len(out)
++    string_list(aff.affix_rules, out)
++    rep_offset = len(out)
++    for source, target in aff.replacements:
++        out += source + b'\0' + target + b'\0'
++    out.append(0)
++    other_offset = len(out)
++    string_list(aff.other_commands, out)
++    struct.pack_into('<IIII', out, aff_header, group_offset, rule_offset, rep_offset, other_offset)
++
++    dic_offset = len(out)
++    compute_storage(root)
++    serialize_trie(root, out)
++    struct.pack_into('<IHHII', out, 0, 0x63694442, 2, 0, aff_offset, dic_offset)
++    out[16:32] = hashlib.md5(bytes(out[aff_offset:])).digest()
++    with open(output, 'wb') as handle:
++        handle.write(out)
++    print(f'{len(words)} words, {len(groups)} affix groups, {len(aff.affix_rules)} affix rules, '
++          f'{len(aff.replacements)} replacements, {len(aff.other_commands)} other commands -> {output} ({len(out)} bytes)')
++
++
++if __name__ == '__main__':
++    main(sys.argv[1], sys.argv[2])
+diff --git a/scripts/repack-windows-from-1.2.6.py b/scripts/repack-windows-from-1.2.6.py
+new file mode 100644
+index 0000000..b4af621
+--- /dev/null
++++ b/scripts/repack-windows-from-1.2.6.py
+@@ -0,0 +1,206 @@
++#!/usr/bin/env python3
++"""Repackage PicoMarQ 1.2.7 from the 1.2.6 portable Windows release.
++
++Keeps the 1.2.6 package's Electron 44.6.0 runtime, replaces the application
++files (resources/app: desktop, dist, package.json) with this source, which
++must already be built (npm ci && npm run build), and updates four PE
++version-resource values in the unsigned executable from 1.2.6 to 1.2.7.
++Usage:
++  python scripts/repack-windows-from-1.2.6.py BASE-1.2.6.zip [OUTPUT-1.2.7.zip]
++"""
++import json
++import hashlib
++import shutil
++import struct
++import sys
++import tempfile
++import zipfile
++from pathlib import Path, PurePosixPath
++
++ROOT = Path(__file__).resolve().parents[1]
++OLD = '1.2.6'
++NEW = '1.2.7'
++
++
++def sha256(path):
++    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++
++def pe_sections(data):
++    """Return PE section extents and the security directory for sanity checks."""
++    if data[:2] != b'MZ':
++        raise ValueError('Not a Windows PE executable (no MZ).')
++    e_lfanew = struct.unpack_from('<I', data, 0x3C)[0]
++    if data[e_lfanew:e_lfanew + 4] != b'PE\0\0':
++        raise ValueError('Not a PE executable (no PE signature).')
++    coff = e_lfanew + 4
++    count = struct.unpack_from('<H', data, coff + 2)[0]
++    optional = coff + 20
++    opt_size = struct.unpack_from('<H', data, coff + 16)[0]
++    if struct.unpack_from('<H', data, optional)[0] != 0x20b:
++        raise ValueError('Expected 64-bit PE32+ executable.')
++    if struct.unpack_from('<II', data, optional + 112 + 8*4) != (0, 0):
++        raise ValueError('Expected an unsigned executable; refusing to break a signature.')
++    checksum = struct.unpack_from('<I', data, optional + 64)[0]
++    if checksum:
++        raise ValueError('Expected zero PE checksum; refusing to overwrite a checksummed executable.')
++    sections = {}
++    for index in range(count):
++        at = optional + opt_size + index*40
++        name = bytes(data[at:at+8]).split(b'\0')[0].decode('ascii')
++        virtual_size, virtual_addr, raw_size, raw_ptr = struct.unpack_from('<IIII', data, at + 8)
++        if raw_ptr + raw_size > len(data):
++            raise ValueError(f'Invalid section {name} raw size.')
++        sections[name] = (raw_ptr, raw_size)
++    if '.rsrc' not in sections:
++        raise ValueError('Missing PE resource section.')
++    return sections
++
++
++def update_version_resource(exe_path):
++    original = exe_path.read_bytes()
++    sections = pe_sections(original)
++    resource_start, resource_length = sections['.rsrc']
++    new_bytes = bytearray(original)
++    resource = original[resource_start:resource_start+resource_length]
++    old_unicode = OLD.encode('utf-16-le')
++    new_unicode = NEW.encode('utf-16-le')
++    matches = []
++    where = 0
++    while True:
++        index = resource.find(old_unicode, where)
++        if index == -1:
++            break
++        matches.append(index)
++        where = index + len(old_unicode)
++    # Existing unsigned PicoMarQ.exe contains FileVersion and ProductVersion.
++    if len(matches) != 2:
++        raise ValueError(f'Expected two strings {OLD} in .rsrc; found {len(matches)}')
++    for index in matches:
++        at = resource_start + index
++        new_bytes[at:at+len(old_unicode)] = new_unicode
++    fixed_signature = struct.pack('<I', 0xFEEF04BD)
++    positions = []
++    where = 0
++    while True:
++        index = resource.find(fixed_signature, where)
++        if index == -1:
++            break
++        positions.append(index)
++        where = index + 4
++    if len(positions) != 1:
++        raise ValueError(f'Expected one VS_FIXEDFILEINFO structure, got {len(positions)}')
++    at = resource_start + positions[0]
++    fixed = struct.unpack_from('<13I', original, at)
++    old_parts = (1 << 16) | 2, (6 << 16)
++    new_parts = (1 << 16) | 2, (7 << 16)
++    if (fixed[2],fixed[3],fixed[4],fixed[5]) != old_parts*2:
++        raise ValueError(f'Unexpected numeric version metadata: {fixed[2:6]}')
++    for rel_offset in (3,5):
++        struct.pack_into('<I', new_bytes, at + rel_offset*4, new_parts[1])
++    if pe_sections(new_bytes) != sections:
++        raise ValueError('Patch changed PE section layout.')
++    # No original runtime bytes outside the .rsrc section have changed.
++    assert new_bytes[:resource_start] == original[:resource_start]
++    assert new_bytes[resource_start+resource_length:] == original[resource_start+resource_length:]
++    for name,(offset,length) in sections.items():
++        if name != '.rsrc' and new_bytes[offset:offset+length] != original[offset:offset+length]:
++            raise ValueError(f'Non-resource section changed: {name}')
++    old_strings = new_bytes[resource_start:resource_start+resource_length].count(old_unicode)
++    new_strings = new_bytes[resource_start:resource_start+resource_length].count(new_unicode)
++    if old_strings != 0 or new_strings != 2:
++        raise ValueError('Incorrect updated resource version strings.')
++    updated = struct.unpack_from('<13I', new_bytes, at)
++    if (updated[2],updated[3],updated[4],updated[5]) != new_parts*2:
++        raise ValueError('Numeric version verification failed.')
++    exe_path.write_bytes(new_bytes)
++    return {
++        'original_exe_sha256': hashlib.sha256(original).hexdigest(),
++        'updated_exe_sha256': hashlib.sha256(new_bytes).hexdigest(),
++        'version_strings_changed': len(matches),
++        'numeric_version_values_changed': 2,
++        'runtime_sections_unchanged': True,
++    }
++
++
++def package(base, output):
++    source_pkg = json.loads((ROOT/'package.json').read_text())
++    if source_pkg['version'] != NEW:
++        raise ValueError('Source package version does not match expected release.')
++    with tempfile.TemporaryDirectory(prefix='picomarq-windows-') as tmp:
++        tmp = Path(tmp)
++        with zipfile.ZipFile(base) as z:
++            names = z.namelist()
++            for member in names:
++                p = PurePosixPath(member)
++                if not p.parts or p.parts[0] != 'PicoMarQ' or '..' in p.parts or p.is_absolute() or '\\' in member:
++                    raise ValueError(f'Unsafe/malformed ZIP entry: {member}')
++            if 'PicoMarQ/PicoMarQ.exe' not in names:
++                raise ValueError('Baseline portable ZIP is missing PicoMarQ.exe')
++            z.extractall(tmp)
++        win = tmp/'PicoMarQ'
++        app = win/'resources/app'
++        prior = json.loads((app/'package.json').read_text())
++        if prior.get('version') != OLD:
++            raise ValueError(f'Baseline app must be {OLD}')
++        # Replace renderer and desktop app with the exact supplied source version.
++        for directory in ('dist','desktop'):
++            shutil.rmtree(app/directory)
++            shutil.copytree(ROOT/directory,app/directory)
++        for filename in ('LICENSE','THIRD-PARTY-NOTICES.txt','app.ico'):
++            shutil.copy2(ROOT/filename,app/filename)
++        (app/'package.json').write_text(json.dumps({
++            'name': source_pkg['name'],
++            'productName': source_pkg['productName'],
++            'version': NEW,
++            'main': source_pkg['main'],
++        },indent=2)+'\n')
++        for name,src in {
++            'START-HERE.txt': 'START-HERE.txt',
++            'KEYBOARD-SHORTCUTS.md':'docs/KEYBOARD-SHORTCUTS.md',
++            'APP-LICENSE.txt':'LICENSE',
++            'THIRD-PARTY-NOTICES.txt':'THIRD-PARTY-NOTICES.txt',
++        }.items():
++            shutil.copy2(ROOT/src,win/name)
++        verification = update_version_resource(win/'PicoMarQ.exe')
++        (win/'RELEASE-VALIDATION.txt').write_text(
++            'PicoMarQ 1.2.7 portable Windows release\n\n'
++            'Assembled from the PicoMarQ 1.2.6 portable release. Its Electron\n'
++            '44.6.0 x64 runtime is unchanged; the application files in\n'
++            'resources\\app are replaced with PicoMarQ 1.2.7, and four\n'
++            'version-resource fields of PicoMarQ.exe change from 1.2.6 to 1.2.7.\n'
++            'No other bytes of the executable or the runtime files change.\n\n'
++            'The 1.2.7 renderer is compiled from the 1.2.7 source (npm ci,\n'
++            'npm run build). Tested on Linux with the same Electron 44.6.0:\n'
++            'unit tests, Chromium browser checks, and the desktop, typography,\n'
++            'startup, close, settings and US English spelling checks (see\n'
++            'VALIDATION.md in the source package). Not run on Windows here;\n'
++            'this unsigned personal build should be checked on Windows 10/11.\n\n'
++            f'Baseline executable SHA-256: {verification["original_exe_sha256"]}\n'
++            f'Updated executable SHA-256:  {verification["updated_exe_sha256"]}\n'
++        )
++        if json.loads((app/'package.json').read_text())['version'] != NEW:
++            raise AssertionError('App metadata version mismatch')
++        output.parent.mkdir(parents=True,exist_ok=True)
++        if output.exists():
++            output.unlink()
++        with zipfile.ZipFile(output,mode='w',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True) as z:
++            for item in sorted(win.rglob('*')):
++                if item.is_file():
++                    z.write(item,arcname=Path('PicoMarQ')/item.relative_to(win))
++        with zipfile.ZipFile(output) as z:
++            corrupt = z.testzip()
++            if corrupt:
++                raise ValueError(f'Archive CRC failure: {corrupt}')
++            assert json.loads(z.read('PicoMarQ/resources/app/package.json'))['version'] == NEW
++            assert z.read('PicoMarQ/PicoMarQ.exe')[:2] == b'MZ'
++        return verification
++
++if __name__ == '__main__':
++    if len(sys.argv) not in (2,3):
++        raise SystemExit(__doc__)
++    base = Path(sys.argv[1]).resolve()
++    target = Path(sys.argv[2]).resolve() if len(sys.argv) == 3 else ROOT/'release'/f'PicoMarQ-Windows-x64-{NEW}.zip'
++    summary = package(base,target)
++    print(f'Created: {target} ({target.stat().st_size:,} bytes)')
++    print(json.dumps(summary,indent=2))
+diff --git a/src/components/editor/Editor.tsx b/src/components/editor/Editor.tsx
+index 9edf2b7..65867f5 100644
+--- a/src/components/editor/Editor.tsx
++++ b/src/components/editor/Editor.tsx
+@@ -23,6 +23,7 @@ import { Markdown } from "@tiptap/markdown";
+ import { countWords, countDocumentWords } from "../../lib/word-count";
+ import { createTextareaMeasurer, lastIndexWhere, textareaOffsetTops } from "../../lib/textarea-position";
+ import { resolveAutoDirection } from "../../lib/text-direction";
++import { recheckSpelling } from "../../lib/spelling";
+ import { convertMarkdownTypography, convertTypography, insideProtectedMarkdown, keystrokeReplacement } from "../../lib/smart-typography";
+ import { SmartTypography } from "./SmartTypography";
+ import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+@@ -1028,8 +1029,15 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+         }
+         return false;
+       },
++      // Pasted or dragged-in text was not typed, so Chromium would check only
++      // the words near the cursor; have it check the whole document again.
++      handleDrop: (view) => {
++        recheckSpelling(view.dom);
++        return false;
++      },
+       // Handle markdown and image paste
+-      handlePaste: (_view, event) => {
++      handlePaste: (view, event) => {
++        recheckSpelling(view.dom);
+         const clipboardData = event.clipboardData;
+         if (!clipboardData) return false;
+ 
+@@ -1776,6 +1784,9 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+         editor.commands.setContent(sourceContent);
+       }
+       isLoadingRef.current = false;
++      // Text edited in the source view (which is not spell-checked) is new
++      // to the formatted view: check the whole document for spelling.
++      recheckSpelling(editor.view.dom);
+       setSourceMode(false);
+     }
+   }, [editor, sourceMode, sourceContent, getMarkdown, currentNote?.content]);
+diff --git a/src/components/settings/EditorSettingsSection.tsx b/src/components/settings/EditorSettingsSection.tsx
+index 715c4b0..5dd32ce 100644
+--- a/src/components/settings/EditorSettingsSection.tsx
++++ b/src/components/settings/EditorSettingsSection.tsx
+@@ -1,4 +1,4 @@
+-import { useState, useEffect, type ButtonHTMLAttributes } from "react";
++import { useState, useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes } from "react";
+ import { invoke } from "../../lib/desktop";
+ import { useTheme, defaultThemeColors } from "../../context/ThemeContext";
+ import { Button, IconButton, Input, Select } from "../ui";
+@@ -76,6 +76,72 @@ function Switch({ id, checked, onChange, ...props }: { id: string; checked: bool
+   );
+ }
+ 
++// A number box that keeps what is typed. Changing the value on every
++// keystroke and forcing it into range made typing impossible: the "1" of "18"
++// became 12, then "128" became 24. Here a number in range takes effect at once
++// (18 applies as soon as the 8 is typed), and anything else waits for Enter or
++// for leaving the box, where it is moved into range (or, if it is not a
++// number, the current value comes back). The Up and Down keys still step it.
++function NumberBox({ value, min, max, wholeNumbers = false, onCommit, ...props }: {
++  value: number;
++  min: number;
++  max: number;
++  wholeNumbers?: boolean;
++  onCommit: (value: number) => void;
++} & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "min" | "max" | "type">) {
++  const [draft, setDraft] = useState(() => String(value));
++  // True between the first keystroke and Enter or leaving the box.
++  const editingRef = useRef(false);
++  // Show changes made elsewhere (Reset to defaults, Load Theme, another
++  // window, the page-edge handles) unless the box is being typed in.
++  useEffect(() => {
++    if (!editingRef.current) setDraft(String(value));
++  }, [value]);
++  const commit = () => {
++    if (!editingRef.current) {
++      setDraft(String(value));
++      return;
++    }
++    editingRef.current = false;
++    const parsed = parseFloat(draft);
++    if (!Number.isFinite(parsed)) {
++      setDraft(String(value));
++      return;
++    }
++    let next = Math.min(Math.max(parsed, min), max);
++    if (wholeNumbers) next = Math.round(next);
++    setDraft(String(next));
++    if (next !== value) onCommit(next);
++  };
++  return (
++    <Input
++      {...props}
++      type="number"
++      min={min}
++      max={max}
++      value={draft}
++      onChange={(e) => {
++        editingRef.current = true;
++        const text = e.target.value;
++        setDraft(text);
++        const parsed = parseFloat(text);
++        if (
++          Number.isFinite(parsed) &&
++          parsed >= min &&
++          parsed <= max &&
++          (!wholeNumbers || Number.isInteger(parsed))
++        ) {
++          onCommit(parsed);
++        }
++      }}
++      onBlur={commit}
++      onKeyDown={(e) => {
++        if (e.key === "Enter") commit();
++      }}
++    />
++  );
++}
++
+ export function AppearanceSettingsSection() {
+   const {
+     startupBehavior,
+@@ -228,16 +294,14 @@ export function AppearanceSettingsSection() {
+ 
+           {/* Base Font Size */}
+           <div className="flex items-center justify-between">
+-            <label className="text-sm text-text font-medium">Size</label>
++            <label htmlFor="font-size" className="text-sm text-text font-medium">Size</label>
+             <div className="relative w-40">
+-              <Input
+-                type="number"
+-                min="12"
+-                max="24"
++              <NumberBox
++                id="font-size"
++                min={12}
++                max={24}
+                 value={editorFontSettings.baseFontSize}
+-                onChange={(e) =>
+-                  handleNumericChange("baseFontSize", e.target.value, 12, 24)
+-                }
++                onCommit={(size) => setEditorFontSetting("baseFontSize", size)}
+                 className="w-full h-9 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+               />
+             </div>
+@@ -329,21 +393,14 @@ export function AppearanceSettingsSection() {
+                 Custom Width
+               </label>
+               <div className="relative w-40 flex items-center gap-2">
+-                <Input
++                <NumberBox
+                   id="custom-width"
+-                  type="number"
+-                  min="480"
+-                  max="3840"
++                  min={480}
++                  max={3840}
+                   step="10"
++                  wholeNumbers
+                   value={customEditorWidthPx}
+-                  onChange={(e) => {
+-                    const parsed = parseInt(e.target.value, 10);
+-                    if (Number.isFinite(parsed)) {
+-                      setCustomEditorWidthPx(
+-                        Math.min(Math.max(parsed, 480), 3840),
+-                      );
+-                    }
+-                  }}
++                  onCommit={setCustomEditorWidthPx}
+                   className="w-full h-9 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                 />
+                 <span className="text-sm text-text-muted">px</span>
+diff --git a/src/lib/spelling.ts b/src/lib/spelling.ts
+new file mode 100644
+index 0000000..2672439
+--- /dev/null
++++ b/src/lib/spelling.ts
+@@ -0,0 +1,29 @@
++// Spell checking for text the user did not type.
++//
++// After a change it did not see typed (a paste, text from the Markdown source
++// view), Chromium rechecks only about 128 characters around the cursor; it
++// checks a whole document again only after more than about 1,000 characters
++// have changed.
++// Switching spell checking off and on for the editor makes Chromium forget
++// that the document was already checked, so its next idle pass (about a
++// second later) checks the whole document again. Underlines elsewhere in the
++// document disappear until then.
++//
++// This works only together with the UnrestrictSpellingAndGrammarForTesting
++// switch in desktop/main.cjs; without it, Chromium ignores spell checking
++// being turned back on.
++
++const pending = new WeakMap<HTMLElement, number>();
++
++export function recheckSpelling(editor: HTMLElement | null | undefined): void {
++  if (!editor) return;
++  const previous = pending.get(editor);
++  if (previous !== undefined) window.clearTimeout(previous);
++  // After the paste or new content is in the document.
++  pending.set(editor, window.setTimeout(() => {
++    pending.delete(editor);
++    if (!editor.isConnected || editor.getAttribute("spellcheck") !== "true") return;
++    editor.setAttribute("spellcheck", "false");
++    editor.setAttribute("spellcheck", "true");
++  }, 0));
++}
+diff --git a/tests/color-customization.test.cjs b/tests/color-customization.test.cjs
+index b85df07..408d535 100644
+--- a/tests/color-customization.test.cjs
++++ b/tests/color-customization.test.cjs
+@@ -37,8 +37,9 @@ test('normal text is pure black in light and pure white in dark', () => {
+   assert.match(colors, /text: "#ffffff"/);
+   assert.match(appCss, /--color-text: #000000;/);
+   assert.match(appCss, /--color-text: #ffffff;/);
+-  assert.match(runtimeCss, /--color-text:#000000;/);
+-  assert.match(runtimeCss, /--color-text:#ffffff;/);
++  // The compiled stylesheet may use the short forms #000 and #fff.
++  assert.match(runtimeCss, /--color-text:#(?:000|000000);/);
++  assert.match(runtimeCss, /--color-text:#(?:fff|ffffff);/);
+ });
+ 
+ test('blockquote retains side rule, drops quote marks and forced italics', () => {
+diff --git a/tests/settings-smoke.cjs b/tests/settings-smoke.cjs
+new file mode 100644
+index 0000000..192299f
+--- /dev/null
++++ b/tests/settings-smoke.cjs
+@@ -0,0 +1,128 @@
++// Settings checks in the real Electron app: typing in the Size and Custom
++// Width boxes, and Saved Themes > Restore Default Theme (its confirmation is
++// answered by the test). Needs a graphical session or Xvfb.
++// Usage: node tests/settings-smoke.cjs
++const assert = require('node:assert/strict');
++const fs = require('node:fs/promises');
++const path = require('node:path');
++const { spawn } = require('node:child_process');
++const { _electron } = require('playwright');
++const root = path.resolve(__dirname, '..');
++const work = path.join(__dirname, 'tmp', 'settings-smoke');
++const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
++let virtualDisplay;
++let electron;
++let page;
++const errors = [];
++
++const settings = () => page.evaluate(() => window.desktop.invoke('get_settings'));
++async function dispatch(action) {
++  const win = await electron.browserWindow(page);
++  await win.evaluate((window, action) => window.webContents.send('scratch:command', { action }), action);
++}
++// Click the box, select its text, type, then press Tab or Enter.
++async function typeInto(selector, text, finish = 'Tab') {
++  const box = page.locator(selector);
++  await box.click();
++  await page.keyboard.press('Control+A');
++  if (text) await page.keyboard.type(text); else await page.keyboard.press('Backspace');
++  const whileTyping = await box.inputValue();
++  await page.keyboard.press(finish);
++  await pause(300);
++  return { whileTyping, after: await box.inputValue() };
++}
++
++async function main() {
++  await fs.rm(work, { recursive: true, force: true });
++  await fs.mkdir(path.join(work, 'data'), { recursive: true });
++  if (process.platform === 'linux' && !process.env.DISPLAY) {
++    const binary = process.env.SCRATCH_XVFB || 'Xvfb';
++    const display = process.env.SCRATCH_DISPLAY_NUMBER || '125';
++    virtualDisplay = spawn(binary, [':' + display, '-screen', '0', '1440x1000x24', '-listen', 'tcp', '-nolisten', 'unix', '-nolisten', 'local', '-ac'], { env: process.env, stdio: 'ignore' });
++    process.env.DISPLAY = '127.0.0.1:' + display;
++    await pause(500);
++  }
++  electron = await _electron.launch({ executablePath: require('electron'), args: process.platform === 'linux' ? ['--no-sandbox', '--disable-gpu', root] : [root], env: { ...process.env, SCRATCH_TEST_MODE: '1', SCRATCH_TEST_DATA: path.join(work, 'data') }, timeout: 20000 });
++  page = await electron.firstWindow();
++  page.on('pageerror', error => errors.push(String(error)));
++  await page.waitForSelector('[data-document-id][aria-hidden="false"] .tiptap', { timeout: 15000 });
++  await dispatch('settings');
++  await page.locator('#font-size').waitFor();
++
++  // Size: typed numbers take effect; out-of-range numbers move into range.
++  let result = await typeInto('#font-size', '18');
++  assert.deepEqual(result, { whileTyping: '18', after: '18' });
++  assert.equal((await settings()).editorFont.baseFontSize, 18);
++  assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--editor-base-font-size')), '18px');
++  assert.deepEqual(await typeInto('#font-size', '20', 'Enter'), { whileTyping: '20', after: '20' });
++  assert.equal((await settings()).editorFont.baseFontSize, 20);
++  assert.deepEqual(await typeInto('#font-size', '30'), { whileTyping: '30', after: '24' });
++  assert.equal((await settings()).editorFont.baseFontSize, 24);
++  assert.deepEqual(await typeInto('#font-size', '5', 'Enter'), { whileTyping: '5', after: '12' });
++  assert.equal((await settings()).editorFont.baseFontSize, 12);
++  assert.deepEqual(await typeInto('#font-size', ''), { whileTyping: '', after: '12' });
++  assert.equal((await settings()).editorFont.baseFontSize, 12);
++  await page.locator('#font-size').click();
++  await page.keyboard.press('ArrowUp');
++  await page.keyboard.press('ArrowUp');
++  assert.equal(await page.locator('#font-size').inputValue(), '14');
++  assert.equal((await settings()).editorFont.baseFontSize, 14);
++  console.log('PASS: Settings > Size accepts typed sizes, moves out-of-range sizes into 12-24, and still steps with the arrow keys');
++
++  // Custom Width has the same kind of box.
++  await page.locator('#editor-width').selectOption('custom');
++  assert.deepEqual(await typeInto('#custom-width', '900'), { whileTyping: '900', after: '900' });
++  assert.equal((await settings()).customEditorWidthPx, 900);
++  assert.deepEqual(await typeInto('#custom-width', '5000', 'Enter'), { whileTyping: '5000', after: '3840' });
++  assert.equal((await settings()).customEditorWidthPx, 3840);
++  console.log('PASS: Settings > Custom Width accepts typed widths');
++
++  // Restore Default Theme: customize everything, then Cancel and Restore.
++  await page.evaluate(() => window.desktop.invoke('update_settings', { patch: {
++    theme: { mode: 'dark' }, startupBehavior: 'new', smartTypography: false,
++    editorFont: { baseFontFamily: 'serif', systemFontFamily: '', baseFontSize: 20, boldWeight: 800, lineHeight: 2 },
++    editorWidth: 'custom', customEditorWidthPx: 900, interfaceZoom: 1.25, toolbarIconScale: 1.5,
++    customColorsLight: { italic: '#d50000' }, customColorsDark: { italic: '#ff4fa3', bg: '#101820' },
++  } }));
++  const customized = await settings();
++  await electron.evaluate(({ dialog }) => {
++    global.restoreDialogs = [];
++    global.restoreAnswers = [1, 0]; // Cancel, then Restore
++    dialog.showMessageBox = async (_window, options) => { global.restoreDialogs.push(options); return { response: global.restoreAnswers.shift() }; };
++  });
++  const restore = page.getByRole('button', { name: 'Restore Default Theme…' });
++  assert.deepEqual(await page.locator('#picomarq-saved-themes button').allTextContents(), ['Save Theme…', 'Load Theme…', 'Restore Default Theme…']);
++  await restore.click();
++  await pause(500);
++  assert.deepEqual(await settings(), customized);
++  await restore.click();
++  await page.locator('[data-theme-status]', { hasText: 'Restored the default theme.' }).waitFor();
++  const dialogs = await electron.evaluate(() => global.restoreDialogs.map(({ title, message, buttons, defaultId, cancelId }) => ({ title, message, buttons, defaultId, cancelId })));
++  assert.deepEqual(dialogs[0], { title: 'Restore Default Theme', message: 'Restore the default theme?', buttons: ['Restore', 'Cancel'], defaultId: 1, cancelId: 1 });
++  const restored = await settings();
++  assert.equal(restored.theme.mode, 'dark');
++  assert.equal(restored.startupBehavior, 'new');
++  assert.equal(restored.smartTypography, false);
++  assert.deepEqual(restored.editorFont, { baseFontFamily: 'system-sans', systemFontFamily: '', baseFontSize: 15, boldWeight: 600, lineHeight: 1.6 });
++  assert.equal(restored.editorWidth, 'full');
++  assert.equal(restored.customEditorWidthPx, 768);
++  assert.equal(restored.interfaceZoom, 1);
++  assert.equal(restored.toolbarIconScale, 1);
++  assert.deepEqual(restored.customColorsLight, {});
++  assert.deepEqual(restored.customColorsDark, {});
++  assert.equal(await page.locator('#font-size').inputValue(), '15');
++  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('dark')), true);
++  assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--color-bg')), 'rgb(22, 20, 19)');
++  console.log('PASS: Restore Default Theme asks first, then restores colors, typography and User Interface settings, keeping Dark, Startup and Smart Typography');
++  assert.equal(errors.length, 0, errors.join('\n'));
++}
++
++const watchdog = setTimeout(() => { console.error('Settings checks timed out'); process.exit(1); }, 120000);
++main().then(() => console.log('SETTINGS CHECKS DONE')).catch(error => {
++  console.error(error);
++  process.exitCode = 1;
++}).finally(async () => {
++  if (electron) { try { await electron.evaluate(({ app }) => app.exit()); } catch {} }
++  virtualDisplay?.kill();
++  clearTimeout(watchdog);
++});
+diff --git a/tests/spelling-smoke.cjs b/tests/spelling-smoke.cjs
+new file mode 100644
+index 0000000..0279fab
+--- /dev/null
++++ b/tests/spelling-smoke.cjs
+@@ -0,0 +1,186 @@
++// Spelling of opened, pasted and source-edited text, in US English, in the
++// real Electron app. Needs a graphical session or Xvfb, and a US English
++// dictionary: PICOMARQ_TEST_BDIC=/path/en-US-10-1.bdic, or the system's
++// Hunspell en_US files (/usr/share/hunspell/en_US.aff and .dic), which the test
++// converts with scripts/hunspell-to-bdic.py. Without either it is skipped.
++// It also fails if a later Electron drops the Chromium switch in main.cjs.
++// Usage: node tests/spelling-smoke.cjs
++const assert = require('node:assert/strict');
++const fs = require('node:fs/promises');
++const fsSync = require('node:fs');
++const path = require('node:path');
++const { spawn, execFileSync } = require('node:child_process');
++const { _electron } = require('playwright');
++const root = path.resolve(__dirname, '..');
++const work = path.join(__dirname, 'tmp', 'spelling-smoke');
++const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
++let virtualDisplay;
++let electron;
++const errors = [];
++
++const DOCUMENT = `# Spelling Check
++
++I will recieve the package tomorrow, and the color of the box does not matter.
++
++We keep the drafts seperate so we can organize the chapters by theme.
++
++The meeting was definately in the center of town, next to the old theater.
++
++Something strange occured after we traveled home. The colour was wrong, and we had to organise everything again.
++`;
++const ONE_PARAGRAPH = 'It was hard to accomodate everyone at the table, but the dinner went well and the conversation lasted for hours. Later that evening the weather turned wierd, so we stayed inside and played cards by the fire. Nobody wanted to leave untill the rain stopped.';
++const THREE_PARAGRAPHS = 'From the begining, the plan was simple.\n\nI beleive the second draft is stronger.\n\nPlease check the calandar before Friday.';
++const LONG_TYPOS = ['tommorow', 'neccessary', 'goverment', 'enviroment', 'existance', 'independant', 'occassion', 'persue', 'reccomend', 'truely'];
++const LONG_PASTE = LONG_TYPOS.map((word, i) => `Paragraph ${i + 1} of the long paste explains the background of the study, and it contains the word ${word} along with many ordinary words that are spelled correctly.`).join('\n\n');
++// "colour" and "organise" are British: US English marks them.
++const MISSPELLED = {
++  opened: ['recieve', 'seperate', 'definately', 'occured', 'colour', 'organise'],
++  oneParagraph: ['accomodate', 'wierd', 'untill'],
++  threeParagraphs: ['begining', 'beleive', 'calandar'],
++  typed: ['thier'],
++  sourceView: ['embarass'],
++  longPaste: LONG_TYPOS,
++};
++
++function dictionary() {
++  if (process.env.PICOMARQ_TEST_BDIC) return process.env.PICOMARQ_TEST_BDIC;
++  if (!fsSync.existsSync('/usr/share/hunspell/en_US.dic')) return null;
++  const out = path.join(work, 'en-US-10-1.bdic');
++  execFileSync('python3', ['-I', path.join(root, 'scripts/hunspell-to-bdic.py'), '/usr/share/hunspell/en_US', out], { stdio: 'ignore' });
++  return out;
++}
++
++// Red spelling underlines under each listed word, and red pixels anywhere
++// else in the editor (underlines under correctly spelled words).
++async function underlines(page, words) {
++  const { found, editor } = await page.evaluate(words => {
++    const root = document.querySelector('[data-document-id][aria-hidden="false"] .tiptap');
++    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
++    const found = {};
++    for (let node; (node = walker.nextNode());) {
++      for (const word of words) {
++        const index = node.data.indexOf(word);
++        if (index < 0 || found[word]) continue;
++        const range = document.createRange();
++        range.setStart(node, index); range.setEnd(node, index + word.length);
++        const r = range.getBoundingClientRect();
++        found[word] = { x: r.x, y: r.y, w: r.width, h: r.height };
++      }
++    }
++    const e = root.getBoundingClientRect();
++    return { found, editor: { x: e.x, y: e.y, w: e.width, h: e.height } };
++  }, words);
++  const win = await electron.browserWindow(page);
++  return win.evaluate(async (window, { found, editor }) => {
++    const image = await window.webContents.capturePage();
++    const { width, height } = image.getSize();
++    const bitmap = image.toBitmap(); // BGRA
++    const isRed = i => bitmap[i + 2] > 170 && bitmap[i + 1] < 100 && bitmap[i] < 100;
++    const inside = new Uint8Array(width * height);
++    const marked = {};
++    for (const [word, r] of Object.entries(found)) {
++      let count = 0;
++      for (let y = Math.max(0, Math.floor(r.y)); y < Math.min(height, Math.ceil(r.y + r.h + 4)); y++)
++        for (let x = Math.max(0, Math.floor(r.x) - 1); x < Math.min(width, Math.ceil(r.x + r.w) + 1); x++) {
++          inside[y * width + x] = 1;
++          if (isRed((y * width + x) * 4)) count++;
++        }
++      marked[word] = count > 4;
++    }
++    let stray = 0;
++    for (let y = Math.max(0, Math.floor(editor.y)); y < Math.min(height, Math.ceil(editor.y + editor.h)); y++)
++      for (let x = Math.max(0, Math.floor(editor.x)); x < Math.min(width, Math.ceil(editor.x + editor.w)); x++)
++        if (!inside[y * width + x] && isRed((y * width + x) * 4)) stray++;
++    return { marked, stray };
++  }, { found, editor });
++}
++
++async function expectUnderlined(page, groups, step, timeout = 8000) {
++  const words = groups.flatMap(group => MISSPELLED[group]);
++  const start = Date.now();
++  let last;
++  while (Date.now() - start < timeout) {
++    last = await underlines(page, words);
++    if (words.every(word => last.marked[word])) break;
++    await pause(200);
++  }
++  const missing = words.filter(word => !last.marked[word]);
++  assert.deepEqual(missing, [], `${step}: not underlined: ${missing.join(', ')}`);
++  assert.equal(last.stray, 0, `${step}: underline under a correctly spelled word`);
++  console.log(`PASS: ${step} (${words.length} misspellings underlined after ${Date.now() - start} ms, no correct word underlined)`);
++}
++
++async function pasteAtEnd(page, text) {
++  await electron.evaluate(({ clipboard }, text) => clipboard.writeText(text), text);
++  await page.keyboard.press('Control+End');
++  await page.keyboard.press('Enter');
++  await page.keyboard.press('Control+V');
++}
++
++async function main() {
++  await fs.rm(work, { recursive: true, force: true });
++  await fs.mkdir(path.join(work, 'data', 'Dictionaries'), { recursive: true });
++  const bdic = dictionary();
++  if (!bdic) { console.log('SKIP: no US English dictionary (set PICOMARQ_TEST_BDIC or install hunspell-en-us)'); return; }
++  // Electron reads an existing dictionary file instead of downloading one.
++  await fs.copyFile(bdic, path.join(work, 'data', 'Dictionaries', 'en-US-10-1.bdic'));
++  const file = path.join(work, 'Spelling Check.md');
++  await fs.writeFile(file, DOCUMENT);
++  if (process.platform === 'linux' && !process.env.DISPLAY) {
++    const binary = process.env.SCRATCH_XVFB || 'Xvfb';
++    const display = process.env.SCRATCH_DISPLAY_NUMBER || '124';
++    virtualDisplay = spawn(binary, [':' + display, '-screen', '0', '1440x1800x24', '-listen', 'tcp', '-nolisten', 'unix', '-nolisten', 'local', '-ac'], { env: process.env, stdio: 'ignore' });
++    process.env.DISPLAY = '127.0.0.1:' + display;
++    await pause(500);
++  }
++  electron = await _electron.launch({ executablePath: require('electron'), args: process.platform === 'linux' ? ['--no-sandbox', '--disable-gpu', root] : [root], env: { ...process.env, SCRATCH_TEST_MODE: '1', SCRATCH_TEST_DATA: path.join(work, 'data') }, timeout: 20000 });
++  const first = await electron.firstWindow();
++  await first.waitForSelector('[data-document-id][aria-hidden="false"] .tiptap', { timeout: 15000 });
++  assert.deepEqual(await electron.evaluate(({ session }) => session.defaultSession.getSpellCheckerLanguages()), ['en-US']);
++  console.log('PASS: spelling language is US English');
++
++  // Open the file the way Windows does when a .md file is double-clicked.
++  const opened = electron.waitForEvent('window', { timeout: 15000 });
++  await electron.evaluate(({ app }, { file, dir }) => app.emit('second-instance', {}, [process.execPath, file], dir), { file, dir: path.dirname(file) });
++  const page = await opened;
++  page.on('pageerror', error => errors.push(String(error)));
++  await page.waitForSelector('[data-document-id][aria-hidden="false"] .tiptap p', { timeout: 15000 });
++  const win = await electron.browserWindow(page);
++  await win.evaluate(window => { window.setBounds({ x: 0, y: 0, width: 1300, height: 1700 }); window.focus(); });
++  await pause(500);
++  await expectUnderlined(page, ['opened'], 'opened file, before any typing or clicking');
++
++  await pasteAtEnd(page, ONE_PARAGRAPH);
++  await expectUnderlined(page, ['opened', 'oneParagraph'], 'one-paragraph paste');
++  await pasteAtEnd(page, THREE_PARAGRAPHS);
++  await expectUnderlined(page, ['opened', 'oneParagraph', 'threeParagraphs'], 'three-paragraph paste');
++
++  await page.keyboard.press('Control+End');
++  await page.keyboard.type(' thier ');
++  await expectUnderlined(page, ['opened', 'oneParagraph', 'threeParagraphs', 'typed'], 'typed word');
++
++  // Edit in Markdown source view, then return to the formatted view.
++  const source = async () => win.evaluate(window => window.webContents.send('scratch:command', { action: 'source' }));
++  await source();
++  const textarea = page.locator('[data-document-id][aria-hidden="false"] textarea');
++  await textarea.waitFor();
++  await textarea.evaluate(t => { t.focus(); t.setSelectionRange(t.value.length, t.value.length); });
++  await page.keyboard.type(' embarass');
++  await source();
++  await page.waitForSelector('[data-document-id][aria-hidden="false"] .tiptap', { state: 'visible' });
++  await expectUnderlined(page, ['opened', 'oneParagraph', 'threeParagraphs', 'typed', 'sourceView'], 'text edited in Markdown source view');
++
++  await pasteAtEnd(page, LONG_PASTE);
++  await expectUnderlined(page, Object.keys(MISSPELLED), 'ten-paragraph paste');
++  assert.equal(errors.length, 0, errors.join('\n'));
++}
++
++const watchdog = setTimeout(() => { console.error('Spelling checks timed out'); process.exit(1); }, 180000);
++main().then(() => console.log('SPELLING CHECKS DONE')).catch(error => {
++  console.error(error);
++  process.exitCode = 1;
++}).finally(async () => {
++  if (electron) { try { await electron.evaluate(({ app }) => app.exit()); } catch {} }
++  virtualDisplay?.kill();
++  clearTimeout(watchdog);
++});
+diff --git a/tests/theme-browser-smoke.py b/tests/theme-browser-smoke.py
+index d519e52..3828f83 100644
+--- a/tests/theme-browser-smoke.py
++++ b/tests/theme-browser-smoke.py
+@@ -1,5 +1,5 @@
+-"""PicoMarQ 1.2.6 renderer regression: Heading 4 and theme controls.
+-Runs bundled 1.2.4-derived renderer with its 1.2.6 external theme UI.
++"""PicoMarQ renderer regression: Heading 4 and the Saved Themes controls
++(Save Theme, Load Theme, Restore Default Theme), run in Chromium.
+ Does not invoke native Windows file dialogs; those are exercised manually.
+ """
+ from pathlib import Path
+@@ -42,12 +42,13 @@ with sync_playwright() as p:
+     page.locator('button[title^="Settings"]').click()
+     page.locator('#picomarq-saved-themes').wait_for(timeout=10000)
+     labels = page.locator('#picomarq-saved-themes button').all_text_contents()
+-    assert labels == ['Save Theme…', 'Load Theme…'], labels
++    assert labels == ['Save Theme…', 'Load Theme…', 'Restore Default Theme…'], labels
+     # Check placement: after User Interface but before Startup.
+     order = page.locator('section h2').all_text_contents()
+     assert order.index('User Interface') < order.index('Saved Themes') < order.index('Startup'), order
+-    page.evaluate('''() => {window.desktop = {invoke: async action => {
++    page.evaluate('''() => {window.desktop = {invoke: async (action, args) => {
+       (window.themeCalls ||= []).push(action);
++      if (action === 'restore_default_theme') { window.restoreArgs = args; return {restored: true}; }
+       if (action === 'save_theme') return {path:'C:\\\\Portable\\\\Themes\\\\Academic.json'};
+       if (action === 'load_theme') return {path:'C:\\\\Portable\\\\Themes\\\\Imported.json', fontFallback:true};
+       throw new Error('Unexpected action');
+@@ -57,7 +58,10 @@ with sync_playwright() as p:
+     page.get_by_role('button', name='Load Theme…').click()
+     assert 'Loaded theme: Imported.json' in page.locator('[data-theme-status]').inner_text()
+     assert 'using Sans' in page.locator('[data-theme-status]').inner_text()
+-    assert page.evaluate('window.themeCalls') == ['save_theme', 'load_theme']
++    page.get_by_role('button', name='Restore Default Theme…').click()
++    assert page.locator('[data-theme-status]').inner_text() == 'Restored the default theme.'
++    assert page.evaluate('window.restoreArgs') == {'mode': 'light'}
++    assert page.evaluate('window.themeCalls') == ['save_theme', 'load_theme', 'restore_default_theme']
+     # The externally attached controls survive React's theme re-renders.
+     page.get_by_role('button', name='Dark', exact=True).click()
+     assert page.locator('#picomarq-saved-themes').count() == 1
+@@ -72,5 +76,5 @@ with sync_playwright() as p:
+     row.locator('input[type=text]').fill('D50000')
+     assert page.evaluate('JSON.parse(localStorage.getItem("scratch-settings")).customColorsLight.italic') == '#d50000'
+     assert not errors, errors
+-    print('PASS: Heading 4 bold, size unchanged; Saved Themes UI and actions; 1.2.4 picker and Markdown preserved')
++    print('PASS: Heading 4 bold, size unchanged; Saved Themes UI and actions, including Restore Default Theme; 1.2.4 picker and Markdown preserved')
+     browser.close()
+diff --git a/tests/theme-presets.test.cjs b/tests/theme-presets.test.cjs
+index 03f3fa3..c62ad77 100644
+--- a/tests/theme-presets.test.cjs
++++ b/tests/theme-presets.test.cjs
+@@ -2,7 +2,7 @@ const test = require('node:test');
+ const assert = require('node:assert/strict');
+ const fs = require('node:fs');
+ const path = require('node:path');
+-const { captureTheme, parseTheme, fallbackFont } = require('../desktop/theme-presets.cjs');
++const { captureTheme, parseTheme, fallbackFont, defaultAppearance } = require('../desktop/theme-presets.cjs');
+ 
+ const fullSettings = () => ({
+   theme: { mode: 'dark' },
+@@ -59,9 +59,39 @@ test('invalid files reject before modifying any preferences', () => {
+   assert.throws(() => parseTheme(JSON.stringify({ ...theme, appearance: { ...theme.appearance, customColorsDark: { unknown: '#000000' } } })), /Unrecognized dark color/);
+ });
+ 
++test('Restore Default Theme gives the built-in appearance and keeps Light or Dark', () => {
++  for (const mode of ['light', 'dark']) {
++    const appearance = defaultAppearance(mode);
++    assert.equal(appearance.theme.mode, mode);
++    assert.deepEqual(appearance.editorFont, { baseFontFamily: 'system-sans', systemFontFamily: '', baseFontSize: 15, boldWeight: 600, lineHeight: 1.6 });
++    assert.equal(appearance.editorWidth, 'full');
++    assert.equal(appearance.customEditorWidthPx, 768);
++    assert.equal(appearance.interfaceZoom, 1);
++    assert.equal(appearance.toolbarIconScale, 1);
++    assert.deepEqual(appearance.customColorsLight, {});
++    assert.deepEqual(appearance.customColorsDark, {});
++    assert(!('startupBehavior' in appearance));
++    assert(!('smartTypography' in appearance));
++    // A valid theme: saving and loading it gives the same appearance.
++    assert.deepEqual(parseTheme(JSON.stringify(captureTheme(appearance))), appearance);
++  }
++  assert.equal(defaultAppearance(undefined).theme.mode, 'light');
++  // Applied over existing preferences, it keeps Startup and Smart Typography.
++  const restored = { ...fullSettings(), ...defaultAppearance('dark') };
++  assert.equal(restored.startupBehavior, 'new');
++  assert.equal(restored.smartTypography, false);
++  assert.deepEqual(restored.customColorsDark, {});
++  // The same defaults the renderer uses (and its Reset to defaults buttons).
++  const context = fs.readFileSync(path.join(__dirname, '../src/context/ThemeContext.tsx'), 'utf8');
++  assert(context.includes("defaultEditorFontSettings: Required<EditorFontSettings> = { baseFontFamily: 'system-sans', systemFontFamily: '', baseFontSize: 15, boldWeight: 600, lineHeight: 1.6 }"));
++  assert(context.includes("resetInterfaceSettings: () => patch({ editorWidth: 'full', interfaceZoom: 1, toolbarIconScale: 1, customEditorWidthPx: 768 })"));
++});
++
+ test('Heading 4 is bold, not italic; size variable remains unchanged', () => {
+   const css = fs.readFileSync(path.join(__dirname, '../src/App.css'), 'utf8');
+-  const dist = fs.readFileSync(path.join(__dirname, '../dist/assets/index-DGXlwkqu.css'), 'utf8');
++  const html = fs.readFileSync(path.join(__dirname, '../dist/index.html'), 'utf8');
++  const stylesheet = html.match(/href="\.\/assets\/([^"]+\.css)"/)[1];
++  const dist = fs.readFileSync(path.join(__dirname, '../dist/assets', stylesheet), 'utf8');
+   const rule = css.match(/\.prose h4\s*\{([^}]+)\}/)?.[1];
+   const compiled = dist.match(/\.prose h4\{([^}]+)\}/)?.[1];
+   for (const body of [rule, compiled]) {
+@@ -78,7 +108,9 @@ test('compiled renderer and source HTML both activate the same theme controls',
+   assert.equal(runtime, source);
+   assert(runtime.includes("'save_theme'"));
+   assert(runtime.includes("'load_theme'"));
++  assert(runtime.includes("'restore_default_theme'"));
+   const main = fs.readFileSync(path.join(__dirname,'../desktop/main.cjs'),'utf8');
+   assert(main.includes("case 'save_theme':"));
+   assert(main.includes("case 'load_theme':"));
++  assert(main.includes("case 'restore_default_theme':"));
+ });
+diff --git a/tests/typography-smoke.cjs b/tests/typography-smoke.cjs
+index aa01fef..c90343d 100644
+--- a/tests/typography-smoke.cjs
++++ b/tests/typography-smoke.cjs
+@@ -62,7 +62,8 @@ async function main() {
+   await page.getByRole('button', { name: 'Back to document', exact: true }).click();
+   console.log('PASS: settings layout (Typography toggle, User Interface section)');
+ 
+-  // Heading 4: italic, not bold, sized between Heading 3 and body text.
++  // Heading 4 (since 1.2.6): bold like the other headings, not italic, sized
++  // between Heading 3 and body text.
+   await rich().click();
+   await page.keyboard.type('### Three');
+   await page.keyboard.press('Enter');
+@@ -72,9 +73,9 @@ async function main() {
+   await rich().locator('h4').waitFor();
+   const styles = await rich().evaluate(el => ['h3', 'h4', 'p'].map(tag => { const css = getComputedStyle(el.querySelector(tag)); return { size: parseFloat(css.fontSize), weight: css.fontWeight, style: css.fontStyle }; }));
+   assert(styles[0].size > styles[1].size && styles[1].size > styles[2].size, `Heading 4 size ${styles[1].size} should be between ${styles[0].size} and ${styles[2].size}`);
+-  assert.equal(styles[1].style, 'italic');
+-  assert.equal(styles[1].weight, '400');
+-  console.log('PASS: Heading 4 is italic, regular weight, between Heading 3 and body text');
++  assert.equal(styles[1].style, 'normal');
++  assert.equal(styles[1].weight, '600');
++  console.log('PASS: Heading 4 is bold, not italic, between Heading 3 and body text');
+ 
+   // As-you-type rules in the formatted view.
+   await page.keyboard.press('Enter');

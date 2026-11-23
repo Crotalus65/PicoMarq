@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="160" viewBox="0 0 480 160">
+  <rect x="2" y="2" width="476" height="156" rx="14" fill="#f4ecf7" stroke="#5e2b63" stroke-width="3"/>
+  <circle cx="70" cy="80" r="40" fill="#5e2b63"/>
+  <text x="70" y="94" text-anchor="middle" font-family="Georgia, serif" font-size="44" fill="#f4ecf7">Q</text>
+  <text x="130" y="72" font-family="Georgia, serif" font-size="26" fill="#5e2b63">Relative image: picomarq-test-image.svg</text>
+  <text x="130" y="108" font-family="Arial, sans-serif" font-size="16" fill="#5e2b63">Loaded from the folder next to the document.</text>
+</svg>

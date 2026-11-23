@@ -1,0 +1,2082 @@
+--- a/README.md
++++ b/README.md
+@@ -8,8 +8,8 @@
+ 
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. This is an unsigned personal test build, independent of upstream Scratch.
+ 
+-- File, Edit, and View share one compact row with save status and Find, directly above the formatting icons. Each opens a native menu. Open documents appear directly in View; no tabs, sidebar, or extra row.
+-- File > Open Recent keeps the last four distinct files opened or saved, newest first, including after restarting. New, Open, and Open Recent keep the other documents open. Open can select several files at once; reopening a path selects its existing document.
++- Version 1.1.0 uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- File > New creates another window. File > Open, Open Recent, and file-association launches create a window for each selected file. Reopening an already-open file raises its existing window, preserving unsaved edits and avoiding conflicting copies. Open Recent keeps the last four distinct files opened or saved, including after restarting.
+ - Page width offers Full (the default) or Custom. Custom widths can be set in Settings or adjusted with the page-edge handles; double-click a handle to return to Full.
+ - Right-click menus with spelling suggestions: a misspelled word's suggestions and Add to Dictionary come first, then Bold and Italic (with their shortcuts; in source view they wrap the selection in `**` or `*`), Cut, Copy, Paste, and the table commands when the cursor is in a table. An existing selection is retained. (The editor registers its items synchronously from the DOM event and lets the browser's own context-menu request through, since only that request carries Chromium's suggestions.)
+ - Installed font families in Settings, with Refresh fonts.
+@@ -19,9 +19,11 @@
+ - Markdown source wraps to the available window/page width, including long links and code lines. Wrapping changes only their display; saved Markdown line breaks stay intact. Find and source/view positioning account for wrapped lines.
+ - The PicoMarQ icon in the window and Windows executable: a white sheet with a folded corner and a bold red outline, carrying the Markdown "M" whose right stem runs down into an arrowhead. It fills the icon square like other app icons, with transparent corners.
+ - A live word count beside zoom in the status bar. It counts document text in both editing views, excluding Markdown formatting markers and hidden link URLs. The settings sample preview has been removed.
+-- Manual Markdown saving plus recovery of all open documents and drafts, the active document, each selection/scroll/source mode, font, theme, page width, zoom, and window bounds/maximize.
+-- File > Close Document (Ctrl+W) prompts for unsaved changes and selects the most recently opened document that remains. Closing the last document leaves a fresh blank document. Exit prompts for each unsaved document; Cancel keeps the editor open. Discard choices take effect only after every exit prompt succeeds.
+-- Find and Replace stays above the scrolling text in both views until explicitly closed. Each document keeps its own Find panel while switching.
++- Markdown files are saved manually. Recovery snapshots merge independently for each window, retaining drafts, selection, scroll, source mode, size, position, and maximized state. Preferences remain in the existing AppData profile and changes apply to every open window.
++- File > Close Window (Ctrl+W), the title-bar close button, and Alt+F4 close only that window after Save/Discard/Cancel. Explicitly closed windows are removed from the restored workspace. Closing the last window exits the app.
++- File > Exit (Ctrl+Shift+Q) checks all windows and restores the remaining saved documents as separate windows next time. Discard choices take effect only after every prompt succeeds; a later Cancel preserves all drafts and windows. Cancelling Save As also cancels closing. Recovery after an unexpected termination restores unsaved drafts.
++- Revert to Saved confirms before rereading the current file from disk in the same window and clearing its undo history. It is disabled for untitled documents. A failed read preserves current text. The Refresh control for external edits uses the same operation.
++- Find and Replace stays above the scrolling text in both views until explicitly closed. Each window has independent Find and Undo state.
+ - Conflict checking before replacing a file that changed elsewhere; Save As preserves both versions.
+ - Smart typography (Settings > Typography, on by default): two hyphens become an em dash, three periods an ellipsis, and straight quotes become curly quotes as you type, in both views. A third hyphen gives `---` back so horizontal rules, front matter, and table rows can still be typed; code blocks, inline code, math, link addresses, HTML, and front matter are never changed. Backspace in the formatted view or Ctrl+Z in the source view restores what you typed. Edit > Apply Smart Typography converts an existing document in a single undo step and reports how many changes it made.
+ - Heading 4 is italic and regular weight, sized halfway between Heading 3 and body text.
+@@ -61,17 +63,18 @@
+ 
+ ```sh
+ npm ci
++node node_modules/electron/install.js
+ npm run build
+ npm start
+ ```
+ 
+-`npm run package:windows` makes a portable Windows x64 ZIP on Linux/macOS with `zip` and `unzip` installed. It downloads Electron 44.6.0 for Windows from the official release. The package embeds the PicoMarQ name, version, and icon in the executable and checks that its code, data, and other resources are preserved. Building on Windows can use WSL for this packaging script, or copy the built `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.1.0.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+ ## Verification
+ 
+-`npm test` checks atomic writes, external-edit conflicts, missing-file behavior, session backup recovery, window position recovery, recent-file ordering, compatibility with existing profiles, the right-click menu template, the smart typography rules (quotes, dashes, ellipses, and the Markdown regions they must leave alone), and Markdown escaping (including thousands of random strings of punctuation that marked must read back unchanged). `npm run test:equivalence` checks the performance paths against TipTap's stock code (see Performance). `npm run test:typography` exercises smart typography, the Heading 4 style, and the settings layout in the real Electron editor (graphical session or Xvfb). `node tests/desktop-smoke.cjs` exercises the actual Electron editor, native clipboard, compact menu layout, menu clipboard actions, file saves, recent files, page widths, font selection, actual plus/minus keyboard input in both views, source wrapping and wrapped Find, formatting-icon size isolation/persistence, multi-document View switching, separate undo/cursor/scroll state, fixed Find/Replace positioning, Save/Discard/Cancel on document close and exit, and recovery of every open document. The latter needs a graphical session or Xvfb on Linux.
++`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, and Markdown escaping. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
+ 
+ New installations keep recovery data under Electron's per-user app-data directory for PicoMarQ, separately from the original Scratch app. PicoMarQ detects and reuses a valid profile from Quill (0.1.6–0.1.11) or the earlier custom editor, preserving open documents, drafts, recent files, font, zoom, and other preferences. Previously saved preset page widths become Full; an existing Custom width is preserved. No account, AI model, cloud sync, updater, or analytics is configured. Remote images can be loaded if they appear in a document.
+ 
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,128 +1,68 @@
+-PICOMARQ — WINDOWS BUILD 1.0.1
++PICOMARQ — WINDOWS BUILD 1.1.0
+ 
+-1. Extract the entire ZIP into a folder of your choosing.
+-2. Open "PicoMarQ.exe" inside the extracted folder.
+-   Keep the other files beside the executable.
++Extract the whole PicoMarQ folder and run PicoMarQ.exe.
++Keep every runtime file beside the executable. No installation, Node,
++account, or additional runtime is required. Windows 10/11, 64-bit.
+ 
+-Windows 10/11, 64-bit. No installation, Node, Rust, or account required.
+-This is a personal, unsigned test build based on Scratch by Eric Li.
++UPDATING AN EXISTING COPY
++Close all PicoMarQ windows first. Replace the contents of your existing
++PicoMarQ application folder with the contents of this ZIP's PicoMarQ
++folder. Keep the executable in the same place if Windows already uses
++it to open .md files. Preferences and recovery stay in the existing
++AppData profile on each machine.
+ 
+-File/Edit/View sit beside save status and Find in one compact row above
+-the formatting icons. The date, source-view button, export controls, and
+-inline-code/code-block/block-math/wikilink/Heading-4 toolbar buttons are removed.
++ONE DOCUMENT PER WINDOW
++New, Open, Open Recent, and opening a Markdown file from Windows create
++independent document windows. Open can select several files. Place windows
++side by side, on separate monitors, or switch with Alt+Tab. Copy and paste
++works normally between windows. Reopening a file that is already open
++raises its existing window and preserves its unsaved edits.
+ 
+-Zoom enlarges only document text, including source text. Menus, icons,
+-the status bar, and page width stay at their normal size. The app has a
+-PicoMarQ icon. A live word count sits beside zoom in the status bar.
+-The count works in both formatted and source views. The settings sample
+-preview has been removed.
++View contains Markdown Source and text zoom; its document list is gone.
++Each window keeps its own undo history, Find panel, source mode, cursor,
++scroll position, size, and position. Settings and recent files are shared.
+ 
+-Settings > Icon Size, below Text Zoom, offers 100% (the default), 150%, and 200%.
+-Only the formatting toolbar icons (the Find magnifier among them) enlarge;
+-menus, dropdowns, and text retain their normal sizes. This choice is saved.
+-Markdown source wraps to the available width, including long syntax and
+-URLs. Wrapping changes the display without adding line breaks to your file.
++SAVING, CLOSING, AND RECOVERY
++Markdown files are saved manually. Recovery snapshots preserve drafts
++separately for every open window; they do not overwrite your .md files.
++Older PicoMarQ/Quill profiles are reused automatically. Previously open
++documents appear in their own windows with their recovered drafts.
+ 
+-File: New, Open, Open Recent, Save, Save As, Revert, Close Document, Print, Exit.
+-Edit: Undo, Redo, Cut, Copy, Paste, Select All, Find, Replace,
+-      Apply Smart Typography, Settings.
+-View: Markdown Source, Zoom In, Zoom Out, Actual Size, and all open documents.
++Ctrl+W, Alt+F4, and the title-bar X close the current window after checking
++its unsaved changes. An explicitly closed window does not reopen next
++time. Closing the last window exits the application.
+ 
+-Open Recent remembers the last four distinct files opened or saved,
+-newest first. Page Width offers Full (the default) and Custom only.
+-PicoMarQ keeps using the documents, drafts, recent files, and settings of
+-Quill (the same editor under its earlier name) or the previous custom
+-editor. Close those before launching PicoMarQ.
++File > Exit (Ctrl+Shift+Q) checks every window and keeps the saved documents
++for restoration as separate windows next time. A later Cancel keeps all
++windows and drafts, including those marked Discard earlier in that exit
++attempt. Cancelling Save As also cancels closing. After an unexpected
++termination, recovery restores unsaved drafts. Undo histories start fresh
++after restarting.
+ 
+-Ctrl+N         New document
+-Ctrl+O         Open a file
+-Ctrl+W         Close the current document
+-Ctrl+S         Save (choose a filename the first time)
+-F12            Save As
+-Ctrl+F         Find
+-Ctrl+H         Replace
+-Ctrl+,         Settings and installed font picker
+-Ctrl+Shift+M   Switch between formatted and source editing
+-Ctrl+= or Ctrl+Shift+=    Zoom in (numeric-keypad plus also works)
+-Ctrl+-                   Zoom out (numeric-keypad minus also works)
+-Ctrl+0         Actual size
+-Ctrl+E         Inline code (formatted view)
+-Ctrl+wheel     Zoom with the mouse wheel
++Revert to Saved confirms before replacing the current window's text with
++the file on disk and clearing its undo history. A failed read keeps your
++current text. Revert is disabled until a document has a filename. The
++Refresh control for external changes performs the same operation.
+ 
+-The document file changes only when you save. The editor separately keeps
+-recovery data for all open documents, drafts, selections, scroll positions, source
+-mode, font, colors, zoom, page width, and window position/size.
+-New and Open add documents; existing documents remain open. Open can select
+-several files at once. Switch between documents using the list in View; the
+-active one is checked and unsaved ones have a dot. Opening an already-open
+-file selects its existing document. Each document retains its own undo
+-history, cursor, scroll position, source mode, and Find panel while switching.
++SHORTCUTS
++Ctrl+N          New window
++Ctrl+O          Open files in separate windows
++Ctrl+S          Save
++F12             Save As
++Ctrl+W          Close this window
++Alt+F4          Close this window
++Ctrl+Shift+Q    Exit all windows
++Ctrl+P          Print this document
++Ctrl+F          Find
++Ctrl+H          Replace
++Ctrl+Shift+M    Toggle Markdown source
++Ctrl+,          Settings
++Ctrl+plus/minus Zoom document text
++Ctrl+0          Actual text size
+ 
+-Close Document asks about that document's unsaved changes and selects the
+-last-opened remaining document. Closing the final document creates a blank.
+-Exit asks Save/Discard/Cancel for every unsaved open document. Cancel, a
+-cancelled Save As, or a failed Save keeps the editor open. A later Cancel
+-also preserves drafts marked Discard earlier in the same exit attempt.
+-Restart restores the open document list and last active document. Discarded
+-untitled drafts are removed; discarded file edits return to the saved text.
+-Undo history starts fresh after restarting.
++See KEYBOARD-SHORTCUTS.md for the full list.
+ 
+-Find and Replace stays fixed above the text while scrolling or navigating
+-matches, in both views. Click its X (or press Escape) to close it.
+-
+-Right-click a misspelled word for spelling suggestions and Add to
+-Dictionary; right-click a selection for Bold, Italic, Cut, Copy, and
+-Paste. Table editing commands appear when the cursor is inside a table.
+-
+-Settings reads installed Windows font families, including the per-user
+-fonts directory. Refresh fonts after installing another font.
+-Code blocks and Markdown source keep a monospace font.
+-
+-Images added through the toolbar or pasted are embedded into Markdown so
+-your document is self-contained. Large images increase the file size.
+-
+-Build 1.0.1: the right-click menu shows Bold and Italic (with their
+-shortcuts) in place of Undo and Redo, and Select All is gone from it.
+-In Markdown source view, Bold and Italic wrap the selection in ** or *.
+-
+-Build 1.0: Save As is F12 (as in Microsoft Office; Ctrl+Shift+S had been
+-taken by the editor's strikethrough, so it never reached Save As in the
+-formatted view). Underlined text is saved as <u>…</u>, which every Markdown
+-program reads, instead of the editor toolkit's own ++…++. Settings > Theme
+-offers Light and Dark, each with its Customize colors menu; the System
+-option is gone, and a profile that still said System takes the Windows
+-setting of the moment once. The Find magnifier sits at the right end of
+-the formatting icons; in Markdown source view, where that row is hidden,
+-Ctrl+F opens Find.
+-
+-Build 0.1.13 has the final icon (a white sheet with a red outline and the
+-Markdown M running into an arrow) and spells the name PicoMarQ.
+-
+-Build 0.1.12 renamed the editor from Quill to PicoMarQ.
+-Nothing else changed; your open documents and settings carry over.
+-
+-Build 0.1.11 makes "/" an ordinary character (the slash-command menu is
+-gone; everything it offered is still in the toolbar, the menus, or Markdown
+-syntax) and makes backslashes behave. Files from Pandoc, Typora, and other
+-tools that write \$1,200 or 1986\. now show $1,200 and 1986. instead of
+-losing the character, and what you type is saved so that it reads back the
+-same: 5 * 3 is saved as 5 \* 3, C:\Users as C:\\Users, and a paragraph
+-that begins "1986. " as 1986\. so it stays a paragraph. Ordinary prose is
+-saved exactly as before. A "---" inside a sentence no longer breaks the line.
+-
+-Build 0.1.10 restores spelling suggestions in the right-click menu.
+-
+-Build 0.1.9 (0.1.8 with one fix: a single dollar sign is ordinary text) adds smart typography: as you type, two hyphens become an em
+-dash, three periods an ellipsis, and straight quotes become curly quotes
+-(Settings > Typography has the switch; Edit > Apply Smart Typography
+-converts a whole document). Heading 4 is now italic, regular weight, and
+-sized between Heading 3 and body text. Page Width, Text Zoom, and Icon
+-Size live under a new User Interface heading in Settings.
+-
+-Build 0.1.7 was a performance release: opening, editing, switching to
+-Markdown source, and the live word count are far faster on large files,
+-with no change to features or to the Markdown that is saved.
+-
+-The core editor and recovery behavior have been tested on Linux. This
+-Windows package and its Windows font query still need a Windows bench
+-check. See README.md in the source archive for build and test details.
++This is an unsigned personal build adapted from Scratch by Eric Li.
++Core behavior is tested in Electron on Linux. Windows-native execution,
++file associations, font enumeration, and dialogs need a Windows bench
++check. Source, build instructions, and tests are in the source ZIP.
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -0,0 +1,45 @@
++# PicoMarQ 1.1.0 validation
++
++The source and Windows bundle were prepared from the same build. The existing
++AppData profile selection is unchanged. Each recovered document becomes an
++independent native window, and each renderer can update only its own document.
++
++## Completed checks
++
++- `npm run build`: TypeScript and production Vite build pass.
++- `npm test`: 24 tests pass, including independent document recovery merges,
++  atomic saving, external-edit conflicts, backup recovery, old-profile handling,
++  context menus, Markdown escapes, and smart typography.
++- `npm run test:desktop`: passes in the actual Electron 44.6.0 application on
++  Linux with Xvfb. Covers the existing compact layout and editing controls;
++  separate windows for New/Open; duplicate Open protection; cross-window native
++  clipboard and independent undo; shared settings; simultaneous recovery;
++  Revert cancellation, failed reads, disk reload, stable document identity, and
++  undo reset; duplicate Save As; multiple/relative subsequent-launch paths;
++  individual Save/Discard/Cancel and cancelled Save As; deferred Discard during
++  Exit; crash recovery; individual selection, scroll and window bounds;
++  restoration after Exit; last-window close; and migration of an existing v1
++  AppData profile including an unsaved untitled draft.
++- `npm run test:typography`: passes in Electron, including both editing views,
++  settings, the Heading 4 style, and whole-document conversions and undo.
++- `npm run test:equivalence`: 64 documents and 3,392 edited states compared;
++  81 documents round-trip. Parsing, serialization, word counts and highlighting
++  match the reference behavior.
++
++## Platform coverage
++
++The Windows x64 runtime is Electron's official 44.6.0 release, downloaded with
++checksum verification. The packaging script verifies executable code/data and
++resources when applying PicoMarQ's name, icon and version. The Windows ZIP
++contains the runtime and needs no installer or separately installed Node.js.
++
++Windows execution, Windows-native dialogs, Windows font enumeration and actual
++Explorer/default-app launches have not been run in this Linux environment.
++Subsequent-launch routing is exercised through Electron's real event handler;
++the operating-system association itself still needs a Windows bench check.
++
++## Build and packaging
++
++See README.md. The Windows ZIP extracts to a `PicoMarQ` folder. Close all old
++windows before replacing an existing application folder's contents. No AppData
++files are included in the ZIP or changed by copying the application files.
+--- a/desktop/main.cjs
++++ b/desktop/main.cjs
+@@ -16,157 +16,275 @@
+ fsSync.mkdirSync(userData, { recursive: true });
+ app.setPath('userData', userData);
+ app.setPath('sessionData', userData);
+-const store = createStore(app.getPath('userData'));
+-let window;
+-let closeApproved = false;
+-let closePending = false;
+-let closingTimer;
+-const allowed = new Set();
+-let openDocuments = [];
+-let activeDocumentId = null;
+-let requestedPath = process.argv.find(arg => /\.(md|markdown|txt)$/i.test(arg) && !arg.startsWith('--'));
+-// Extra right-click items the editor registered just before the browser asked
+-// for a context menu (see the 'context-menu' handler below).
+-let contextMenuExtras = null;
+-function command(action, extra = {}) {
+-  if (window && !window.isDestroyed()) window.webContents.send('scratch:command', { action, ...extra });
+-}
+-function approvedPath(file) {
+-  if (typeof file !== 'string' || !allowed.has(path.resolve(file))) throw new Error('Choose this file with Open or Save As first.');
++const store = createStore(userData);
++const windows = new Map(); // webContents id -> one independently owned document
++const savingPaths = new Map();
++let initialized = false;
++let pendingLaunches = [];
++let openQueue = Promise.resolve();
++let quitting = null;
++let quitCommitted = false;
++
++function pathKey(file) {
++  let resolved = path.resolve(file);
++  try { resolved = fsSync.realpathSync.native(resolved); } catch { /* A Save As target may not exist yet. */ }
++  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
++}
++function recordFor(window) { return window && windows.get(window.webContents?.id); }
++function focusedRecord() { return recordFor(BrowserWindow.getFocusedWindow()) || [...windows.values()].find(record => record.id === store.get().activeDocumentId) || windows.values().next().value; }
++function command(record, action, extra = {}) {
++  if (!record || record.window.isDestroyed()) return;
++  const value = { action, ...extra };
++  if (record.ready) record.window.webContents.send('scratch:command', value);
++  else record.commands.push(value);
++}
++function grant(record, file) {
++  if (file) { file = path.resolve(file); record.allowed.add(pathKey(file)); }
++  return file;
++}
++function approvedPath(record, file) {
++  if (typeof file !== 'string' || !record.allowed.has(pathKey(file))) throw new Error('Choose this file with Open or Save As first.');
+   return path.resolve(file);
+ }
+-function grant(file) { if (file) allowed.add(path.resolve(file)); return file; }
+-function buildMenu() {
+-  const template = [
++function currentDocument(record) { return store.get().documents.find(doc => doc.id === record.id); }
++function geometry(record) { return { ...record.window.getNormalBounds(), maximized: record.window.isMaximized() }; }
++function validateSnapshot(record, args) {
++  const doc = args.documents?.[0];
++  if (args.documents?.length !== 1 || !doc || doc.id !== record.id || typeof doc.content !== 'string' || typeof doc.diskContent !== 'string') throw new Error('Invalid document session.');
++  if (doc.path) approvedPath(record, doc.path);
++  if ((doc.path ? pathKey(doc.path) : null) !== (record.path ? pathKey(record.path) : null)) throw new Error('A document path can only change through Save As.');
++  return { ...doc, path: record.path, view: { ...doc.view, settingsOpen: args.settingsOpen === true }, window: geometry(record) };
++}
++function assertOpeningAllowed() { if (quitting) throw new Error('Finish closing the application before opening another document.'); }
++function enqueueOpen(task) {
++  const result = openQueue.catch(() => {}).then(task);
++  openQueue = result.catch(() => {});
++  return result;
++}
++
++function menuFor(record) {
++  // Native accelerators target their invoking window; popups retain their owner.
++  const action = name => (_item, window) => command(recordFor(window) || record, name);
++  const recents = store.get().recentFiles;
++  return Menu.buildFromTemplate([
+     { id: 'file', label: '&File', submenu: [
+-      { label: '&New', accelerator: 'CmdOrCtrl+N', click: () => command('new') },
+-      { label: '&Open…', accelerator: 'CmdOrCtrl+O', click: () => command('open') },
+-      { id: 'open-recent', label: 'Open &Recent', submenu: store.get().recentFiles.length
+-        ? [...store.get().recentFiles.map((file, index) => ({ label: `&${index + 1} ${file.replaceAll('&', '&&')}`, click: () => command('open-path', { path: grant(file) }) })),
+-          { type: 'separator' },
+-          { id: 'clear-recent', label: '&Clear', click: () => { void store.update({ recentFiles: [] }).then(() => buildMenu()).catch(error => dialog.showErrorBox('Could not clear recent files', error.message)); } }]
++      { label: '&New', accelerator: 'CmdOrCtrl+N', click: action('new') },
++      { label: '&Open…', accelerator: 'CmdOrCtrl+O', click: action('open') },
++      { id: 'open-recent', label: 'Open &Recent', submenu: recents.length
++        ? [...recents.map((file, index) => ({ label: `&${index + 1} ${file.replaceAll('&', '&&')}`, click: (_item, window) => {
++          const target = recordFor(window) || record;
++          command(target, 'open-path', { path: grant(target, file) });
++        } })), { type: 'separator' }, { id: 'clear-recent', label: '&Clear', click: () => { void store.update({ recentFiles: [] }).then(buildMenu).catch(error => dialog.showErrorBox('Could not clear recent files', error.message)); } }]
+         : [{ label: 'No recent files', enabled: false }] },
+       { type: 'separator' },
+-      { label: '&Save', accelerator: 'CmdOrCtrl+S', click: () => command('save') },
+-      { label: 'Save &As…', accelerator: 'F12', click: () => command('save-as') },
+-      { label: 'Revert to Saved…', click: () => command('revert') },
+-      { label: '&Close Document', accelerator: 'CmdOrCtrl+W', click: () => command('close-document') },
+-      { type: 'separator' },
+-      { label: '&Print…', accelerator: 'CmdOrCtrl+P', click: () => command('print') },
+-      { type: 'separator' },
+-      { label: 'E&xit', accelerator: 'Alt+F4', click: () => window.close() },
++      { label: '&Save', accelerator: 'CmdOrCtrl+S', click: action('save') },
++      { label: 'Save &As…', accelerator: 'F12', click: action('save-as') },
++      { id: 'revert', label: 'Revert to Saved…', enabled: !!record?.path, click: action('revert') },
++      { label: '&Close Window', accelerator: 'CmdOrCtrl+W', click: (_item, window) => (recordFor(window) || record)?.window.close() },
++      { type: 'separator' },
++      { label: '&Print…', accelerator: 'CmdOrCtrl+P', click: action('print') },
++      { type: 'separator' },
++      { label: 'E&xit', accelerator: 'CmdOrCtrl+Shift+Q', click: () => { void requestQuit(); } },
+     ] },
+     { id: 'edit', label: '&Edit', submenu: [
+-      { label: '&Undo', accelerator: 'CmdOrCtrl+Z', click: () => command('undo') },
+-      { label: '&Redo', accelerator: 'CmdOrCtrl+Y', click: () => command('redo') },
+-      { type: 'separator' },
+-      { role: 'cut', label: 'Cu&t' },
+-      { role: 'copy', label: '&Copy' },
+-      { role: 'paste', label: '&Paste' },
+-      { role: 'selectAll', label: 'Select &All' },
+-      { type: 'separator' },
+-      { label: '&Find…', accelerator: 'CmdOrCtrl+F', click: () => command('find') },
+-      { label: '&Replace…', accelerator: 'CmdOrCtrl+H', click: () => command('replace') },
+-      { type: 'separator' },
+-      { label: 'Apply Smart T&ypography', click: () => command('smart-typography') },
+-      { type: 'separator' },
+-      { label: '&Settings…', accelerator: 'CmdOrCtrl+,', click: () => command('settings') },
++      { label: '&Undo', accelerator: 'CmdOrCtrl+Z', click: action('undo') },
++      { label: '&Redo', accelerator: 'CmdOrCtrl+Y', click: action('redo') },
++      { type: 'separator' },
++      { role: 'cut', label: 'Cu&t' }, { role: 'copy', label: '&Copy' }, { role: 'paste', label: '&Paste' }, { role: 'selectAll', label: 'Select &All' },
++      { type: 'separator' },
++      { label: '&Find…', accelerator: 'CmdOrCtrl+F', click: action('find') },
++      { label: '&Replace…', accelerator: 'CmdOrCtrl+H', click: action('replace') },
++      { type: 'separator' },
++      { label: 'Apply Smart T&ypography', click: action('smart-typography') },
++      { type: 'separator' },
++      { label: '&Settings…', accelerator: 'CmdOrCtrl+,', click: action('settings') },
+     ] },
+     { id: 'view', label: '&View', submenu: [
+-      { label: 'Markdown &Source', accelerator: 'CmdOrCtrl+Shift+M', click: () => command('source') },
+-      { type: 'separator' },
+-      { label: 'Zoom &In', accelerator: 'CmdOrCtrl+Plus', click: () => command('zoom-in') },
+-      { label: 'Zoom &Out', accelerator: 'CmdOrCtrl+-', click: () => command('zoom-out') },
+-      { label: '&Actual Size', accelerator: 'CmdOrCtrl+0', click: () => command('zoom-reset') },
+-      { type: 'separator' },
+-      ...openDocuments.map(doc => ({ id: `document-${doc.id}`, label: `${doc.dirty ? '● ' : ''}${doc.title.replaceAll('&', '&&')}`, type: 'checkbox', checked: doc.id === activeDocumentId, click: () => command('switch-document', { id: doc.id }) })),
++      { label: 'Markdown &Source', accelerator: 'CmdOrCtrl+Shift+M', click: action('source') },
++      { type: 'separator' },
++      { label: 'Zoom &In', accelerator: 'CmdOrCtrl+Plus', click: action('zoom-in') },
++      { label: 'Zoom &Out', accelerator: 'CmdOrCtrl+-', click: action('zoom-out') },
++      { label: '&Actual Size', accelerator: 'CmdOrCtrl+0', click: action('zoom-reset') },
+     ] },
+-  ];
+-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+-  // Keep the native commands and accelerators, with the visible menus in the editor.
+-  window.setAutoHideMenuBar(false);
+-  window.setMenuBarVisibility(false);
++  ]);
++}
++function buildMenu() {
++  Menu.setApplicationMenu(menuFor(focusedRecord()));
++  for (const { window } of windows.values()) {
++    if (window.isDestroyed()) continue;
++    window.setAutoHideMenuBar(false);
++    window.setMenuBarVisibility(false);
++  }
++}
++
++function finishCloseReply(record, token, result) {
++  if (!record.closeWait || record.closeToken !== token) return;
++  const finish = record.closeWait;
++  record.closeWait = null;
++  clearTimeout(record.closingTimer);
++  finish(result);
++}
++function prepareClose(record, token) {
++  return new Promise(resolve => {
++    record.closeWait = resolve;
++    record.closingTimer = setTimeout(() => {
++      finishCloseReply(record, token, null);
++      dialog.showErrorBox('The window is staying open', 'The editor has not finished preparing its recovery data. Save the document and try closing again.');
++    }, 12000);
++    command(record, 'prepare-close', { token });
++  });
++}
++function cancelClose(records, token) {
++  for (const record of records) {
++    clearTimeout(record.closingTimer);
++    record.closeWait = null;
++    record.closeToken = null;
++    record.commands = record.commands.filter(value => value.token !== token);
++    command(record, 'cancel-close', { token });
++  }
++}
++async function requestClose(record) {
++  if (record.closeToken || quitting) return;
++  const token = crypto.randomUUID();
++  record.closeToken = token;
++  command(record, 'start-close', { token });
++  let result;
++  try {
++    result = await prepareClose(record, token);
++    if (!result) { cancelClose([record], token); return; }
++    // Explicitly closing a window removes only it from the next startup.
++    await store.removeDocuments([record.id]);
++    await store.update({ window: geometry(record) });
++    await store.flush();
++    record.closeApproved = true;
++    record.window.close();
++  } catch (error) {
++    if (result) await store.updateDocument(result.document, { create: true }).catch(console.error);
++    cancelClose([record], token);
++    dialog.showErrorBox('Could not close the window', error.message);
++  }
++}
++async function requestQuit() {
++  if (quitting || quitCommitted) return;
++  const busy = [...windows.values()].find(record => record.closeToken);
++  if (busy) { busy.window.focus(); return; }
++  const token = crypto.randomUUID();
++  quitting = token;
++  await openQueue;
++  const records = [...windows.values()];
++  for (const record of records) { record.closeToken = token; command(record, 'start-close', { token }); }
++  const snapshots = [];
++  try {
++    for (const record of records) {
++      const result = await prepareClose(record, token);
++      if (!result) { cancelClose(records, token); quitting = null; return; }
++      snapshots.push(result);
++    }
++    // Discard is deferred until every window agrees to quit. A later Cancel
++    // preserves all drafts and windows. Explicit Saves stay saved.
++    const documents = snapshots.flatMap(({ document: doc, disposition }) => {
++      if (disposition === 'discard') return doc.path ? [{ ...doc, content: doc.diskContent }] : [];
++      return doc.path || doc.content ? [doc] : [];
++    });
++    const activeDocumentId = store.get().activeDocumentId;
++    await store.update({ documents, activeDocumentId, settingsOpen: false, ...(records.length ? { window: geometry(focusedRecord() || records[0]) } : {}) });
++    await store.flush();
++    quitCommitted = true;
++    for (const record of records) { record.closeApproved = true; clearTimeout(record.closingTimer); record.window.close(); }
++    if (!records.length) app.quit();
++  } catch (error) {
++    // Keep the pre-Discard snapshots in memory if persisting the final session fails.
++    for (const result of snapshots) await store.updateDocument(result.document, { create: true }).catch(console.error);
++    cancelClose(records, token);
++    quitting = null;
++    dialog.showErrorBox('Could not exit', error.message);
++  }
+ }
+ 
+ async function handleInvoke(event, action, args = {}) {
+-  if (!window || event.sender !== window.webContents) throw new Error('Invalid window.');
++  const record = windows.get(event.sender.id);
++  if (!record || event.sender !== record.window.webContents) throw new Error('Invalid window.');
++  const window = record.window;
+   switch (action) {
+     case 'get_settings': return store.get().settings;
+     case 'update_settings': {
+       const next = { ...store.get().settings, ...args.patch };
+       await store.update({ settings: next });
+-      return next;
++      const settings = store.get().settings;
++      for (const target of windows.values()) if (!target.window.isDestroyed()) target.window.webContents.send('scratch:settings', settings);
++      return settings;
+     }
+     case 'get_session': {
+-      const state = store.get();
+-      for (const doc of state.documents) if (doc.path) grant(doc.path);
+-      if (requestedPath) {
+-        const file = grant(requestedPath);
+-        requestedPath = undefined;
+-        const key = file => process.platform === 'win32' ? path.resolve(file).toLowerCase() : path.resolve(file);
+-        let doc = state.documents.find(doc => doc.path && key(doc.path) === key(file));
+-        if (!doc) {
+-          try { doc = { ...await readDocument(file), id: crypto.randomUUID(), view: {} }; state.documents.push(doc); }
++      const doc = currentDocument(record);
++      return { documents: [doc], activeDocumentId: doc.id, settingsOpen: doc.view?.settingsOpen === true };
++    }
++    case 'renderer_ready':
++      record.ready = true;
++      for (const value of record.commands.splice(0)) window.webContents.send('scratch:command', value);
++      return;
++    case 'save_session': {
++      if (record.closeApproved) return;
++      await store.updateDocument(validateSnapshot(record, args));
++      return;
++    }
++    case 'new_window': return enqueueOpen(() => newDocumentWindow());
++    case 'open_document_windows': {
++      if (!Array.isArray(args.paths) || args.paths.some(file => typeof file !== 'string')) throw new Error('Invalid file list.');
++      const files = args.paths.map(file => approvedPath(record, file));
++      return enqueueOpen(async () => {
++        for (const file of files) {
++          try { await openDocumentWindow(file); }
+           catch (error) { dialog.showErrorBox('Could not open the file', error.message); }
+         }
+-        if (doc) {
+-          state.activeDocumentId = doc.id;
+-          await store.update({ recentFiles: recentFiles(store.get().recentFiles, file) });
++      });
++    }
++    case 'set_title': window.setTitle(args.title || 'PicoMarQ'); return;
++    case 'close_window': window.close(); return;
++    case 'quit': void requestQuit(); return;
++    case 'close_prompting': if (record.closeToken === args.token) clearTimeout(record.closingTimer); return;
++    case 'close_cancelled': finishCloseReply(record, args.token, null); return;
++    case 'close_failed':
++      finishCloseReply(record, args.token, null);
++      dialog.showErrorBox('Session could not be saved', args.message || 'The editor will stay open so you can save your document.');
++      return;
++    case 'close_prepared': {
++      if (!record.closeWait || record.closeToken !== args.token) return;
++      if (!['keep', 'discard'].includes(args.disposition)) throw new Error('Invalid close response.');
++      finishCloseReply(record, args.token, { document: validateSnapshot(record, args), disposition: args.disposition });
++      return;
++    }
++    case 'open_dialog': {
++      const result = await dialog.showOpenDialog(window, { title: args.title || 'Open Markdown', properties: args.multiple ? ['openFile', 'multiSelections'] : ['openFile'], filters: args.filters || [{ name: 'Markdown and text', extensions: ['md', 'markdown', 'txt'] }, { name: 'All files', extensions: ['*'] }] });
++      return result.canceled ? null : args.multiple ? result.filePaths.map(file => grant(record, file)) : grant(record, result.filePaths[0]);
++    }
++    case 'save_dialog': {
++      const result = await dialog.showSaveDialog(window, { title: args.title || 'Save Markdown', defaultPath: args.defaultPath || 'Untitled.md', filters: args.filters || [{ name: 'Markdown', extensions: ['md'] }] });
++      return result.canceled ? null : grant(record, result.filePath);
++    }
++    case 'read_document': return readDocument(approvedPath(record, args.path));
++    case 'save_document': {
++      const file = approvedPath(record, args.path);
++      const key = pathKey(file);
++      const owner = [...windows.values()].find(other => other !== record && other.path && pathKey(other.path) === key);
++      if (owner || savingPaths.has(key)) throw new Error('That file is already open in another window. Choose a different filename or close that window first.');
++      savingPaths.set(key, record);
++      try {
++        const saved = await writeDocument(file, args.content, args.expectedContent, args.force);
++        if (!saved.conflict) {
++          record.path = file;
++          await store.updateDocument({ ...currentDocument(record), path: file, content: args.content, diskContent: args.content, modified: saved.modified });
+           buildMenu();
+         }
+-      }
+-      return { documents: state.documents, activeDocumentId: state.activeDocumentId, settingsOpen: state.settingsOpen, settings: state.settings };
+-    }
+-    case 'save_session': {
+-      if (!Array.isArray(args.documents)) throw new Error('Invalid document session.');
+-      const ids = new Set();
+-      for (const doc of args.documents) {
+-        if (!doc || typeof doc.content !== 'string' || typeof doc.diskContent !== 'string' || typeof doc.id !== 'string' || ids.has(doc.id)) throw new Error('Invalid document session.');
+-        ids.add(doc.id);
+-        if (doc.path) approvedPath(doc.path);
+-      }
+-      await store.update({ documents: args.documents, activeDocumentId: args.activeDocumentId, settingsOpen: args.settingsOpen === true });
+-      return;
+-    }
+-    case 'update_document_menu': {
+-      if (!Array.isArray(args.documents) || args.documents.some(doc => typeof doc.id !== 'string' || typeof doc.title !== 'string')) throw new Error('Invalid document list.');
+-      openDocuments = args.documents.map(doc => ({ id: doc.id, title: doc.title.slice(0, 1000), dirty: doc.dirty === true }));
+-      activeDocumentId = args.activeDocumentId;
+-      buildMenu();
+-      return;
+-    }
+-    case 'set_title': window.setTitle(args.title || 'PicoMarQ'); return;
+-    case 'close_ready':
+-      await store.update({ window: { ...window.getNormalBounds(), maximized: window.isMaximized() } });
+-      await store.flush();
+-      closeApproved = true;
+-      clearTimeout(closingTimer);
+-      window.close();
+-      return;
+-    case 'close_failed':
+-      closePending = false;
+-      clearTimeout(closingTimer);
+-      dialog.showErrorBox('Session could not be saved', args.message || 'The editor will stay open so you can save your document.');
+-      return;
+-    case 'close_prompting': clearTimeout(closingTimer); return;
+-    case 'close_cancelled': closePending = false; clearTimeout(closingTimer); return;
+-    case 'open_dialog': {
+-      const result = await dialog.showOpenDialog(window, { title: args.title || 'Open Markdown', properties: args.multiple ? ['openFile', 'multiSelections'] : ['openFile'], filters: args.filters || [{ name: 'Markdown and text', extensions: ['md', 'markdown', 'txt'] }, { name: 'All files', extensions: ['*'] }] });
+-      return result.canceled ? null : args.multiple ? result.filePaths.map(grant) : grant(result.filePaths[0]);
+-    }
+-    case 'save_dialog': {
+-      const result = await dialog.showSaveDialog(window, { title: args.title || 'Save Markdown', defaultPath: args.defaultPath || 'Untitled.md', filters: args.filters || [{ name: 'Markdown', extensions: ['md'] }] });
+-      return result.canceled ? null : grant(result.filePath);
+-    }
+-    case 'read_document': return readDocument(approvedPath(args.path));
+-    case 'save_document': return writeDocument(approvedPath(args.path), args.content, args.expectedContent, args.force);
++        return saved;
++      } finally { savingPaths.delete(key); }
++    }
+     case 'remember_document': {
+-      const file = approvedPath(args.path);
++      const file = approvedPath(record, args.path);
+       await store.update({ recentFiles: recentFiles(store.get().recentFiles, file) });
+-      buildMenu();
+-      return;
++      buildMenu(); return;
+     }
+     case 'confirm_unsaved': {
++      window.show(); window.focus();
+       const result = await dialog.showMessageBox(window, { type: 'question', title: 'Save changes?', message: `Save changes to ${args.title || 'Untitled'}?`, buttons: ['Save', 'Discard', 'Cancel'], defaultId: 0, cancelId: 2, noLink: true });
+       return ['save', 'discard', 'cancel'][result.response];
+     }
+@@ -175,7 +293,7 @@
+       return ['save-as', 'overwrite', 'cancel'][result.response];
+     }
+     case 'confirm_revert': {
+-      const result = await dialog.showMessageBox(window, { type: 'question', message: 'Revert to the saved file?', detail: 'Your current edits will be replaced by the file on disk.', buttons: ['Revert', 'Cancel'], defaultId: 1, cancelId: 1, noLink: true });
++      const result = await dialog.showMessageBox(window, { type: 'question', message: 'Revert to the saved file?', detail: 'Your current edits will be replaced by the file on disk. This clears the document’s undo history.', buttons: ['Revert', 'Cancel'], defaultId: 1, cancelId: 1, noLink: true });
+       return result.response === 0;
+     }
+     case 'installed_fonts': return installedFonts(args.refresh);
+@@ -183,12 +301,11 @@
+     case 'read_clipboard': return clipboard.readText();
+     case 'clipboard_action': {
+       if (!['cut', 'copy', 'paste', 'selectAll', 'undo', 'redo'].includes(args.action)) throw new Error('Unknown editing command.');
+-      window.webContents[args.action]();
+-      return;
++      window.webContents[args.action](); return;
+     }
+     case 'app_menu': return new Promise((resolve, reject) => {
+       if (!['file', 'edit', 'view'].includes(args.menu)) return reject(new Error('Unknown menu.'));
+-      const menu = Menu.getApplicationMenu().getMenuItemById(args.menu).submenu;
++      const menu = menuFor(record).getMenuItemById(args.menu).submenu;
+       const [width, height] = window.getContentSize();
+       const x = Math.max(0, Math.min(width, Math.round(Number(args.x) || 0)));
+       const y = Math.max(0, Math.min(height, Math.round(Number(args.y) || 0)));
+@@ -197,16 +314,14 @@
+     case 'open_url_safe': {
+       const url = new URL(args.url);
+       if (!['https:', 'http:', 'mailto:'].includes(url.protocol)) throw new Error('Unsupported link.');
+-      await shell.openExternal(url.toString());
+-      return;
++      await shell.openExternal(url.toString()); return;
+     }
+     case 'read_image': {
+-      const file = approvedPath(args.path);
+-      const ext = path.extname(file).slice(1).toLowerCase();
++      const file = approvedPath(record, args.path);
+       const types = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+-      if (!types[ext]) throw new Error('Unsupported image format.');
+-      const buffer = await fs.readFile(file);
+-      return `data:${types[ext]};base64,${buffer.toString('base64')}`;
++      const type = types[path.extname(file).slice(1).toLowerCase()];
++      if (!type) throw new Error('Unsupported image format.');
++      return `data:${type};base64,${(await fs.readFile(file)).toString('base64')}`;
+     }
+     case 'set_title_bar_theme': nativeTheme.themeSource = args.isDark ? 'dark' : 'light'; return;
+     case 'print': return new Promise((resolve, reject) => window.webContents.print({ printBackground: true }, (ok, reason) => ok || /cancel/i.test(reason || '') ? resolve() : reject(new Error(reason))));
+@@ -214,84 +329,161 @@
+   }
+ }
+ 
++async function createDocumentWindow(doc, { restored = false } = {}) {
++  const state = store.get();
++  const displays = screen.getAllDisplays();
++  let bounds = restoreBounds(doc.window || state.window, displays);
++  if (!restored && windows.size) {
++    const previous = focusedRecord()?.window.getNormalBounds();
++    if (previous) bounds = restoreBounds({ ...previous, x: previous.x + 30, y: previous.y + 30 }, displays);
++  }
++  const window = new BrowserWindow({ ...bounds, minWidth: 600, minHeight: 400, show: false, backgroundColor: '#ffffff', title: 'PicoMarQ', icon: path.join(__dirname, '../app.ico'), webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true, defaultEncoding: 'UTF-8' } });
++  const record = { window, id: doc.id, path: doc.path, allowed: new Set(), ready: false, commands: [], contextMenuExtras: null, closeApproved: false, closeToken: null, closeWait: null };
++  windows.set(window.webContents.id, record);
++  if (doc.path) grant(record, doc.path);
++  buildMenu();
++  window.webContents.on('context-menu', (_event, params) => {
++    const pending = record.contextMenuExtras;
++    record.contextMenuExtras = null;
++    if (!pending || Date.now() - pending.at > 3000) return;
++    Menu.buildFromTemplate(contextMenuTemplate(params, pending.items, {
++      command: (action, extra) => command(record, action, extra),
++      replaceMisspelling: text => window.webContents.replaceMisspelling(text),
++      addToDictionary: word => window.webContents.session.addWordToSpellCheckerDictionary(word),
++    })).popup({ window, callback: () => {} });
++  });
++  window.webContents.on('before-input-event', (event, input) => {
++    if (input.type !== 'keyDown') return;
++    if (input.alt && !input.control && !input.meta && !input.shift) {
++      const menu = { f: 'file', e: 'edit', v: 'view' }[input.key.toLowerCase()];
++      if (menu) { event.preventDefault(); command(record, `menu-${menu}`); }
++      return;
++    }
++    if (input.alt || (!input.control && !input.meta)) return;
++    let action;
++    if (input.key === '+' || input.key === '=' || input.code === 'NumpadAdd') action = 'zoom-in';
++    else if (input.key === '-' || input.key === '_' || input.code === 'NumpadSubtract') action = 'zoom-out';
++    else if (input.key === '0' && !input.shift) action = 'zoom-reset';
++    if (action) { event.preventDefault(); command(record, action); }
++  });
++  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
++  window.webContents.on('will-navigate', (event, url) => { if (url !== window.webContents.getURL()) event.preventDefault(); });
++  window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
++  function saveGeometry() {
++    clearTimeout(record.geometryTimer);
++    record.geometryTimer = setTimeout(() => {
++      if (window.isDestroyed() || record.closeApproved || quitting) return;
++      const current = currentDocument(record);
++      if (current) void store.updateDocument({ ...current, window: geometry(record) }).catch(console.error);
++    }, 250);
++  }
++  for (const event of ['resize', 'move', 'maximize', 'unmaximize']) window.on(event, saveGeometry);
++  window.on('focus', () => {
++    if (!record.closeApproved && currentDocument(record)) void store.update({ activeDocumentId: record.id }).catch(console.error);
++    buildMenu();
++  });
++  window.on('close', event => {
++    if (record.closeApproved) return;
++    event.preventDefault();
++    void requestClose(record);
++  });
++  const webContentsId = window.webContents.id;
++  window.on('closed', () => {
++    clearTimeout(record.geometryTimer); clearTimeout(record.closingTimer);
++    if (record.closeWait) { record.closeWait(null); record.closeWait = null; }
++    windows.delete(webContentsId);
++    if (windows.size) buildMenu();
++  });
++  const shown = new Promise(resolve => window.once('ready-to-show', () => {
++    if ((restored ? doc.window || state.window : state.window)?.maximized) window.maximize();
++    window.show();
++    resolve();
++  }));
++  try {
++    if (process.env.SCRATCH_DEV_URL) await window.loadURL(process.env.SCRATCH_DEV_URL);
++    else await window.loadURL(pathToFileURL(path.join(__dirname, '../dist/index.html')).toString());
++    await shown;
++  } catch (error) { record.closeApproved = true; window.destroy(); throw error; }
++  return record;
++}
++async function newDocumentWindow() {
++  assertOpeningAllowed();
++  const documents = store.get().documents;
++  let name = 'Untitled';
++  for (let number = 2; documents.some(doc => !doc.path && doc.name === name); number++) name = `Untitled ${number}`;
++  const doc = { id: crypto.randomUUID(), name, path: null, content: '', diskContent: '', modified: Date.now() / 1000, view: {} };
++  await store.updateDocument(doc, { create: true, activate: true });
++  const record = await createDocumentWindow(doc);
++  return record.id;
++}
++async function openDocumentWindow(file) {
++  assertOpeningAllowed();
++  file = path.resolve(file);
++  const existing = savingPaths.get(pathKey(file)) || [...windows.values()].find(record => record.path && pathKey(record.path) === pathKey(file));
++  if (existing) {
++    if (existing.window.isMinimized()) existing.window.restore();
++    existing.window.show(); existing.window.focus();
++  } else {
++    // Read first so a failed Open cannot replace a draft or leave an empty window.
++    const doc = { ...await readDocument(file), id: crypto.randomUUID(), view: {} };
++    await store.updateDocument(doc, { create: true, activate: true });
++    await createDocumentWindow(doc);
++  }
++  await store.update({ recentFiles: recentFiles(store.get().recentFiles, file) });
++  buildMenu();
++}
++function launchPaths(argv, directory = process.cwd()) {
++  return argv.filter(arg => typeof arg === 'string' && /\.(md|markdown|txt)$/i.test(arg) && !arg.startsWith('--')).map(file => path.resolve(directory, file));
++}
++function handleLaunch(files) {
++  if (!initialized) { pendingLaunches.push(...files); return; }
++  void enqueueOpen(async () => {
++    if (!files.length) { const record = focusedRecord(); if (record) { record.window.restore(); record.window.show(); record.window.focus(); } else await newDocumentWindow(); }
++    for (const file of files) {
++      try { await openDocumentWindow(file); }
++      catch (error) { dialog.showErrorBox('Could not open the file', error.message); }
++    }
++  });
++}
++
+ const haveLock = process.env.SCRATCH_TEST_MODE === '1' || app.requestSingleInstanceLock();
+ if (!haveLock) app.quit();
+ else {
+-  app.on('second-instance', (_event, argv) => {
+-    if (window) { if (window.isMinimized()) window.restore(); window.focus(); }
+-    const file = argv.find(arg => /\.(md|markdown|txt)$/i.test(arg) && !arg.startsWith('--'));
+-    if (file) command('open-path', { path: grant(file) });
++  pendingLaunches.push(...launchPaths(process.argv));
++  app.on('second-instance', (_event, argv, directory) => handleLaunch(launchPaths(argv, directory)));
++  app.on('open-file', (event, file) => { event.preventDefault(); handleLaunch([file]); });
++  app.on('before-quit', event => {
++    if (quitCommitted || !windows.size) return;
++    event.preventDefault();
++    void requestQuit();
++  });
++  ipcMain.handle('scratch:invoke', handleInvoke);
++  ipcMain.on('scratch:context-menu', (event, extras) => {
++    event.returnValue = true;
++    const record = windows.get(event.sender.id);
++    if (record) record.contextMenuExtras = { items: sanitizeExtras(extras), at: Date.now() };
+   });
+   app.whenReady().then(async () => {
+     const state = await store.load();
+-    const bounds = restoreBounds(state.window, screen.getAllDisplays());
+-    window = new BrowserWindow({ ...bounds, minWidth: 600, minHeight: 400, show: false, backgroundColor: '#ffffff', title: 'PicoMarQ', icon: path.join(__dirname, '../app.ico'), webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true, defaultEncoding: 'UTF-8' } });
+-    buildMenu();
+-    ipcMain.handle('scratch:invoke', handleInvoke);
+-    // The editor registers its right-click menu synchronously from the DOM
+-    // contextmenu event, then lets the event through. Chromium then raises
+-    // 'context-menu' with the spelling suggestions for the word under the
+-    // pointer, which only this event can provide, and the menu is shown here.
+-    ipcMain.on('scratch:context-menu', (event, extras) => {
+-      event.returnValue = true;
+-      if (!window || event.sender !== window.webContents) return;
+-      contextMenuExtras = { items: sanitizeExtras(extras), at: Date.now() };
+-    });
+-    window.webContents.on('context-menu', (_event, params) => {
+-      const pending = contextMenuExtras;
+-      contextMenuExtras = null;
+-      // Right-clicks outside the editor (toolbar, settings) register nothing and get no menu.
+-      if (!pending || Date.now() - pending.at > 3000) return;
+-      const template = contextMenuTemplate(params, pending.items, {
+-        command,
+-        replaceMisspelling: text => window.webContents.replaceMisspelling(text),
+-        addToDictionary: word => window.webContents.session.addWordToSpellCheckerDictionary(word),
+-      });
+-      Menu.buildFromTemplate(template).popup({ window, callback: () => {} });
+-    });
+-    window.webContents.on('before-input-event', (event, input) => {
+-      if (input.type !== 'keyDown') return;
+-      if (input.alt && !input.control && !input.meta && !input.shift) {
+-        const menu = { f: 'file', e: 'edit', v: 'view' }[input.key.toLowerCase()];
+-        if (menu) { event.preventDefault(); command(`menu-${menu}`); }
+-        return;
+-      }
+-      if (input.alt) return;
+-      if (!input.control && !input.meta) return;
+-      // Plus is usually Shift+Equals; the keypad sends separate key codes.
+-      // Intercept before Chromium or the native menu can zoom a second time.
+-      let action;
+-      if (input.key === '+' || input.key === '=' || input.code === 'NumpadAdd') action = 'zoom-in';
+-      else if (input.key === '-' || input.key === '_' || input.code === 'NumpadSubtract') action = 'zoom-out';
+-      else if (input.key === '0' && !input.shift) action = 'zoom-reset';
+-      if (action) { event.preventDefault(); command(action); }
+-    });
+-    window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+-    window.webContents.on('will-navigate', (event, url) => { if (url !== window.webContents.getURL()) event.preventDefault(); });
+-    window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+-    let geometryTimer;
+-    function saveGeometry() {
+-      clearTimeout(geometryTimer);
+-      geometryTimer = setTimeout(() => { if (window.isDestroyed()) return; void store.update({ window: { ...window.getNormalBounds(), maximized: window.isMaximized() } }).catch(console.error); }, 250);
+-    }
+-    for (const event of ['resize', 'move', 'maximize', 'unmaximize']) window.on(event, saveGeometry);
+-    window.on('close', event => {
+-      if (closeApproved) return;
+-      event.preventDefault();
+-      if (closePending) return;
+-      closePending = true;
+-      command('before-close');
+-      closingTimer = setTimeout(async () => {
+-        closePending = false;
+-        await dialog.showMessageBox(window, { type: 'warning', message: 'The editor has not finished saving your session.', detail: 'The window is staying open to protect your latest work. You can save the document and try closing again.', buttons: ['OK'] });
+-      }, 12000);
+-    });
+-    window.once('ready-to-show', () => {
+-      if (state.window?.maximized) window.maximize();
+-      window.show();
+-    });
+-    if (process.env.SCRATCH_DEV_URL) await window.loadURL(process.env.SCRATCH_DEV_URL);
+-    else await window.loadURL(pathToFileURL(path.join(__dirname, '../dist/index.html')).toString());
+-  }).catch(error => { dialog.showErrorBox('PicoMarQ could not start', error.stack || error.message); app.quit(); });
+-  app.on('window-all-closed', () => app.quit());
+-}
++    // Each document in an existing v1 profile becomes a window, preserving drafts.
++    for (const doc of state.documents) {
++      const restored = { ...doc, view: { ...doc.view, settingsOpen: doc.view?.settingsOpen ?? (doc.id === state.activeDocumentId && state.settingsOpen) } };
++      await store.updateDocument(restored);
++      await createDocumentWindow(restored, { restored: true });
++    }
++    const requested = pendingLaunches.splice(0);
++    for (const file of requested) {
++      try { await openDocumentWindow(file); }
++      catch (error) { dialog.showErrorBox('Could not open the file', error.message); }
++    }
++    if (!windows.size) await newDocumentWindow();
++    else {
++      const wanted = requested.length ? store.get().activeDocumentId : state.activeDocumentId;
++      const record = [...windows.values()].find(record => record.id === wanted) || focusedRecord();
++      record?.window.focus();
++    }
++    initialized = true;
++    if (pendingLaunches.length) handleLaunch(pendingLaunches.splice(0));
++  }).catch(error => { dialog.showErrorBox('PicoMarQ could not start', error.stack || error.message); app.exit(1); });
++  app.on('window-all-closed', () => { if (initialized || quitCommitted) app.quit(); });
++}
+--- a/desktop/preload.cjs
++++ b/desktop/preload.cjs
+@@ -10,4 +10,9 @@
+     ipcRenderer.on('scratch:command', handler);
+     return () => ipcRenderer.removeListener('scratch:command', handler);
+   },
++  onSettingsChanged: (callback) => {
++    const handler = (_event, settings) => callback(settings);
++    ipcRenderer.on('scratch:settings', handler);
++    return () => ipcRenderer.removeListener('scratch:settings', handler);
++  },
+ });
+--- a/desktop/store.cjs
++++ b/desktop/store.cjs
+@@ -16,6 +16,7 @@
+     path: typeof doc.path === 'string' ? doc.path : null,
+     diskContent: typeof doc.diskContent === 'string' ? doc.diskContent : '',
+     view: pick(doc.view, viewKeys),
++    ...(doc.window ? { window: pick(doc.window, windowKeys) } : {}),
+   })).filter(doc => {
+     if (seen.has(doc.id)) return false;
+     seen.add(doc.id);
+@@ -81,7 +82,21 @@
+   function get() {
+     return { ...structuredClone({ ...state, documents: [] }), documents: state.documents.map(cloneDocument) };
+   }
+-  return { load, update, get, flush: () => queue };
++  // Merge against the current in-memory state before queueing the disk write.
++  // A renderer owns one document, never the complete list of other windows.
++  function updateDocument(document, { create = false, activate = false } = {}) {
++    const index = state.documents.findIndex(doc => doc.id === document.id);
++    if (index < 0 && !create) throw new Error('This document is no longer open.');
++    const documents = [...state.documents];
++    if (index < 0) documents.push(document); else documents[index] = document;
++    return update({ documents, activeDocumentId: activate ? document.id : state.activeDocumentId, settingsOpen: false });
++  }
++  function removeDocuments(ids) {
++    const removed = new Set(ids);
++    const documents = state.documents.filter(doc => !removed.has(doc.id));
++    return update({ documents, activeDocumentId: removed.has(state.activeDocumentId) ? documents.at(-1)?.id ?? null : state.activeDocumentId, settingsOpen: false });
++  }
++  return { load, update, updateDocument, removeDocuments, get, flush: () => queue };
+ }
+ 
+ async function readDocument(file) {
+--- a/docs/KEYBOARD-SHORTCUTS.md
++++ b/docs/KEYBOARD-SHORTCUTS.md
+@@ -1,6 +1,6 @@
+ # PicoMarQ keyboard shortcuts
+ 
+-Version 1.0.1. Windows keys are shown; on a Mac, read Cmd for Ctrl and Option for Alt.
++Version 1.1.0. Windows keys are shown; on a Mac, read Cmd for Ctrl and Option for Alt.
+ 
+ PicoMarQ has two views: the **formatted view** (the normal writing view, with the icon toolbar) and the **Markdown source view** (the raw text of your file). Shortcuts in the first two sections work in both views unless noted.
+ 
+@@ -8,13 +8,14 @@
+ 
+ | Keys | What it does |
+ | --- | --- |
+-| Ctrl+N | New document |
+-| Ctrl+O | Open a file (several can be selected at once) |
++| Ctrl+N | New document in another window |
++| Ctrl+O | Open files in separate windows (several can be selected at once) |
+ | Ctrl+S | Save (asks for a filename the first time) |
+ | F12 | Save As |
+-| Ctrl+W | Close the current document (asks about unsaved changes) |
++| Ctrl+W | Close the current window (asks about its unsaved changes) |
+ | Ctrl+P | Print |
+-| Alt+F4 | Exit (asks about every unsaved document) |
++| Alt+F4 | Close the current window |
++| Ctrl+Shift+Q | Exit all windows (asks about every unsaved document) |
+ | Ctrl+Shift+M | Switch between the formatted view and the Markdown source view |
+ | Ctrl+, | Settings |
+ | Esc | Leave Settings |
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.0.1",
++  "version": "1.1.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.0.1",
++      "version": "1.1.0",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.0.1",
++  "version": "1.1.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+--- a/scripts/package-windows.cjs
++++ b/scripts/package-windows.cjs
+@@ -10,7 +10,7 @@
+   const version = project.devDependencies.electron;
+   const zip = await downloadArtifact({ version, artifactName: 'electron', platform: 'win32', arch: 'x64' });
+   const name = project.productName;
+-  const release = path.resolve(`release/${name}-Windows`);
++  const release = path.resolve(`release/${name}`);
+   await fs.rm(release, { recursive: true, force: true });
+   await fs.mkdir(release, { recursive: true });
+   await exec('unzip', ['-q', zip, '-d', release]);
+@@ -23,9 +23,10 @@
+   await setWindowsIcon(path.join(release, 'electron.exe'), path.join(release, `${name}.exe`), path.resolve('app.ico'), { productName: project.productName, version: project.version });
+   await fs.rm(path.join(release, 'electron.exe'));
+   await fs.copyFile('START-HERE.txt', path.join(release, 'START-HERE.txt'));
++  await fs.copyFile('docs/KEYBOARD-SHORTCUTS.md', path.join(release, 'KEYBOARD-SHORTCUTS.md'));
+   await fs.copyFile('LICENSE', path.join(release, 'APP-LICENSE.txt'));
+   await fs.copyFile('THIRD-PARTY-NOTICES.txt', path.join(release, 'THIRD-PARTY-NOTICES.txt'));
+-  const archive = path.resolve(`release/${name}-Windows-x64.zip`);
++  const archive = path.resolve(`release/${name}-Windows-x64-${project.version}.zip`);
+   await fs.rm(archive, { force: true });
+   await exec('zip', ['-q', '-r', '-6', archive, path.basename(release)], { cwd: path.dirname(release), maxBuffer: 1024 * 1024 });
+   console.log(archive);
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -13,10 +13,6 @@
+   for (let number = 2; existing.some(doc => !doc.path && nameOf(doc) === name); number++) name = `Untitled ${number}`;
+   return { id: crypto.randomUUID(), name, path: null, content: '', diskContent: '', modified: Date.now() / 1000, view: {} };
+ }
+-function pathKey(file: string) {
+-  const normalized = file.replace(/\\/g, '/');
+-  return window.desktop?.platform === 'win32' ? normalized.toLowerCase() : normalized;
+-}
+ // Equality with the same meaning as comparing JSON.stringify output (undefined
+ // properties are ignored), without building multi-megabyte strings each second.
+ function sameJson(a: unknown, b: unknown): boolean {
+@@ -33,21 +29,20 @@
+   return keys.every(key => sameJson(left[key], right[key]));
+ }
+ 
+-// Each retained editor keeps its undo history and local Find state while switching.
+-function DocumentPane({ doc, active, externalChanges, onReady, onContent, onWords, onRevert }: {
++// Each native document window owns its editor, undo history, and Find state.
++function DocumentPane({ doc, active, generation, externalChanges, onReady, onContent, onWords, onRevert }: {
+   doc: DocumentState; active: boolean; externalChanges: boolean;
+-  onReady: (id: string, handle: EditorHandle) => void;
+-  onContent: (id: string, content: string) => Promise<void>;
++  generation: number;
++  onReady: (id: string, handle: EditorHandle, generation: number) => void;
++  onContent: (id: string, content: string, generation: number) => Promise<void>;
+   onWords: (id: string, count: number) => void;
+   onRevert: (id: string) => Promise<void>;
+ }) {
+-  const handleReady = useCallback((handle: EditorHandle) => onReady(doc.id, handle), [doc.id, onReady]);
+-  const save = useCallback((content: string) => onContent(doc.id, content), [doc.id, onContent]);
++  const handleReady = useCallback((handle: EditorHandle) => onReady(doc.id, handle, generation), [doc.id, generation, onReady]);
++  const save = useCallback((content: string) => onContent(doc.id, content, generation), [doc.id, generation, onContent]);
+   const words = useCallback((count: number) => onWords(doc.id, count), [doc.id, onWords]);
+   const reload = useCallback(() => onRevert(doc.id), [doc.id, onRevert]);
+-  // Documents restored in the background are parsed and rendered the first
+-  // time they are shown, not all at once at startup. Until then the recovered
+-  // text itself is the document's content, so nothing is lost or changed.
++  // A window restored directly into Settings parses its document when first shown.
+   const [mounted, setMounted] = useState(active);
+   useEffect(() => { if (active) setMounted(true); }, [active]);
+   const preview: PreviewModeData = { content: doc.content, title: nameOf(doc), filePath: doc.id, documentPath: doc.path, modified: doc.modified, hasExternalChanges: externalChanges, reloadVersion: 0, save, reload, dirty: doc.content !== doc.diskContent };
+@@ -63,8 +58,13 @@
+   const [wordCounts, setWordCounts] = useState<Record<string, number>>({});
+   const [externalChanges, setExternalChanges] = useState<Record<string, boolean>>({});
+   const persistedRef = useRef<WorkspaceState | null>(null);
+-  const menuRef = useRef('');
+   const closingRef = useRef(false);
++  const closeTokenRef = useRef<string | null>(null);
++  const [closing, setClosing] = useState(false);
++  const editorGenerationRef = useRef(0);
++  const [editorGeneration, setEditorGeneration] = useState(0);
++  const persistQueue = useRef(Promise.resolve());
++  const savingRef = useRef(0);
+   const { setInterfaceZoom, interfaceZoom } = useTheme();
+   const commandsRef = useRef<(command: DesktopCommand) => Promise<void>>(async () => {});
+   const commandQueue = useRef(Promise.resolve());
+@@ -85,12 +85,16 @@
+     return current ? { ...current, documents: current.documents.map(doc => captureDocument(doc.id)!) } : null;
+   }, [captureDocument]);
+   const persist = useCallback(async (force = false) => {
+-    if (closingRef.current) return;
++    if (closingRef.current || (savingRef.current && !force)) return;
+     const snapshot = captureWorkspace();
+     if (!snapshot) return;
+     if (!force && sameJson(snapshot, persistedRef.current)) return;
+-    await invoke('save_session', { ...snapshot });
+-    persistedRef.current = snapshot;
++    const write = persistQueue.current.catch(() => {}).then(async () => {
++      await invoke('save_session', { ...snapshot });
++      persistedRef.current = snapshot;
++    });
++    persistQueue.current = write;
++    await write;
+   }, [captureWorkspace]);
+   const showSettings = useCallback((open?: boolean) => {
+     const current = captureWorkspace();
+@@ -129,6 +133,9 @@
+     return () => { active = false; };
+   }, [commit]);
+   useEffect(() => {
++    if (workspace) void invoke('renderer_ready').catch(error => toast.error(String(error)));
++  }, [!!workspace]);
++  useEffect(() => {
+     const timer = window.setInterval(() => { void persist().catch(error => toast.error(`Could not save recovery data: ${error}`, { id: 'session-error' })); }, 1000);
+     return () => clearInterval(timer);
+   }, [persist]);
+@@ -136,18 +143,6 @@
+   useEffect(() => {
+     void invoke('set_title', { title: doc ? `${doc.content !== doc.diskContent ? '● ' : ''}${nameOf(doc)} — PicoMarQ` : 'PicoMarQ' }).catch(() => {});
+   }, [doc?.path, doc?.name, doc?.content, doc?.diskContent]);
+-  useEffect(() => {
+-    if (!workspace) return;
+-    const documents = workspace.documents.map(doc => {
+-      const duplicateName = workspace.documents.filter(other => nameOf(other) === nameOf(doc)).length > 1;
+-      return { id: doc.id, title: duplicateName && doc.path ? `${nameOf(doc)} (${doc.path})` : nameOf(doc), dirty: doc.content !== doc.diskContent };
+-    });
+-    const menu = { documents, activeDocumentId: workspace.activeDocumentId };
+-    const serialized = JSON.stringify(menu);
+-    if (menuRef.current === serialized) return;
+-    menuRef.current = serialized;
+-    void invoke('update_document_menu', menu).catch(error => { menuRef.current = ''; toast.error(`Could not update the document list: ${error}`); });
+-  }, [workspace]);
+   const checkExternal = useCallback(async (id: string) => {
+     const current = workspaceRef.current?.documents.find(doc => doc.id === id);
+     if (!current?.path) return;
+@@ -160,94 +155,57 @@
+     window.addEventListener('focus', check);
+     return () => window.removeEventListener('focus', check);
+   }, [checkExternal]);
+-  const selectDocument = useCallback(async (id: string) => {
+-    const current = captureWorkspace();
+-    if (!current?.documents.some(doc => doc.id === id)) return;
+-    commit({ ...current, activeDocumentId: id, settingsOpen: false });
+-    await persist(true);
+-    void checkExternal(id);
+-  }, [captureWorkspace, commit, persist, checkExternal]);
+   async function saveDocument(id = workspaceRef.current?.activeDocumentId, as = false): Promise<boolean> {
+-    const snapshot = id ? captureDocument(id) : null;
+-    if (!snapshot) return false;
+-    let file = as ? null : snapshot.path;
+-    if (!file) file = await invoke<string | null>('save_dialog', { defaultPath: snapshot.path || `${nameOf(snapshot)}.md` });
+-    if (!file) return false;
+-    if (workspaceRef.current?.documents.some(doc => doc.id !== id && doc.path && pathKey(doc.path) === pathKey(file!))) {
+-      toast.error('That file is already open in another document. Choose a different filename or close that document first.');
+-      return false;
+-    }
+-    const args = { path: file, content: snapshot.content, expectedContent: file === snapshot.path ? snapshot.diskContent : undefined };
+-    let saved = await invoke<{ conflict: boolean; modified: number }>('save_document', args);
+-    if (saved.conflict) {
+-      const choice = await invoke<string>('confirm_overwrite');
+-      if (choice === 'save-as') return saveDocument(id, true);
+-      if (choice !== 'overwrite') return false;
+-      saved = await invoke('save_document', { ...args, force: true });
+-    }
+-    const latest = captureWorkspace();
+-    if (!latest) return true;
+-    commit({ ...latest, documents: latest.documents.map(doc => doc.id === id ? { ...doc, path: file, diskContent: snapshot.content, modified: saved.modified } : doc) });
+-    setExternalChanges(previous => ({ ...previous, [snapshot.id]: false }));
+-    await persist(true);
+-    await rememberDocument(file);
+-    return true;
+-  }
+-  async function canCloseDocument(id: string): Promise<'keep' | 'discard' | 'cancel'> {
+-    const snapshot = captureDocument(id);
+-    if (!snapshot || snapshot.content === snapshot.diskContent) return 'keep';
+-    await selectDocument(id);
+-    const answer = await invoke<string>('confirm_unsaved', { title: nameOf(snapshot) });
+-    if (answer === 'discard') return 'discard';
+-    if (answer === 'save' && await saveDocument(id)) return 'keep';
+-    return 'cancel';
+-  }
+-  async function closeDocument() {
+-    const id = workspaceRef.current?.activeDocumentId;
+-    if (!id || await canCloseDocument(id) === 'cancel') return;
+-    const current = captureWorkspace();
+-    if (!current) return;
+-    const documents = current.documents.filter(doc => doc.id !== id);
+-    if (!documents.length) documents.push(blankDocument());
+-    commit({ ...current, documents, activeDocumentId: documents[documents.length - 1].id, settingsOpen: false });
+-    await persist(true);
+-  }
+-  async function closeEditor() {
++    savingRef.current += 1;
+     try {
+-      await invoke('close_prompting');
+-      const current = captureWorkspace();
+-      if (!current) { await invoke('close_cancelled'); return; }
+-      const discarded = new Set<string>();
+-      for (const doc of current.documents) {
+-        const answer = await canCloseDocument(doc.id);
+-        if (answer === 'cancel') { await persist(true); await invoke('close_cancelled'); return; }
+-        if (answer === 'discard') discarded.add(doc.id);
+-      }
+-      const latest = captureWorkspace()!;
+-      // Apply Discard after every prompt succeeds, so a later Cancel preserves all drafts.
+-      const documents = latest.documents.flatMap(doc => !discarded.has(doc.id) ? [doc] : doc.path ? [{ ...doc, content: doc.diskContent }] : []);
+-      const activeDocumentId = documents.some(doc => doc.id === current.activeDocumentId) ? current.activeDocumentId : documents[documents.length - 1]?.id ?? null;
+-      closingRef.current = true;
+-      await invoke('save_session', { documents, activeDocumentId, settingsOpen: current.settingsOpen });
+-      await invoke('close_ready');
+-    } catch (error) { closingRef.current = false; await invoke('close_failed', { message: String(error) }); }
++      const snapshot = id ? captureDocument(id) : null;
++      if (!snapshot) return false;
++      let file = as ? null : snapshot.path;
++      if (!file) file = await invoke<string | null>('save_dialog', { defaultPath: snapshot.path || `${nameOf(snapshot)}.md` });
++      if (!file) return false;
++      // Drain older recovery writes before Save As changes this window's path.
++      await persistQueue.current.catch(() => {});
++      const args = { path: file, content: snapshot.content, expectedContent: file === snapshot.path ? snapshot.diskContent : undefined };
++      let saved = await invoke<{ conflict: boolean; modified: number }>('save_document', args);
++      if (saved.conflict) {
++        const choice = await invoke<string>('confirm_overwrite');
++        if (choice === 'save-as') return saveDocument(id, true);
++        if (choice !== 'overwrite') return false;
++        saved = await invoke('save_document', { ...args, force: true });
++      }
++      const latest = captureWorkspace();
++      if (!latest) return true;
++      commit({ ...latest, documents: latest.documents.map(doc => doc.id === id ? { ...doc, path: file, diskContent: snapshot.content, modified: saved.modified } : doc) });
++      setExternalChanges(previous => ({ ...previous, [snapshot.id]: false }));
++      await persist(true);
++      await rememberDocument(file);
++      return true;
++    } finally { savingRef.current -= 1; }
++  }
++  async function prepareClose(token: string) {
++    try {
++      if (closeTokenRef.current !== token) return;
++      await invoke('close_prompting', { token });
++      await persistQueue.current.catch(() => {});
++      const doc = captureWorkspace()?.documents[0];
++      if (!doc) { await invoke('close_cancelled', { token }); return; }
++      let disposition = 'keep';
++      if (doc.content !== doc.diskContent) {
++        showSettings(false);
++        const answer = await invoke<string>('confirm_unsaved', { title: nameOf(doc) });
++        if (answer === 'cancel' || (answer === 'save' && !await saveDocument(doc.id))) {
++          await invoke('close_cancelled', { token }); return;
++        }
++        if (answer === 'discard') disposition = 'discard';
++      }
++      await invoke('close_prepared', { ...captureWorkspace()!, token, disposition });
++    } catch (error) { await invoke('close_failed', { token, message: String(error) }); }
+   }
+   async function openDocument(requested?: string) {
+     const files = requested ? [requested] : await invoke<string[] | null>('open_dialog', { multiple: true });
+     if (!files) return;
+-    for (const file of files) {
+-      const existing = workspaceRef.current?.documents.find(doc => doc.path && pathKey(doc.path) === pathKey(file));
+-      if (existing) { await selectDocument(existing.id); await rememberDocument(file); continue; }
+-      try {
+-        const opened = await invoke<Omit<DocumentState, 'id' | 'view'>>('read_document', { path: file });
+-        const current = captureWorkspace();
+-        if (!current) return;
+-        const next = { ...opened, id: crypto.randomUUID(), view: {} };
+-        commit({ ...current, documents: [...current.documents, next], activeDocumentId: next.id, settingsOpen: false });
+-        await persist(true);
+-        await rememberDocument(file);
+-      } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+-    }
++    await persist(true);
++    await invoke('open_document_windows', { paths: files });
+   }
+   const revert = useCallback(async (id: string) => {
+     const snapshot = captureDocument(id);
+@@ -255,26 +213,29 @@
+     const file = await invoke<{ content: string; diskContent: string; modified: number }>('read_document', { path: snapshot.path });
+     const current = captureWorkspace();
+     if (!current) return;
+-    const replacement = { ...snapshot, ...file, id: crypto.randomUUID() };
+-    commit({ ...current, documents: current.documents.map(doc => doc.id === id ? replacement : doc), activeDocumentId: current.activeDocumentId === id ? replacement.id : current.activeDocumentId });
++    // Retire the old editor before remounting it. Its unmount save callback
++    // must not reinsert the text that the user just chose to discard.
++    editorGenerationRef.current += 1;
++    handlesRef.current.delete(id);
++    const replacement = { ...snapshot, ...file };
++    commit({ ...current, documents: current.documents.map(doc => doc.id === id ? replacement : doc) });
++    setEditorGeneration(editorGenerationRef.current);
++    setExternalChanges(previous => ({ ...previous, [id]: false }));
+     await persist(true);
+   }, [captureDocument, captureWorkspace, commit, persist]);
+   commandsRef.current = async command => {
++    if (closingRef.current && !['start-close', 'prepare-close', 'cancel-close'].includes(command.action)) return;
+     const id = workspaceRef.current?.activeDocumentId;
+     const handle = id ? handlesRef.current.get(id) : undefined;
+     switch (command.action) {
+       case 'new': {
+-        const current = captureWorkspace();
+-        if (!current) return;
+-        const next = blankDocument(current.documents);
+-        commit({ ...current, documents: [...current.documents, next], activeDocumentId: next.id, settingsOpen: false });
+         await persist(true);
++        await invoke('new_window');
+         break;
+       }
+       case 'open': await openDocument(); break;
+       case 'open-path': await openDocument(command.path); break;
+-      case 'switch-document': if (command.id) await selectDocument(command.id); break;
+-      case 'close-document': await closeDocument(); break;
++      case 'close-document': await invoke('close_window'); break;
+       case 'save': await saveDocument(); break;
+       case 'save-as': await saveDocument(id, true); break;
+       case 'revert': if (id) await revert(id); break;
+@@ -290,7 +251,14 @@
+         try { await invoke('print'); } finally { if (source) handle?.command('source'); }
+         break;
+       }
+-      case 'before-close': await closeEditor(); break;
++      case 'start-close':
++        closingRef.current = true; closeTokenRef.current = command.token!; setClosing(true); break;
++      case 'prepare-close': await prepareClose(command.token!); break;
++      case 'cancel-close':
++        if (closeTokenRef.current === command.token) {
++          closingRef.current = false; closeTokenRef.current = null; setClosing(false); await persist(true);
++        }
++        break;
+       case 'context-menu-item': runContextMenuAction(command.id); break;
+       default: showSettings(false); handle?.command(command.action);
+     }
+@@ -318,10 +286,11 @@
+     window.addEventListener('wheel', wheel, { passive: false });
+     return () => { stop?.(); window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); };
+   }, [showSettings]);
+-  const handleReady = useCallback((id: string, handle: EditorHandle) => {
+-    if (workspaceRef.current?.documents.some(doc => doc.id === id)) handlesRef.current.set(id, handle);
+-  }, []);
+-  const updateContent = useCallback(async (id: string, content: string) => {
++  const handleReady = useCallback((id: string, handle: EditorHandle, generation: number) => {
++    if (generation === editorGenerationRef.current && workspaceRef.current?.documents.some(doc => doc.id === id)) handlesRef.current.set(id, handle);
++  }, []);
++  const updateContent = useCallback(async (id: string, content: string, generation: number) => {
++    if (generation !== editorGenerationRef.current) return;
+     const current = workspaceRef.current;
+     const doc = current?.documents.find(doc => doc.id === id);
+     if (!current || !doc || doc.content === content) return;
+@@ -332,9 +301,9 @@
+   }, []);
+   if (!workspace || !doc) return <div className="h-full bg-bg" />;
+   const words = wordCounts[doc.id] ?? 0;
+-  return <div className="h-full flex flex-col bg-bg">
++  return <div className="h-full flex flex-col bg-bg" inert={closing} aria-busy={closing}>
+     <div className="flex-1 flex flex-col min-h-0" style={{ display: workspace.settingsOpen ? 'none' : 'flex' }}>
+-      {workspace.documents.map(document => <DocumentPane key={document.id} doc={document} active={document.id === doc.id && !workspace.settingsOpen} externalChanges={externalChanges[document.id] ?? false} onReady={handleReady} onContent={updateContent} onWords={updateWords} onRevert={revert} />)}
++      <DocumentPane key={`${doc.id}:${editorGeneration}`} doc={doc} generation={editorGeneration} active={!workspace.settingsOpen} externalChanges={externalChanges[doc.id] ?? false} onReady={handleReady} onContent={updateContent} onWords={updateWords} onRevert={revert} />
+       <footer className="h-6 shrink-0 border-t border-border flex items-center justify-between px-3 text-[11px] text-text-muted select-none gap-4">
+         <span className="truncate" title={doc.path || undefined}>{doc.path || nameOf(doc)}{doc.content !== doc.diskContent ? ' · Unsaved changes' : ''}</span>
+         <div className="shrink-0 flex items-center gap-3">
+--- a/src/context/ThemeContext.tsx
++++ b/src/context/ThemeContext.tsx
+@@ -53,8 +53,14 @@
+   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+   useEffect(() => {
+     let active = true;
++    let receivedUpdate = false;
++    const stop = window.desktop?.onSettingsChanged(value => {
++      receivedUpdate = true;
++      settingsRef.current = value;
++      setSettings(value);
++    });
+     invoke<Settings>('get_settings').then(value => {
+-      if (!active) return;
++      if (!active || receivedUpdate) return;
+       // The theme is Light or Dark. A profile still set to "system" (the
+       // old default) takes the operating system's current choice once and
+       // keeps it from then on.
+@@ -69,7 +75,7 @@
+     }).catch(error => {
+       if (active) { setSettings(settingsRef.current); toast.error(`Could not load settings: ${error}`); }
+     });
+-    return () => { active = false; };
++    return () => { active = false; stop?.(); };
+   }, []);
+   useEffect(() => {
+     const query = matchMedia('(prefers-color-scheme: dark)');
+--- a/src/lib/desktop.ts
++++ b/src/lib/desktop.ts
+@@ -1,4 +1,4 @@
+-export interface DesktopCommand { action: string; path?: string; id?: string }
++export interface DesktopCommand { action: string; path?: string; id?: string; token?: string }
+ export interface ViewState {
+   sourceMode?: boolean;
+   selection?: { anchor: number; head: number };
+@@ -28,6 +28,7 @@
+       platform: string;
+       invoke: <T = unknown>(action: string, args?: Record<string, unknown>) => Promise<T>;
+       onCommand: (callback: (command: DesktopCommand) => void) => () => void;
++      onSettingsChanged: (callback: (settings: import('../types/note').Settings) => void) => () => void;
+       contextMenu?: (extras: { items: Array<{ id?: string; text?: string; type?: 'separator' }> }) => void;
+     };
+   }
+@@ -47,7 +48,7 @@
+       return { ...(saved?.documents ? saved : { documents: saved ? [saved] : [], activeDocumentId: saved?.id }), settings } as T;
+     }
+     case 'save_session': localStorage.setItem('scratch-session', JSON.stringify(args)); return undefined as T;
+-    case 'update_document_menu': return undefined as T;
++    case 'renderer_ready': return undefined as T;
+     case 'set_title': document.title = String(args.title); return undefined as T;
+     case 'set_title_bar_theme': return undefined as T;
+     case 'copy_to_clipboard': await navigator.clipboard.writeText(String(args.text)); return undefined as T;
+--- a/tests/desktop-smoke.cjs
++++ b/tests/desktop-smoke.cjs
+@@ -11,7 +11,8 @@
+ let page;
+ const errors = [];
+ async function dispatch(action, extra = {}) {
+-  await electron.evaluate(({ BrowserWindow }, command) => BrowserWindow.getAllWindows()[0].webContents.send('scratch:command', command), { action, ...extra });
++  const win = await electron.browserWindow(page);
++  await win.evaluate((window, command) => window.webContents.send('scratch:command', command), { action, ...extra });
+ }
+ async function until(test, message, timeout = 10000) {
+   const start = Date.now();
+@@ -35,7 +36,7 @@
+     const entry = global.testContextMenus.at(-1);
+     const item = entry.menu.getMenuItemById('open-recent').submenu.items.find(item => (item.label || '').endsWith(file.replaceAll('&', '&&')));
+     if (!item) throw new Error(`Missing recent file: ${file}`);
+-    const win = BrowserWindow.getAllWindows()[0];
++    const win = entry.options.window;
+     item.click(item, win, win.webContents);
+     entry.options.callback();
+   }, file);
+@@ -48,7 +49,7 @@
+     const entry = global.testContextMenus.at(-1);
+     const item = entry.menu.items.find(item => item.label.replaceAll('&', '') === label);
+     if (!item) throw new Error(`Missing menu command: ${label}`);
+-    const win = BrowserWindow.getAllWindows()[0];
++    const win = entry.options.window;
+     item.click(item, win, win.webContents);
+     entry.options.callback();
+   }, label);
+@@ -104,6 +105,8 @@
+   await electron.evaluate(({ BrowserWindow, Menu, dialog }) => {
+     global.testPrompts = [];
+     global.testResponses = [];
++    global.testErrors = [];
++    dialog.showErrorBox = (title, message) => global.testErrors.push({ title, message });
+     dialog.showMessageBox = async (_window, options) => { global.testPrompts.push(options); return { response: global.testResponses.length ? global.testResponses.shift() : 1 }; };
+     global.testInputs = [];
+     BrowserWindow.getAllWindows()[0].webContents.on('before-input-event', (_event, input) => global.testInputs.push(input));
+@@ -123,8 +126,9 @@
+   await fs.mkdir(work, { recursive: true });
+   if (process.platform === 'linux' && !process.env.DISPLAY) {
+     const binary = process.env.SCRATCH_XVFB || 'Xvfb';
+-    virtualDisplay = spawn(binary, [':101', '-screen', '0', '1440x1000x24', '-listen', 'tcp', '-nolisten', 'unix', '-nolisten', 'local', '-ac'], { env: process.env, stdio: 'ignore' });
+-    process.env.DISPLAY = '127.0.0.1:101';
++    const display = process.env.SCRATCH_DISPLAY_NUMBER || '121';
++    virtualDisplay = spawn(binary, [':' + display, '-screen', '0', '1440x1000x24', '-listen', 'tcp', '-nolisten', 'unix', '-nolisten', 'local', '-ac'], { env: process.env, stdio: 'ignore' });
++    process.env.DISPLAY = '127.0.0.1:' + display;
+     await pause(500);
+   }
+   await launch();
+@@ -190,7 +194,7 @@
+   await electron.evaluate(({ BrowserWindow }) => {
+     const entry = global.testContextMenus.at(-1);
+     const item = entry.menu.items.find(item => item.role === 'copy');
+-    const win = BrowserWindow.getAllWindows()[0];
++    const win = entry.options.window;
+     item.click(item, win, win.webContents);
+     entry.options.callback();
+   });
+@@ -293,19 +297,6 @@
+   const text = () => active().getByRole('textbox', { name: 'Markdown source' });
+   const promptCount = () => electron.evaluate(() => global.testPrompts.length);
+   const respond = responses => electron.evaluate((_electron, responses) => { global.testResponses = responses; global.testPrompts = []; }, responses);
+-  const switchDocument = async id => {
+-    await page.getByRole('button', { name: 'View', exact: true }).click();
+-    await until(async () => await page.getByRole('button', { name: 'View', exact: true }).getAttribute('aria-expanded') === 'true', 'View did not open');
+-    await electron.evaluate(({ BrowserWindow }, id) => {
+-      const entry = global.testContextMenus.at(-1);
+-      const item = entry.menu.getMenuItemById(`document-${id}`);
+-      if (!item) throw new Error(`Missing open document ${id}`);
+-      const win = BrowserWindow.getAllWindows()[0];
+-      item.click(item, win, win.webContents);
+-      entry.options.callback();
+-    }, id);
+-    await until(async () => (await readSession()).activeDocumentId === id && await active().getAttribute('data-document-id') === id, 'View did not switch documents');
+-  };
+   const openFiles = async files => {
+     await electron.evaluate(({ dialog }, files) => { dialog.showOpenDialog = async (_window, options) => { global.testOpenOptions = options; return { canceled: false, filePaths: files }; }; }, files);
+     await menuItem('File', 'Open…');
+@@ -395,245 +386,281 @@
+   assert.deepEqual(await iconMetrics(), normalIcons);
+   console.log('PASS: 100%/200% formatting icons only, unclipped icons, fixed menus/Find/footer/text, removed settings sentence and View heading, Heading 4 remains available through syntax');
+ 
++  const pagesForDocuments = async () => {
++    const result = [];
++    for (const candidate of electron.windows()) {
++      if (candidate.isClosed()) continue;
++      try {
++        const session = await candidate.evaluate(() => window.desktop.invoke('get_session'));
++        if (session.documents[0]) result.push({ page: candidate, document: session.documents[0] });
++      } catch {}
++    }
++    return result;
++  };
++  const selectWindow = async file => {
++    let match;
++    await until(async () => { match = (await pagesForDocuments()).find(entry => entry.document.path === file || entry.document.id === file); return !!match; }, `No window for ${file}`);
++    page = match.page;
++    const win = await electron.browserWindow(page);
++    await win.evaluate(window => { window.show(); window.focus(); });
++    await page.waitForSelector('[data-document-id][aria-hidden="false"] .tiptap, [data-document-id][aria-hidden="false"] textarea[aria-label="Markdown source"]');
++    return page;
++  };
++  const windowCount = () => electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
++  const sourceMode = async () => { if (!await text().isVisible()) await dispatch('source'); await text().waitFor(); };
++  const nativeClose = async () => {
++    const win = await electron.browserWindow(page);
++    await win.evaluate(window => {
++      window.focus(); window.webContents.focus();
++      window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w', modifiers: ['control'] });
++      window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w', modifiers: ['control'] });
++    });
++  };
++  const quit = async () => {
++    const closed = electron.waitForEvent('close', { timeout: 20000 });
++    await page.evaluate(() => window.desktop.invoke('quit'));
++    await closed;
++    electron = null;
++  };
+   const betaFile = path.join(work, 'Plan & ünicode.md');
+   const gammaFile = path.join(work, 'Gamma.md');
+   await fs.writeFile(betaFile, '# Beta\n\nSaved beta.\n');
+   await fs.writeFile(gammaFile, '# Gamma\n\nSaved gamma.\n');
+   await openFiles([betaFile, gammaFile]);
+-  const documents = (await readSession()).documents;
+-  const betaId = documents.find(doc => doc.path === betaFile).id;
+-  const gammaId = documents.find(doc => doc.path === gammaFile).id;
+-  assert.equal(documents.length, 3);
++  await until(async () => await windowCount() === 3, 'Open did not create one window per file');
+   assert.equal(await promptCount(), 0);
++  assert.equal(await active().count(), 1, 'Original window retained hidden documents');
+   assert.deepEqual(await electron.evaluate(() => global.testOpenOptions.properties), ['openFile', 'multiSelections']);
+-  const menuDocuments = await electron.evaluate(({ Menu }) => Menu.getApplicationMenu().getMenuItemById('view').submenu.items.filter(item => item.id?.startsWith('document-')).map(item => ({ label: item.label, checked: item.checked })));
+-  assert.equal(menuDocuments.length, 3);
+-  assert.equal(menuDocuments.filter(item => item.checked).length, 1);
+-  assert(menuDocuments.some(item => item.label.includes('Plan && ünicode.md')));
+-  assert.equal(await page.getByRole('navigation', { name: 'Application menus' }).count(), 1);
+-  assert.equal(await active().locator('[data-editor-header]').evaluate(el => el.getBoundingClientRect().height), 32);
+-  await switchDocument(firstId);
++  const menuDocuments = await electron.evaluate(({ Menu }) => Menu.getApplicationMenu().getMenuItemById('view').submenu.items.filter(item => item.id?.startsWith('document-')));
++  assert.equal(menuDocuments.length, 0);
++  const originalPage = page;
+   await rich().locator('h1').click();
+   await page.keyboard.press('End');
+-  await page.keyboard.type(' undo-marker');
+-  await pause(550);
+-  await switchDocument(betaId);
++  await page.keyboard.type(' independent-one');
++  await selectWindow(betaFile);
++  const betaPage = page;
+   await rich().locator('h1').click();
+   await page.keyboard.press('End');
+-  await page.keyboard.type(' beta-marker');
+-  await switchDocument(firstId);
++  await page.keyboard.type(' independent-two');
++  await selectWindow(copyFile);
+   await menuItem('Edit', 'Undo');
+-  await until(async () => !(await rich().locator('h1').innerText()).includes('undo-marker'), 'Undo history was lost on switching');
+-  await switchDocument(betaId);
+-  assert((await rich().locator('h1').innerText()).includes('beta-marker'));
+-  await switchDocument(firstId);
+-  await dispatch('source');
+-  await text().waitFor();
++  await until(async () => !(await rich().locator('h1').innerText()).includes('independent-one'), 'Undo targeted the wrong window');
++  await selectWindow(betaFile);
++  assert((await rich().locator('h1').innerText()).includes('independent-two'));
++  await openFiles([copyFile]);
++  assert.equal(await windowCount(), 3, 'Repeat Open duplicated a document');
++  await selectWindow(copyFile);
++  assert.equal(page, originalPage);
++  const missingFile = path.join(work, 'Missing.md');
++  await electron.evaluate(({ dialog }, filePath) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] }); }, missingFile);
++  await menuItem('File', 'Open…');
++  await until(async () => await electron.evaluate(() => global.testErrors.some(error => error.title === 'Could not open the file')), 'Failed Open did not report an error');
++  assert.equal(await windowCount(), 3, 'Failed Open created a window or replaced an existing document');
++  console.log('PASS: independent native windows, no View list, duplicate Open raises existing window, per-window Undo');
++
++  // A source selection copied through the native clipboard reaches another window.
++  await sourceMode();
++  await text().fill('Copied between document windows');
++  await text().focus();
++  await page.keyboard.press('Control+A');
++  await page.keyboard.press('Control+C');
++  await selectWindow(gammaFile);
++  await sourceMode();
++  await text().fill('');
++  await text().focus();
++  await page.keyboard.press('Control+V');
++  await until(async () => await text().inputValue() === 'Copied between document windows', 'Native cross-window paste failed');
++  const gammaPage = page;
++  await selectWindow(copyFile);
+   const longSource = '# Source draft\n\n' + Array.from({ length: 180 }, (_, i) => `Line ${i}: recovery text`).join('\n');
+   await text().fill(longSource);
+   await text().evaluate(el => { el.setSelectionRange(125, 133, 'backward'); el.scrollTop = 420; });
+   const sourcePosition = await text().evaluate(el => ({ start: el.selectionStart, end: el.selectionEnd, direction: el.selectionDirection, top: el.scrollTop }));
+-  await switchDocument(gammaId);
+-  assert.equal(await active().locator('textarea').count(), 0, 'Source mode affected a hidden document');
+-  await switchDocument(firstId);
+-  assert.equal(await text().inputValue(), longSource);
+-  assert.deepEqual(await text().evaluate(el => ({ start: el.selectionStart, end: el.selectionEnd, direction: el.selectionDirection, top: el.scrollTop })), sourcePosition);
+-  console.log('PASS: combined New/Open support, native View document list, compact height, independent drafts, source mode, cursor, scroll, and undo history');
+-
+-  // Search can scroll to a deep match without moving its panel or the window.
+-  await switchDocument(betaId);
+-  await dispatch('source');
+-  await text().waitFor();
+-  await text().fill('# Long document\n\n' + Array.from({ length: 180 }, (_, i) => `Paragraph ${i}${i === 5 || i === 170 ? ' needle' : ''}.\n`).join('\n'));
+-  await dispatch('source');
+-  await rich().waitFor();
+-  await until(async () => await active().locator('[data-format-bar]').evaluate(el => el.getBoundingClientRect().height === 32), 'Formatted toolbar did not settle');
+-  await page.getByRole('button', { name: 'Find in document', exact: true }).click();
+-  const panel = () => active().locator('.search-toolbar-container');
+-  const find = () => active().getByPlaceholder('Find in note...');
+-  const rectangle = () => panel().evaluate(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
+-  const formattedPanel = await rectangle();
+-  await find().fill('needle');
+-  await until(async () => (await panel().innerText()).includes('1/2'), 'Find did not count formatted matches');
+-  await find().press('Enter');
+-  await until(async () => await active().locator('[data-editor-scroll]').evaluate(el => el.scrollTop > 1500), 'Find did not scroll to the deep formatted match');
+-  await pause(400);
+-  assert.deepEqual(await rectangle(), formattedPanel, 'Find panel moved with formatted text');
+-  assert.equal(await page.evaluate(() => window.scrollY), 0);
+-  await active().locator('[data-editor-scroll]').evaluate(el => { el.scrollTop = el.scrollHeight; });
+-  assert.deepEqual(await rectangle(), formattedPanel, 'Manual scrolling moved Find');
+-  await menuItem('Edit', 'Replace…');
+-  await active().getByPlaceholder('Replace with...').fill('replacement');
+-  await active().getByRole('button', { name: 'Replace All (Ctrl/Cmd+Enter)', exact: true }).click();
+-  assert.equal(await panel().isVisible(), true);
+-  await until(async () => (await rich().innerText()).includes('replacement') && !(await rich().innerText()).includes('needle'), 'Formatted Replace All failed');
+-  await active().getByRole('button', { name: 'Close (Esc)', exact: true }).click();
+-  assert.equal(await panel().count(), 0);
+-  await dispatch('source');
+-  await text().waitFor();
+-  await menuItem('Edit', 'Find…');
+-  await until(async () => await active().locator('[data-format-bar]').evaluate(el => el.getBoundingClientRect().height === 0), 'Source toolbar did not settle');
+-  const sourcePanel = await rectangle();
+-  await find().fill('replacement');
+-  await find().press('Enter');
+-  await until(async () => await text().evaluate(el => el.scrollTop > 1500), 'Source Find did not reach the deep match');
+-  assert.deepEqual(await rectangle(), sourcePanel, 'Find panel moved with source text');
+-  await text().evaluate(el => { el.scrollTop = el.scrollHeight; });
+-  assert.deepEqual(await rectangle(), sourcePanel);
+-  await switchDocument(gammaId);
+-  await switchDocument(betaId);
+-  assert.equal(await panel().isVisible(), true, 'Switching documents dismissed Find');
+-  await active().getByRole('button', { name: 'Close (Esc)', exact: true }).click();
+-  await page.screenshot({ path: path.join(work, 'editor.png') });
+-  console.log('PASS: magnifier/Edit Find/Edit Replace, fixed panel through deep searches and scrolling in both views, replacement, persistent document-local panel, X close');
+-
+-  // New never asks to replace the current draft. Close selects the last opened survivor.
+-  await respond([]);
+-  await dispatch('new');
+-  await until(async () => (await readSession()).documents.length === 4, 'New did not add a document');
+-  const newId = (await readSession()).activeDocumentId;
+-  await rich().click();
+-  await page.keyboard.type('New draft');
+-  await switchDocument(betaId);
+-  await respond([2]);
+-  await menuItem('File', 'Close Document');
+-  await until(async () => await promptCount() === 1, 'Close Document did not ask about its unsaved text');
+-  assert.equal((await readSession()).documents.length, 4);
+-  assert.equal((await readSession()).activeDocumentId, betaId);
++  await selectWindow(betaFile);
++  await sourceMode();
++  await text().fill('Beta unsaved draft');
++  await until(async () => {
++    const state = await readSession();
++    return state.documents.find(doc => doc.path === copyFile)?.content === longSource && state.documents.find(doc => doc.path === betaFile)?.content === 'Beta unsaved draft' && state.documents.find(doc => doc.path === gammaFile)?.content === 'Copied between document windows';
++  }, 'One window overwrote another window’s recovery snapshot');
++  await dispatch('settings');
++  await page.getByLabel('Icon Size', { exact: true }).selectOption('1.5');
++  await until(async () => await gammaPage.locator('[data-formatting-toolbar]').getAttribute('data-icon-size') === '1.5', 'Shared settings did not reach another window');
++  await page.getByRole('button', { name: 'Back to document', exact: true }).click();
++  console.log('PASS: cross-window clipboard, simultaneous recovery snapshots, live shared AppData preferences');
++
++  // Revert keeps the same document/window identity and cannot flush an old draft back.
++  await selectWindow(copyFile);
+   await respond([1]);
+-  await menuItem('File', 'Close Document');
+-  await until(async () => (await readSession()).documents.length === 3, 'Discard did not close the selected document');
+-  assert.equal((await readSession()).activeDocumentId, newId, 'Close did not select the last opened survivor');
+-  assert((await fs.readFile(betaFile, 'utf8')).includes('Saved beta'));
+-  const newFile = path.join(work, 'New draft.md');
+-  await electron.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, newFile);
+-  await respond([0]);
+-  await menuItem('File', 'Close Document');
+-  await until(async () => (await readSession()).documents.length === 2, 'Save and Close did not close the document');
+-  assert((await fs.readFile(newFile, 'utf8')).includes('New draft'));
+-  assert.equal((await readSession()).activeDocumentId, gammaId);
+-  console.log('PASS: New retains drafts; Close Document handles Save/Discard/Cancel and chooses the last opened remaining document');
+-
+-  // Multiple prompts: a later Cancel preserves an earlier Discard and allows closing again.
+-  await rich().locator('h1').click();
+-  await page.keyboard.press('End');
+-  await page.keyboard.type(' gamma-draft');
+-  await respond([1, 2]);
+-  await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close());
+-  await until(async () => await promptCount() === 2, 'Exit did not ask about both unsaved documents');
++  await dispatch('revert');
+   await pause(200);
+-  assert.equal(page.isClosed(), false);
+-  assert.equal((await readSession()).documents.length, 2);
+-  assert.equal((await readSession()).documents.find(doc => doc.id === firstId).content, longSource);
+-  assert((await readSession()).documents.find(doc => doc.id === gammaId).content.includes('gamma-draft'));
+-  // Cancelling Save As on exit also leaves every document open.
+-  await electron.evaluate(({ dialog }) => { dialog.showSaveDialog = async () => ({ canceled: true }); });
+-  await dispatch('new');
+-  await until(async () => (await readSession()).documents.length === 3, 'New failed after cancelled Exit');
+-  await rich().click();
+-  await page.keyboard.type('Unfiled draft');
+-  await respond([0, 0, 0]);
+-  await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close());
+-  await until(async () => await promptCount() === 3, 'Exit did not process every dirty document');
+-  await pause(200);
+-  assert.equal(page.isClosed(), false);
+-  assert.equal((await readSession()).documents.length, 3);
+-  assert((await fs.readFile(copyFile, 'utf8')).includes('Source draft'));
+-  assert((await fs.readFile(gammaFile, 'utf8')).includes('gamma-draft'));
+-  await dispatch('settings');
+-  await page.getByLabel('Icon Size', { exact: true }).selectOption('2');
+-  await page.getByRole('button', { name: 'Back to document', exact: true }).click();
+-  await until(async () => (await readSession()).settings.toolbarIconScale === 2, 'Icon Size was not saved');
+-  // Immediate final typing must reach Save before the source debounce fires.
+-  const unfiledId = (await readSession()).activeDocumentId;
+-  await dispatch('source');
+-  await text().waitFor();
+-  await text().fill('Immediate final edit');
+-  const unfiledFile = path.join(work, 'Unfiled draft.md');
+-  await electron.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, unfiledFile);
+-  await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setBounds({ x: 40, y: 50, width: 980, height: 690 }));
+-  await respond([0]);
+-  await closeNormally();
+-  assert.equal(await fs.readFile(unfiledFile, 'utf8'), 'Immediate final edit');
+-  const closedSession = await readSession();
+-  assert.equal(closedSession.documents.length, 3);
+-  assert.equal(closedSession.activeDocumentId, unfiledId);
+-  assert.equal(closedSession.settings.interfaceZoom, 1.1);
+-  assert.equal(closedSession.settings.toolbarIconScale, 2);
+-  assert.equal(closedSession.settings.editorFont.systemFontFamily, fontValue.slice(5));
+-  assert.equal(closedSession.window.width, 980);
+-  await launch();
+-  await text().waitFor();
+-  assert.equal(await text().inputValue(), 'Immediate final edit');
+-  assert.equal((await readSession()).documents.length, 3);
+-  await switchDocument(firstId);
+-  assert.equal(await text().inputValue(), longSource);
+-  assert.deepEqual(await text().evaluate(el => ({ start: el.selectionStart, end: el.selectionEnd, direction: el.selectionDirection, top: el.scrollTop })), sourcePosition);
+-  await switchDocument(gammaId);
+-  assert((await rich().locator('h1').innerText()).includes('gamma-draft'));
+-  assert.equal(await active().locator('[data-formatting-toolbar]').getAttribute('data-icon-size'), '2');
+-  assert.equal(await active().locator('[data-formatting-toolbar] > button > svg').first().evaluate(el => el.getBoundingClientRect().width), 36);
+-  console.log('PASS: every unsaved document gets an Exit prompt, later Cancel preserves all drafts, cancelled Save As blocks closing, immediate Save captures latest text, all documents/last active/cursor/scroll/settings/bounds recover');
+-
+-  // A missing path and duplicate Save As cannot replace another open document.
+-  await fs.rm(betaFile);
+-  const historyBefore = await recentPaths();
+-  await electron.evaluate(({ dialog }, filePath) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] }); }, betaFile);
+-  await menuItem('File', 'Open…');
+-  await page.getByText(/ENOENT.*Plan.*nicode\.md/).waitFor();
+-  assert.equal((await readSession()).documents.length, 3);
+-  assert.equal((await readSession()).activeDocumentId, gammaId);
+-  assert.deepEqual(await recentPaths(), historyBefore);
+-  await electron.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, copyFile);
+-  await dispatch('save-as');
+-  await page.getByText('That file is already open in another document. Choose a different filename or close that document first.').waitFor();
+-  assert((await fs.readFile(copyFile, 'utf8')).includes('Source draft'));
+-  assert.equal((await readSession()).document.path, gammaFile);
+-  // Revert affects only the selected document and remounts its visible source.
+-  await switchDocument(firstId);
+-  await text().fill('revert me');
++  assert.equal(await text().inputValue(), longSource, 'Cancelled Revert changed the draft');
++  const externalText = '# External revision\n\nSaved by another application.\n';
++  await fs.writeFile(copyFile, externalText);
+   await respond([0]);
+   await dispatch('revert');
+-  await until(async () => (await text().inputValue()) === longSource, 'Revert did not refresh the selected source document');
++  await until(async () => await text().inputValue() === externalText, 'Revert did not reread disk');
++  await pause(1200);
++  assert.equal(await text().inputValue(), externalText, 'An obsolete editor callback undid Revert');
++  assert.equal((await readSession()).documents.find(doc => doc.path === copyFile).id, firstId);
++  assert.equal((await readSession()).documents.find(doc => doc.path === copyFile).content, externalText);
++  assert.equal(await windowCount(), 3);
++  await fs.rm(copyFile);
++  await text().fill('Keep this if Revert fails');
++  await respond([0]);
++  await dispatch('revert');
++  await page.getByText(/ENOENT/).waitFor();
++  assert.equal(await text().inputValue(), 'Keep this if Revert fails');
++  await fs.writeFile(copyFile, externalText);
++  await respond([0]);
++  await dispatch('revert');
++  await until(async () => await text().inputValue() === externalText, 'Second Revert failed');
++  await page.keyboard.press('Control+Z');
++  assert.equal(await text().inputValue(), externalText, 'Revert retained the discarded undo history');
++  await electron.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, betaFile);
++  await dispatch('save-as');
++  await page.getByText('That file is already open in another window. Choose a different filename or close that window first.').waitFor();
++  assert.equal(await fs.readFile(betaFile, 'utf8'), '# Beta\n\nSaved beta.\n');
++  console.log('PASS: Revert cancellation, disk reload, stable identity, failed-read protection, undo reset, duplicate Save As protection');
++
++  // Existing launch routing must handle all filenames, including relative paths.
++  const deltaFile = path.join(work, 'Delta.markdown');
++  const epsilonFile = path.join(work, 'Epsilon.txt');
++  await fs.writeFile(deltaFile, 'Delta text');
++  await fs.writeFile(epsilonFile, 'Epsilon text');
++  await electron.evaluate(({ app }, { directory, files }) => app.emit('second-instance', {}, ['PicoMarQ.exe', ...files], directory), { directory: work, files: ['Delta.markdown', 'Epsilon.txt'] });
++  await until(async () => await windowCount() === 5, 'A later file-association launch did not create windows');
++  await selectWindow(deltaFile);
++  await nativeClose();
++  await until(async () => await windowCount() === 4, 'Saved window did not close independently');
++  await selectWindow(epsilonFile);
++  await nativeClose();
++  await until(async () => await windowCount() === 3, 'Second saved window did not close');
++  await selectWindow(copyFile);
++  await electron.evaluate(({ app }, { file, directory }) => app.emit('second-instance', {}, ['PicoMarQ.exe', file], directory), { file: copyFile, directory: path.dirname(copyFile) });
++  await pause(300);
++  assert.equal(await windowCount(), 3);
++  console.log('PASS: subsequent launch routing, multiple and relative paths, duplicate launch, native Ctrl+W targets one window');
++
++  // A later Cancel must preserve drafts for windows whose earlier answer was Discard.
++  await text().fill(longSource);
++  await selectWindow(betaFile);
++  await text().fill('Beta draft preserved after Exit Cancel');
++  await selectWindow(gammaFile);
++  await text().fill('Gamma draft preserved after Exit Cancel');
++  await respond([1, 2]);
++  await page.evaluate(() => window.desktop.invoke('quit'));
++  await until(async () => await promptCount() === 2 && !(await originalPage.locator('[aria-busy="true"]').count()), 'Exit cancellation did not release every window');
++  assert.equal(await windowCount(), 3);
++  assert.equal(await originalPage.getByRole('textbox', { name: 'Markdown source' }).inputValue(), longSource);
++  assert.equal(await betaPage.getByRole('textbox', { name: 'Markdown source' }).inputValue(), 'Beta draft preserved after Exit Cancel');
++  assert.equal(await gammaPage.getByRole('textbox', { name: 'Markdown source' }).inputValue(), 'Gamma draft preserved after Exit Cancel');
++  console.log('PASS: coordinated Exit, sequential prompts, deferred Discard, later Cancel keeps all windows and drafts');
++
++  // Hard termination recovers every draft; normal Exit later restores every saved window.
++  await selectWindow(copyFile);
++  await text().evaluate(el => { el.setSelectionRange(125, 133, 'backward'); el.scrollTop = 420; });
++  const recoveredPosition = await text().evaluate(el => ({ start: el.selectionStart, end: el.selectionEnd, direction: el.selectionDirection, top: el.scrollTop }));
++  const bounds = { x: 25, y: 35, width: 850, height: 650 };
++  await (await electron.browserWindow(page)).evaluate((window, bounds) => window.setBounds(bounds), bounds);
++  await until(async () => {
++    const state = await readSession();
++    const doc = state.documents.find(doc => doc.path === copyFile);
++    return doc.content === longSource && doc.view.sourceSelection?.start === 125 && doc.window?.width === 850;
++  }, 'The current selection/window bounds were not persisted');
++  const crashed = electron.waitForEvent('close');
++  await electron.evaluate(({ app }) => app.exit(0));
++  await crashed;
++  electron = null;
++  await launch();
++  await until(async () => await windowCount() === 3, 'Crash recovery did not restore each window');
++  await selectWindow(copyFile);
++  await text().waitFor();
++  assert.equal(await text().inputValue(), longSource);
++  assert.deepEqual(await text().evaluate(el => ({ start: el.selectionStart, end: el.selectionEnd, direction: el.selectionDirection, top: el.scrollTop })), recoveredPosition);
++  assert.deepEqual(await (await electron.browserWindow(page)).evaluate(window => window.getNormalBounds()), bounds);
++  await selectWindow(betaFile);
++  assert.equal(await text().inputValue(), 'Beta draft preserved after Exit Cancel');
++  await selectWindow(gammaFile);
++  assert.equal(await text().inputValue(), 'Gamma draft preserved after Exit Cancel');
++  await respond([0, 0, 0]);
++  await quit();
+   assert.equal((await readSession()).documents.length, 3);
+-  await until(async () => (await readSession()).document.id !== firstId, 'Revert did not replace its editor identity');
++  assert.equal(await fs.readFile(copyFile, 'utf8'), longSource);
++  await launch();
++  await until(async () => await windowCount() === 3, 'Exit did not restore each saved window');
++  await selectWindow(copyFile);
++  assert.equal(await text().inputValue(), longSource);
++  console.log('PASS: all windows/drafts recover after termination, independent source selection/scroll/bounds, File Exit saves/restores each document');
++
++  // Save As cancellation blocks close; an immediate Save captures the last keystroke.
++  await selectWindow(betaFile);
++  await text().fill('Immediate final beta edit');
++  await respond([2]);
++  await nativeClose();
++  await until(async () => await promptCount() === 1 && !(await page.locator('[aria-busy="true"]').count()), 'Window close Cancel failed');
++  assert.equal(await windowCount(), 3);
++  await dispatch('new');
++  await until(async () => await windowCount() === 4, 'New did not create a window');
++  const untitled = (await pagesForDocuments()).find(entry => !entry.document.path);
++  await selectWindow(untitled.document.id);
++  assert.equal(await electron.evaluate(({ Menu }) => Menu.getApplicationMenu().getMenuItemById('revert').enabled), false);
++  await rich().click();
++  await page.keyboard.type('An untitled draft');
++  await electron.evaluate(({ dialog }) => { dialog.showSaveDialog = async () => ({ canceled: true }); });
++  await respond([0]);
++  await nativeClose();
++  await until(async () => await promptCount() === 1 && !(await page.locator('[aria-busy="true"]').count()), 'Cancelled Save As did not cancel closing');
++  assert.equal(await windowCount(), 4);
++  await respond([1]);
++  await nativeClose();
++  await until(async () => await windowCount() === 3, 'Discard did not close the untitled window');
++  await selectWindow(betaFile);
++  await respond([0]);
++  await nativeClose();
++  await until(async () => await windowCount() === 2, 'Save did not close beta');
++  assert.equal(await fs.readFile(betaFile, 'utf8'), 'Immediate final beta edit');
++  await selectWindow(gammaFile);
++  await text().fill('Discard this gamma edit');
++  await respond([1]);
++  await nativeClose();
++  await until(async () => await windowCount() === 1, 'Discard did not close only gamma');
++  await selectWindow(copyFile);
++  assert.equal(await text().inputValue(), longSource);
++  const closed = electron.waitForEvent('close');
++  await nativeClose();
++  await closed;
++  electron = null;
++  assert.equal((await readSession()).documents.length, 0, 'Explicitly closed windows reappeared in recovery');
++  console.log('PASS: New window, disabled untitled Revert, individual Save/Discard/Cancel, cancelled Save As, last-window exit');
++
++  // Migrate a real pre-window v1 profile, including an unsaved untitled document.
++  const legacy = {
++    version: 1, settings: { theme: { mode: 'dark' }, editorFont: { baseFontSize: 19 }, interfaceZoom: 1.2 },
++    documents: [
++      { id: 'old-file', path: copyFile, content: 'Legacy unsaved file draft', diskContent: longSource, view: { sourceMode: true, sourceSelection: { start: 2, end: 6 }, sourceScrollTop: 0 } },
++      { id: 'old-untitled', name: 'Untitled 2', path: null, content: 'Legacy unsaved untitled draft', diskContent: '', view: { sourceMode: true } },
++    ], activeDocumentId: 'old-file', settingsOpen: false, window: bounds,
++  };
++  await fs.writeFile(path.join(work, 'data/session.json'), JSON.stringify(legacy));
++  await launch();
++  await until(async () => await windowCount() === 2, 'Old multi-document profile was not migrated');
++  await selectWindow(copyFile);
++  assert.equal(await text().inputValue(), 'Legacy unsaved file draft');
++  assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--editor-text-zoom')), '1.2');
++  await selectWindow('old-untitled');
++  assert.equal(await text().inputValue(), 'Legacy unsaved untitled draft');
++  await respond([1, 1]);
++  await quit();
++  assert.equal((await readSession()).documents.length, 1);
++  assert.equal((await readSession()).documents[0].content, longSource);
+   assert.equal(errors.length, 0, errors.join('\n'));
+-  console.log('PASS: missing Open preserves all documents, duplicate Save As protection, document-local Revert, no runtime errors');
+-  await text().fill('Discard these file edits');
+-  await dispatch('new');
+-  await until(async () => (await readSession()).documents.length === 4, 'New failed before Discard on exit');
+-  await rich().click();
+-  await page.keyboard.type('Discard this untitled draft');
+-  await respond([1, 1]);
+-  await closeNormally();
+-  assert.equal((await readSession()).documents.length, 3);
+-  assert.equal((await readSession()).documents.find(doc => doc.path === copyFile).content, longSource);
+-  await launch();
+-  assert.equal((await readSession()).documents.length, 3);
+-  const countBeforeClosing = await promptCount();
+-  for (let remaining = 2; remaining >= 1; remaining--) {
+-    await menuItem('File', 'Close Document');
+-    await until(async () => (await readSession()).documents.length === remaining, 'Close of a saved document failed');
+-  }
+-  // Exercise the real native Ctrl+W accelerator for the last document.
+-  await electron.evaluate(({ BrowserWindow }) => {
+-    const win = BrowserWindow.getAllWindows()[0];
+-    win.focus(); win.webContents.focus();
+-    win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w', modifiers: ['control'] });
+-    win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w', modifiers: ['control'] });
+-  });
+-  await until(async () => (await readSession()).documents.length === 1 && !(await readSession()).document.path, 'Ctrl+W did not leave a new blank after closing the last document');
+-  assert.equal((await readSession()).document.content, '');
+-  await assertWordCount(0);
+-  assert.equal(await promptCount(), countBeforeClosing, 'Closing unchanged documents should not ask to save');
+-  await closeNormally();
+-  assert.equal(errors.length, 0, errors.join('\n'));
+-  console.log('PASS: Exit Discard resets file edits and removes untitled drafts, saved documents close without prompts, native Ctrl+W, closing the last document leaves a usable blank');
++  console.log('PASS: old AppData profiles migrate to separate windows with stable identities, drafts, settings, and view state; Exit Discard removes untitled drafts');
+ }
+ main().catch(async error => {
+   console.error(error);
+-  if (electron) console.error('Last input keys:', await electron.evaluate(() => (global.testInputs || []).slice(-12).map(input => input.code)));
+-  if (page && !page.isClosed()) console.error('Active document:', await page.locator('[data-document-id][aria-hidden="false"]').getAttribute('data-document-id'));
++  if (electron) console.error('Desktop errors:', await electron.evaluate(() => global.testErrors || []));
++  if (page && !page.isClosed()) console.error('Page text:', (await page.locator('body').innerText()).slice(-1800));
+   process.exitCode = 1;
+ }).finally(async () => {
+   if (electron) { try { await electron.evaluate(({ app }) => app.exit()); } catch {} }
+--- a/tests/store.test.cjs
++++ b/tests/store.test.cjs
+@@ -155,3 +155,28 @@
+     assert.equal(empty.activeDocumentId, null);
+   } finally { await fs.rm(dir, { recursive: true, force: true }); }
+ });
++
++test('independent window updates merge drafts without overwriting their neighbours', async () => {
++  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'picomarq-windows-'));
++  try {
++    const store = createStore(dir);
++    await store.load();
++    const one = { id: 'one', path: null, content: 'draft one', diskContent: '', view: { sourceMode: true }, window: { x: 10, y: 20, width: 800, height: 600 } };
++    const two = { id: 'two', path: null, content: 'draft two', diskContent: '', view: { scrollTop: 100 }, window: { x: 50, y: 60, width: 900, height: 700 } };
++    await store.updateDocument(one, { create: true });
++    await store.updateDocument(two, { create: true, activate: true });
++    await Promise.all([
++      store.updateDocument({ ...one, content: 'one latest' }),
++      store.updateDocument({ ...two, content: 'two latest' }),
++      store.update({ settings: { theme: { mode: 'dark' } } }),
++    ]);
++    const recovered = await createStore(dir).load();
++    assert.deepEqual(recovered.documents.map(doc => doc.content), ['one latest', 'two latest']);
++    assert.deepEqual(recovered.documents[0].window, one.window);
++    assert.deepEqual(recovered.documents[1].window, two.window);
++    assert.equal(recovered.activeDocumentId, 'two');
++    await store.removeDocuments(['one']);
++    assert.throws(() => store.updateDocument(one), /no longer open/);
++    assert.deepEqual((await createStore(dir).load()).documents.map(doc => doc.id), ['two']);
++  } finally { await fs.rm(dir, { recursive: true, force: true }); }
++});

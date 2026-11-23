@@ -1,0 +1,2254 @@
+diff --git a/LICENSE b/LICENSE
+index 2cdc136..a8b1fc9 100644
+--- a/LICENSE
++++ b/LICENSE
+@@ -1,7 +1,7 @@
+ MIT License
+ 
+ Original Scratch: Copyright (c) Eric Li and Scratch contributors.
+-Scratch Custom is a personal adaptation of https://github.com/erictli/scratch
++PicoMarQ is an adaptation of https://github.com/erictli/scratch
+ at commit 9126a5adf78abbabd111302ca0b659ca9278d43a.
+ The upstream README declares the project MIT licensed. The additions in
+ this adaptation are also provided under the MIT License.
+diff --git a/README.md b/README.md
+index a3ed5d6..6bf0cb0 100644
+--- a/README.md
++++ b/README.md
+@@ -8,7 +8,8 @@ This version removes folder navigation, folder settings, AI integrations, Git in
+ 
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. This is an unsigned personal test build, independent of upstream Scratch.
+ 
+-- PicoMarQ uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- PicoMarQ uses one independent native window per document. File, Edit, View, and Help keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- Version 1.3.1 adds Ignore All, Clear Custom Dictionary, and About. **Ignore All** is in the right-click menu of a word the spelling checker has marked, above Add to Dictionary: every occurrence of that word in the document loses its red line, including occurrences typed later, until the document is closed or PicoMarQ exits. Nothing is written into the Markdown file or the dictionary. The other red lines disappear for about a second and come back, as after a paste. **Settings > Spelling > Clear Custom Dictionary…** removes every word added with Add to Dictionary, after a question that lists the words and has Cancel as its default; the words are then marked as misspelled again in every open document. **Help > About PicoMarQ** (a fourth menu, Alt+H) shows the version and that PicoMarQ is based on Scratch by Eric Li, with buttons that open the two projects' pages on GitHub. A personal name, a university and an address in the test document, the tests, the icon notes and the oldest patch file were replaced with placeholders.
+ - Version 1.3.0 shows the selected words in the status bar: with text selected, the word count reads "56 of 1,234 words" (words in the selection, then the document's total); with nothing selected it reads "1,234 words" as before. It follows the selection as it changes, with the mouse or the keyboard, in both views, for selected table cells, and for the match that Find selects in Markdown source. Selecting everything gives the document's count. A partly selected word counts as a word; a selected image, horizontal rule, or empty line shows no selected count, because no text is selected; selected text without words (a space, a period) shows 0. Settings > Typography now labels the size box **Point Size (12-24)**; the box itself works as in 1.2.7.
+ - Version 1.2.7 fixes three things. Spell checking now covers opened files and pasted text, not only what you type, and always uses US English. Settings > Size (and Custom Width) accept typed numbers: a size from 12 to 24 takes effect as you type it, and anything outside the range moves to the nearest limit when you press Enter or leave the box; the arrow keys still step it. Settings > Saved Themes adds Restore Default Theme…, which, after asking, returns colors (Light and Dark), typography, and User Interface settings to their defaults, keeping Light or Dark, Startup, and Smart Typography as they are.
+ - Version 1.2.6 adds Save Theme… and Load Theme… under Settings > Saved Themes. Themes are portable JSON files in a Themes folder beside PicoMarQ.exe (or any location you select in the Windows dialog). They contain light/dark appearance and both color palettes, typography, page width, text zoom, and formatting icon size; no Markdown, startup choice, or smart-typing behavior is stored. Missing installed fonts fall back to Sans. Heading 4 is now bold, without changing its size. This release is based directly on 1.2.4 and retains its original hex color picker, deliberately omitting the 1.2.5 picker changes.
+@@ -21,7 +22,7 @@ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64.
+ - File > New creates another window. File > Open, Open Recent, and file-association launches create a window for each selected file. Reopening an already-open file raises its existing window, preserving unsaved edits and avoiding conflicting copies. Open Recent keeps the last four distinct files opened or saved, including after restarting.
+ - Page width offers Full (the default) or Custom. Custom widths can be set in Settings or adjusted with the page-edge handles; double-click a handle to return to Full.
+ - Spell checking (US English) covers the whole document: opened files, restored drafts, pasted or dragged-in text, and text edited in Markdown source view are checked as well as what you type. Chromium, the engine inside PicoMarQ, normally checks only text it sees typed, a privacy rule for websites that PicoMarQ turns off at startup (`desktop/main.cjs`) because it shows no websites. After a paste the whole document is rechecked, so other underlines disappear for about a second (a few seconds in very long documents).
+-- Right-click menus with spelling suggestions: a misspelled word's suggestions and Add to Dictionary come first, then Bold and Italic (with their shortcuts; in source view they wrap the selection in `**` or `*`), Cut, Copy, Paste, and the table commands when the cursor is in a table. An existing selection is retained. (The editor registers its items synchronously from the DOM event and lets the browser's own context-menu request through, since only that request carries Chromium's suggestions.)
++- Right-click menus with spelling suggestions: a misspelled word's suggestions, Ignore All (this document, until it is closed) and Add to Dictionary (for good) come first, then Bold and Italic (with their shortcuts; in source view they wrap the selection in `**` or `*`), Cut, Copy, Paste, and the table commands when the cursor is in a table. An existing selection is retained. (The editor registers its items synchronously from the DOM event and lets the browser's own context-menu request through, since only that request carries Chromium's suggestions.)
+ - Installed font families in Settings, with Refresh fonts.
+ - Text zoom from 50% to 200% with Ctrl+plus (Ctrl+= or Ctrl+Shift+=), Ctrl+minus, their numeric-keypad equivalents, Ctrl+0, and Ctrl+mouse wheel.
+ - Menus, formatting icons, Find controls, status bar, and page width stay at their normal size when text zoom changes. Source text zooms too.
+@@ -48,7 +49,7 @@ Markdown source is available through View or Ctrl+Shift+M. The toolbar omits inl
+ 
+ Added/pasted images are embedded as data URLs. Existing relative image links resolve against the document's location. Source and code blocks stay monospace. Switching open documents preserves their undo histories. Recovery after a restart does not restore undo history; opening a recovered document starts a new undo history.
+ 
+-The Windows portable distributions since 1.2.4 are assembled from the previous release's package: the Electron 44.6.0 x64 runtime is kept byte for byte, the application files in `resources/app` are replaced, and only the version information in the `.exe` is updated (`scripts/repack-windows-from-*.py`; 1.3.0 comes from 1.2.7). The 1.2.3 runtime was originally packaged from Electron's official release with checksum verification. Since 1.2.7 the renderer in `dist/` is compiled from this TypeScript source. The app is tested on Linux with the same Electron version; it has not been run on Windows in the build environment. `VALIDATION.md` has the details for this release.
++The Windows portable distributions since 1.2.4 are assembled from the previous release's package: the Electron 44.6.0 x64 runtime is kept byte for byte, the application files in `resources/app` are replaced, and only the version information in the `.exe` is updated (`scripts/repack-windows-from-*.py`; 1.3.1 comes from 1.3.0). The 1.2.3 runtime was originally packaged from Electron's official release with checksum verification. Since 1.2.7 the renderer in `dist/` is compiled from this TypeScript source. The app is tested on Linux with the same Electron version; it has not been run on Windows in the build environment. `VALIDATION.md` has the details for this release.
+ 
+ ## Performance
+ 
+@@ -67,6 +68,13 @@ Version 1.3.0's selected-word count is built so that selecting stays as fast as
+ - The count is made at most once per frame and written straight into the status bar element (`WordCount` in `src/App.tsx`), not through React state. On every React update React re-reads the caret by walking the focused editor's content, which is slow in a long document, and a dragged selection changes many times a second.
+ - In Markdown source view the selected text is parsed like the whole source, so markers and link addresses are not counted and selecting everything gives the document's count. A selection up to 20,000 characters (or one already counted, such as everything) is counted on the next frame; a longer one 0.3 s after the selection stops changing. A selection that cuts through Markdown syntax is counted as the text it would be on its own: selecting only a link's address, or only the description inside an image, counts those words although the document count leaves them out.
+ 
++Version 1.3.1's Ignore All (`src/components/editor/IgnoredSpelling.ts`, `src/lib/ignored-spelling.ts`, `src/lib/spelling.ts`) works around the spelling checker instead of through it:
++
++- Chromium has no way to ignore a word except adding it to the dictionary, which is for good (and on Windows may also put the word into the system's own dictionary). It does leave a word unmarked when the word starts inside an element that has spell checking switched off, so a decoration wraps the first letter of every occurrence in such an element. The document and its Markdown are not changed, and each window keeps the list for its open document in memory only.
++- Only the first letter is wrapped, because Chromium runs its background checks only while the caret is at a place where spell checking is on. The caret can be "inside" a one-letter wrapper only at its two edges, and there the selection is rewritten to name the same place from the neighboring text. The checks never stop, and the arrow keys behave as before.
++- When a wrapper appears or disappears, ProseMirror rewrites the text nodes beside it and Chromium drops the spelling marks in them. After typing in a paragraph of up to about 1,000 characters Chromium rechecks that paragraph by itself. In every other case the editor asks for a full recheck (the 1.2.7 mechanism): at once after Ignore All, and one second after editing pauses otherwise (an ignored word typed in a longer paragraph, Undo, Replace). Chromium checks only the editable text that holds the caret, and only text that is displayed, so a recheck never starts while the editor is hidden (Settings, the Markdown source view), while the caret is outside it (the Find panel) or inside an element with spell checking off: it would clear every mark and bring none back. It starts when the editor is on screen and holds the caret.
++- With no ignored words, the usual case, none of this runs. With them, the cost grows with the number of ignored occurrences: each wrapper adds an element and two text nodes, and after every key press Chromium walks the whole document's text and ProseMirror looks up the decorations of every paragraph. In a 2 MB document (248,000 words) a key press takes about 35 ms; with a word ignored that occurs 4,950 times, about 65 ms. A word that frequent belongs in the dictionary.
++
+ `npm run test:equivalence` verifies that parsing, serialization, word counts, and highlighting match TipTap's stock implementations across a corpus of documents and thousands of random edits, and that every document in the corpus reads back as the same document after PicoMarQ writes it (it runs inside Electron and needs a graphical session or Xvfb like the desktop smoke test).
+ 
+ ## Markdown escapes
+@@ -84,7 +92,7 @@ npm run build
+ npm start
+ ```
+ 
+-`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.3.0.zip` (named after the version in `package.json`), containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory. The released packages are made another way, which keeps the runtime of the previous release unchanged: after `npm ci && npm run build`, run `python scripts/repack-windows-from-1.2.7.py /path/to/PicoMarQ-Windows-x64-1.2.7.zip` to make `release/PicoMarQ-Windows-x64-1.3.0.zip` (the earlier `repack-windows-from-*.py` scripts made 1.2.4, 1.2.6 and 1.2.7 the same way).
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.3.1.zip` (named after the version in `package.json`), containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory. The released packages are made another way, which keeps the runtime of the previous release unchanged: after `npm ci && npm run build`, run `python scripts/repack-windows-from-1.3.0.py /path/to/PicoMarQ-Windows-x64-1.3.0.zip` to make `release/PicoMarQ-Windows-x64-1.3.1.zip` (the earlier `repack-windows-from-*.py` scripts made 1.2.4, 1.2.6, 1.2.7 and 1.3.0 the same way).
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+@@ -92,7 +100,7 @@ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it w
+ 
+ `npm run test:close-window` exercises the real File menu, native Ctrl+W, renderer close command, repeated blank closes, exact replacement bounds, fresh Undo, Save/Discard/Cancel, Save As cancellation and saving, replacement-load failure, rapid closes, and restarting without resurrecting an explicitly closed file. `npm run test:close-restore` closes native windows and relaunches the actual application for both two-document close orders, an immediate file launch/close, rapid closes, closing during startup, final-window Save/Discard/Cancel and Save As, and the intentional blank startup in New mode. Its first case reproduces the erased-session bug on 1.2.1.
+ 
+-`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, Markdown escaping, and the selected-word count (against a slow reference count, for every possible selection of a mixed document and for random documents). `npm run test:word-count` checks the status bar's "x of n words" in the real app: mouse and keyboard selections in both views, table cells, typing over a selection, Find in source view, and long selections. `npm run test:settings` covers the Point Size and Custom Width boxes and Restore Default Theme; `npm run test:spelling` covers spell checking of opened, pasted and source-edited text. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:startup` covers the new selector, persistence and live synchronization, legacy defaults, next-launch behavior, saved-file and preference preservation, requested-file launches, and both recovery choices after an actual forced termination. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
++`npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, Markdown escaping, the selected-word count (against a slow reference count, for every possible selection of a mixed document and for random documents), the search for ignored words, and the About and Clear Custom Dictionary boxes. `npm run test:ignore` checks Ignore All in the real app against the red lines on screen: every occurrence, occurrences typed later, the other misspellings keeping their marks, the caret at the edges of a wrapper, Undo, a paste, the Markdown source view, Replace All from the Find panel, Revert, and forgetting on close. `npm run test:dictionary` adds words with Add to Dictionary and clears them from Settings, with two documents open, one of them hidden behind Settings. Both need a US English dictionary, like `npm run test:spelling`. `npm run test:word-count` checks the status bar's "x of n words" in the real app: mouse and keyboard selections in both views, table cells, typing over a selection, Find in source view, and long selections. `npm run test:settings` covers the Point Size and Custom Width boxes and Restore Default Theme; `npm run test:spelling` covers spell checking of opened, pasted and source-edited text. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:startup` covers the new selector, persistence and live synchronization, legacy defaults, next-launch behavior, saved-file and preference preservation, requested-file launches, and both recovery choices after an actual forced termination. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
+ 
+ New installations keep recovery data under Electron's per-user app-data directory for PicoMarQ, separately from the original Scratch app. PicoMarQ detects and reuses a valid profile from Quill (0.1.6–0.1.11) or the earlier custom editor, preserving open documents, drafts, recent files, font, zoom, and other preferences. Previously saved preset page widths become Full; an existing Custom width is preserved. No account, AI model, cloud sync, updater, or analytics is configured. Remote images can be loaded if they appear in a document.
+ 
+diff --git a/START-HERE.txt b/START-HERE.txt
+index d514573..d55bc28 100644
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.3.0
++PICOMARQ — WINDOWS BUILD 1.3.1
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+@@ -11,7 +11,33 @@ folder. Keep the executable in the same place if Windows already uses
+ it to open .md files. Preferences and recovery stay in the existing
+ AppData profile on each machine.
+ 
+-WHAT'S NEW IN 1.3
++WHAT'S NEW IN 1.3.1
++Ignore All: right-click a word with a red line under it and choose
++Ignore All, just above Add to Dictionary. Every occurrence of that word
++in the document loses its red line, including ones you type later. It
++lasts until you close the document or exit PicoMarQ; nothing is written
++into the .md file or the dictionary. For a word you will keep using,
++choose Add to Dictionary instead. (Spelling is checked in the formatted
++view only.)
++
++When you choose Ignore All, the other red lines disappear for about a
++second and come back, as they do after a paste. The same can happen a
++second after you type an ignored word in a long paragraph (more than
++about 150 words), or after Undo. In a book-length document, a word
++that occurs thousands of times is better added to the dictionary:
++thousands of ignored words make typing slower.
++
++Settings > Spelling > Clear Custom Dictionary... removes every word you
++added with Add to Dictionary. It lists the words and asks first; Cancel
++is the default. The words are then marked as misspelled again. This
++cannot be undone. On Windows, a word you add may also be kept in
++Windows' own spelling dictionary; clearing removes it from there too.
++
++Help > About PicoMarQ (Alt+H opens Help) shows the version and that
++PicoMarQ is based on Scratch by Eric Li, with buttons that open
++PicoMarQ's page and Scratch's page on GitHub.
++
++NEW IN 1.3
+ Word count of a selection: when text is selected, the word count at the
+ bottom right reads "56 of 1,234 words": the words in the selection, then
+ the whole document. With nothing selected it reads "1,234 words" as
+diff --git a/VALIDATION.md b/VALIDATION.md
+index cc3e540..a8a1726 100644
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,43 +1,50 @@
+-# PicoMarQ 1.3.0 — validation and release status
+-
+-**Changes since 1.2.7** (`changes-since-1.2.7.patch`):
+-
+-- **Status bar: "x of n words" while text is selected.** With a selection the word count reads, for example, "56 of 1,234 words"; without one it reads "1,234 words" as before.
+-  - *Formatted view.* `countSelectedWords` (`src/lib/word-count.ts`) gives the same number as counting the selected text from scratch with the document count's rules, so selecting everything gives the document's count. A partly selected word counts as a word. It returns no count when no text is selected (a caret; only an image, a horizontal rule, or empty lines; a new empty document, which starts with its empty content selected), and 0 for selected text without words (a space, a period). Selected table cells are added up.
+-  - *Markdown source view.* The selected Markdown is parsed like the whole source, so markers and link addresses are not counted. A selection up to 20,000 characters, or one already counted (such as everything), is counted on the next frame; a longer one 0.3 s after the selection stops changing.
+-  - *Display.* The selected count is computed at most once per frame and written straight into the status bar element (`WordCount` in `src/App.tsx`), not through React state: every React update makes React re-read the caret by walking the focused editor's content, which is slow in a long document.
+-- **Settings > Typography: the size box is labeled "Point Size (12-24)"** (was "Size"). The box is unchanged.
+-- Version 1.3.0 in `package.json`, the documents, and the executable's properties. The main-process files (`desktop/`) and the stylesheet are identical to 1.2.7.
+-
+-**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. The compiled stylesheet is byte-identical to 1.2.7's (`index-B5ITzcGl.css`); only the JavaScript bundle and `index.html` change. Rebuilding this source package reproduces `dist/` byte for byte.
+-
+-**Tests** (Linux, Electron 44.6.0 official linux-x64 build, Xvfb):
+-
+-- `npm test`: 45 passed (29 + 16). The six new tests in `tests/word-count.test.mts` compare `countSelectedWords` with a slow reference count for every possible selection of a mixed document (46,056 ranges: headings, lists, a quote, a code block, a table, an image, a rule, empty lines), for 24,000 random ranges of random documents before and after edits, for several ranges at once (table cells), and check the status bar wording, including "1 of 1 word".
+-- `npm run test:equivalence`: the real editor's documents now also compare the selected-word count with the slow count for 14 ranges in each of 3,400 edited states of 64 documents. Passed.
+-- New `tests/word-count-smoke.cjs` (`npm run test:word-count`), in the real app: a double-clicked word, Ctrl+Shift+Arrow, a triple-clicked paragraph (bold and linked words counted, the link address not), Ctrl+A, a drag counted while the mouse button is still down, part of a word, a lone period (0), Shift+arrows across blocks, a selected rule (no count), dragged table cells, typing over a selection, Bold on a selection; in source view Ctrl+A, Shift+End, a double-click, a drag, selections set by script, a table row, the match that Find selects; a 4,200-word document with selections above the 20,000-character limit in both views. The same test fails on 1.2.7 at its first selection.
+-- A restart that restores a saved selection shows its count again, in both views (checked by hand with a script; not part of the test suite).
+-- `tests/settings-smoke.cjs` now also checks the label "Point Size (12-24)". `tests/spelling-smoke.cjs`, `tests/desktop-smoke.cjs` (18 checks, including the existing word-count checks), `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`, `tests/theme-browser-smoke.py` and `tests/colors-browser-smoke.py`: passed, unchanged.
+-- The packaged `resources/app` from the Windows ZIP passed the word-count, settings and spelling checks.
+-
+-**Speed in a long document** (2 MB, about 248,000 words, 4,400 paragraphs; 1.2.7 → 1.3.0, key press to painted frame, medians):
+-
+-- Typing: 31–35 ms in both.
+-- Extending a selection line by line (Shift+Up) or by a character (Shift+Left): 12–14 ms in both.
+-- With nearly the whole document selected, Shift+Left or Shift+PageUp: the selection is drawn after 53–66 ms in both; almost all of that is Chromium moving so large a selection. In 1.3.0 the status bar's new count is drawn in the frame after that, which is about 10 ms more work per key press.
+-- Ctrl+A: about 70 ms → about 83 ms.
+-- Dragging a selection with the mouse: no long tasks in either version.
+-- The count itself takes about 0.2 ms with everything selected. The extra 10 ms or so is what Chromium needs to redraw after any change of the status bar's text in a document this large (measured separately; the same happens in 1.2.7 whenever typing changes the word count). In a document of ordinary length it is not measurable.
+-- Source view: counting a 100,000-character selection takes about 3 ms for plain prose and about 30 ms for Markdown dense with tables, lists and code, which is why long selections wait until the selection rests.
+-
+-**Windows portable distribution.** Assembled by `scripts/repack-windows-from-1.2.7.py` from the 1.2.7 portable release. Its Electron 44.6.0 runtime is unchanged. In `resources/app` only `package.json`, `dist/index.html` and the JavaScript bundle differ from 1.2.7; `START-HERE.txt` and `RELEASE-VALIDATION.txt` are this release's. In `PicoMarQ.exe` only the version information changes from 1.2.7 to 1.3.0 (two strings and the four numbers of the fixed version record), as checked independently with `pefile`: 8 bytes of `.rsrc` differ, every other section is identical, and the entry point is the same.
+-Baseline (1.2.7) executable SHA-256: `914236887c47e0583bdb6acd394c4159dfacab023baf5229a1ee11b5f8056ccb`
+-1.3.0 executable SHA-256: `33497603f3fa99975cfca18df33b3f6856042f2a2107200d3bcdaabdc374dcec`
++# PicoMarQ 1.3.1 — validation and release status
++
++**Changes since 1.3.0** (`changes-since-1.3.0.patch`):
++
++- **Ignore All in the right-click spelling menu**, above Add to Dictionary, on a word the spelling checker has marked. Every occurrence of the word in that document loses its red line, including occurrences typed, pasted or brought back by Undo later, until the document is closed or PicoMarQ exits. Nothing is saved: the Markdown file and the dictionary are untouched, and the document is not marked as changed.
++  - *What counts as the same word.* Whole words only ("Qarths" stays marked when "Qarth" is ignored). A possessive counts as its word, with a straight or a curly apostrophe. Capitals follow the dictionary's rule: an ignored lower-case word is also ignored with a capital first letter and in capitals; an ignored capitalized word is also ignored in capitals, but not in lower case.
++  - *How.* Chromium cannot ignore a word, only add it to the dictionary. It leaves a word unmarked when the word starts inside an element with spell checking off, so `src/components/editor/IgnoredSpelling.ts` wraps the first letter of every occurrence in such an element, as a display decoration. The list is kept per document in the window's memory (`src/lib/ignored-spelling.ts`).
++  - *Other red lines.* Wrapping makes ProseMirror rewrite the text beside the wrapper, and Chromium drops the marks in rewritten text. The editor therefore asks for a full recheck (the 1.2.7 mechanism) at once after Ignore All, and one second after editing pauses when an ignored word was typed in a paragraph of more than 900 characters or changed by something other than typing (Undo, Replace, a paste). During a recheck every red line is gone for about a second. Typing an ignored word in a shorter paragraph needs no recheck: Chromium rechecks that paragraph by itself.
++  - *The caret.* Chromium runs its background checks only while the caret is at a place where spell checking is on. Right after the first letter of an ignored word, and before it at the start of a paragraph, the caret would be inside the wrapper, so there the selection is rewritten to name the same place from the neighboring text. The caret does not move and the arrow keys step as before.
++- **Settings > Spelling > Clear Custom Dictionary…** (a new last section of Settings) removes every word added with Add to Dictionary. A native question lists the words (the first 20, then "and N more") with Clear and Cancel; Cancel is the default and Esc cancels. An empty dictionary is reported without a question. The removed words are marked as misspelled again in every open document, which takes a recheck of each (`desktop/dictionary.cjs`, `clear_custom_dictionary` in `desktop/main.cjs`).
++- **Help > About PicoMarQ**, a fourth menu (Alt+H): the version, "Based on Scratch by Eric Li and contributors.", and buttons that open https://github.com/Crotalus65/PicoMarq and https://github.com/erictli/scratch in the browser (`desktop/about.cjs`). No personal name.
++- **A recheck waits until it can work** (`src/lib/spelling.ts`). Chromium checks only the editable text that holds the caret, and only text that is displayed; asked at another moment it clears every red line and brings none back until the caret next moves. A recheck now waits while the editor is hidden (Settings, the Markdown source view) and while the caret is outside it (the Find panel). This matters for Clear Custom Dictionary, which is always used with the document hidden behind Settings; without it the document came back with no red lines at all. The rechecks of 1.2.7 (paste, drop, return from the source view) go through the same code.
++- A personal name, a university and an address in the test document, the tests, the icon notes and the oldest patch file were replaced with placeholders, and `LICENSE` now names PicoMarQ. These replacements are in the source but not in `changes-since-1.3.0.patch`, which would otherwise repeat the removed lines.
++- Version 1.3.1 in `package.json`, the documents, and the executable's properties.
++
++**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. The compiled stylesheet is byte-identical to that of 1.2.7 and 1.3.0 (`index-B5ITzcGl.css`): the new Settings section uses only styles that were already there. The JavaScript bundle, `index.html` and the main-process files `desktop/main.cjs`, `desktop/context-menu.cjs`, `desktop/about.cjs` (new) and `desktop/dictionary.cjs` (new) change. Rebuilding this source package reproduces `dist/` byte for byte.
++
++**Tests** (Linux, Electron 44.6.0 official linux-x64 build, Xvfb, US English dictionary):
++
++- `npm test`: 56 passed (34 + 22). New: `tests/ignored-spelling.test.mts` (6 tests: whole words, possessives, capitals, other alphabets and combining marks, spellings with other characters, the list per document), `tests/about-dictionary.test.cjs` (5 tests: the About box and its links, the question before clearing), and the menu order in `tests/context-menu.test.cjs`.
++- New `tests/ignore-smoke.cjs` (`npm run test:ignore`), in the real app, reading the red lines off the screen. 11 checks: the menu, and Ignore All on a word that occurs plain, bold, as a possessive and in a paragraph far from the caret, with every other misspelling marked again about 1.2 s later; no spelling items on an ignored word, and a double-click still selects all of it; the caret at either edge of a wrapper (a full recheck completes, the caret stays, the arrow keys step through the word slowly and quickly, typing there); the word typed again in a short paragraph, with no other red line lost or blinking; typing right after an ignored word; the word typed in a 2,600-character paragraph (the far misspelling is marked again after about 2.1 s); an edited occurrence, Undo and Redo; a paste, the Markdown source view and a second ignored word; Replace All next to an ignored word with the caret in the Find panel (the red lines stay, and the document is rechecked when the caret returns); Revert to Saved keeps the list; closing and reopening forgets it.
++- New `tests/dictionary-smoke.cjs` (`npm run test:dictionary`), in the real app with two documents open. 5 checks: an empty dictionary; Add to Dictionary from the right-click menu clears the red lines in both documents, and Ignore All adds nothing to the dictionary; Clear asks, lists the words, and Cancel changes nothing; Clear removes the words and they are marked again in both documents, about 1.2 s after leaving Settings, while the ignored word stays ignored; one word added and cleared again.
++- Each safeguard was taken out in turn in a copy of the source, and the tests failed where expected: the caret handling (Ignore All check 3), the delayed recheck (check 6), the recheck after Ignore All (check 1), waiting for the caret (check 9), the recheck after Clear (dictionary check 4), waiting for a hidden editor (dictionary check 5).
++- `tests/desktop-smoke.cjs`: 19 checks; new are the Help menu in the menu row and by Alt+H, and the About box's text, version, buttons and the two addresses it opens.
++- `tests/spelling-smoke.cjs` (7 checks: opened, pasted, typed and source-edited text), `settings-smoke.cjs`, `word-count-smoke.cjs`, `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`, `npm run test:equivalence`, `tests/theme-browser-smoke.py` and `tests/colors-browser-smoke.py`: passed, unchanged.
++- The Ignore All and dictionary tests were each run several times in a row without a failure after the last change. Before it, the dictionary test failed once in three runs; that failure is what led to the fourth change above.
++- First-letter wrappers and letter spacing: in a line with 23 wrappers the text ends 0.36 px further right than without them (at most 1/64 px per wrapper); line breaks and paragraph heights are the same, and kerning across the wrapper is kept.
++- The packaged `resources/app` from the Windows ZIP passed the Ignore All, dictionary, spelling, settings and desktop checks.
++
++**Speed.** Key press to painted frame, medians, same machine and method as for 1.3.0.
++
++- *Nothing ignored.* In a 2 MB document (248,000 words, 4,400 paragraphs) typing takes 31–39 ms in 1.3.1 and 35–36 ms in 1.3.0; going to the Markdown source view takes 0.7 s and coming back 1.3–1.5 s in both. The Ignore All code does no work while nothing is ignored.
++- *An ordinary document* (100 KB, 12,500 words) with a word ignored that occurs 207 times: typing 7 ms before and 7–8 ms after. Ignore All is drawn in under 0.1 s, and the other red lines are back 1.2 s after it.
++- *The 2 MB document with a word ignored that occurs 4,950 times*, in 3,957 of its paragraphs: Ignore All is drawn after 0.9–1.3 s; the other red lines are gone for 3.1–3.6 s (the whole document is rechecked 4.3–4.5 s after the click, as after a paste). Typing then takes 61–66 ms instead of 31–37 ms. A profile shows where the extra time goes, per key press: 17 ms in Chromium, which walks the whole document's text after every key press and finds an extra element and two extra text nodes for every wrapper; 9 ms in ProseMirror, which looks up the decorations of every paragraph with a scan that gets longer the more paragraphs have any; 2 ms in React's reading of the caret. Returning from the source view takes 1.7–1.9 s.
++- *The same document with a word that occurs 24,751 times* (every tenth word): Ignore All is drawn after 1.7 s, the recheck is done 10 s after the click, and typing takes 81–84 ms.
++- So the cost is not measurable for words that occur up to some hundreds of times, and grows with the number of occurrences. A word that occurs thousands of times in a book-length document belongs in the dictionary.
++
++**Windows portable distribution.** Assembled by `scripts/repack-windows-from-1.3.0.py` from the 1.3.0 portable release. Its Electron 44.6.0 runtime is unchanged. In `resources/app`, `package.json`, `LICENSE`, `dist/index.html`, the JavaScript bundle and the four `desktop` files named above differ from 1.3.0; `START-HERE.txt`, `KEYBOARD-SHORTCUTS.md`, `APP-LICENSE.txt` and `RELEASE-VALIDATION.txt` are this release's. In `PicoMarQ.exe` only the version information changes from 1.3.0 to 1.3.1 (two strings and two numbers of the fixed version record), as checked independently with `pefile`: 4 bytes of `.rsrc` differ, every other section is identical, and the entry point is the same.
++Baseline (1.3.0) executable SHA-256: `33497603f3fa99975cfca18df33b3f6856042f2a2107200d3bcdaabdc374dcec`
++1.3.1 executable SHA-256: `9e0b2b9a293457b1441c819a69e57e65a8454267080655975f70fede2991845c`
+ 
+ **Limitations.**
+ 
+-- Not run on Windows. Nothing in this release depends on the operating system, but a check on Windows 10/11 is still worth doing.
+-- The size in Settings is the font size in CSS pixels, as before; only its label changed. At 100% text zoom, 15 looks about like 11-point type in a word processor.
+-- In source view a selection that cuts through Markdown syntax is counted as the text it would be on its own. Selecting only a link's address, or only the description inside an image, counts those words, although the document count leaves them out. The same can happen with single lines taken out of a table, a code block or another construct of several lines. In the sample `docs/test-documents/PicoMarQ-Torture-Test.md` (916 words) the blocks selected one at a time add up to exactly 916, the 144 lines selected one at a time to 924, and none of 3,000 random selections counted more words than a plain count of the selected characters.
+-- Hyphenated words count as two words, in the selection as in the total (unchanged).
+-- Found while writing the test, the same in 1.2.6 and 1.2.7, and not changed: in the first 0.15 s or so after leaving source view, the editor places the caret, and an arrow key pressed in that instant right after Ctrl+A can be ignored. Only a script is that fast; the status bar shows the selection the editor really has.
++- Not run on Windows. Ignore All and the rechecks are in Chromium's page engine and in the editor, the same on every system. Three things are Windows' own and could only be read from Electron's source, not tried: the native boxes for About and for the question before clearing; opening the two addresses in the default browser; and the Windows spelling dictionary. On Windows, Electron passes Add to Dictionary on to Windows' own user dictionary as well as to PicoMarQ's list, and passes each removal on in the same way. Clear Custom Dictionary removes the words in PicoMarQ's list from both; words that are only in Windows' dictionary (added from another program) are not listed and not touched.
++- Ignore All exists only where spelling is checked, in the formatted view. The list is not saved: after PicoMarQ restarts and restores its documents, the words are marked again.
++- During a recheck every red line is gone for about a second, and for several seconds in a very long document. Besides a paste (since 1.2.7) this now happens after Ignore All, a second after an ignored word is typed in a paragraph of more than 900 characters (about 150 words), after Undo or Replace changes text at an ignored word, and on returning to a document after Clear Custom Dictionary.
++- With thousands of ignored occurrences in a very long document typing gets slower; see Speed.
++- If Settings is opened within about a second of choosing Ignore All (longer in a very long document, while it is still being rechecked), Chromium abandons the recheck: red lines far from the ignored word stay away until the caret next moves in the document, and return a second after that. Opening the Markdown source view instead does no harm, and neither did Settings after a paste, in 1.3.0 or 1.3.1.
++- Found while testing, the same in 1.3.0, and not changed: Find and Replace are hard on the red lines. While Find shows its matches, the paragraphs that contain a match lose their red lines, and these do not come back when Find is closed; text put in by Replace is not checked. Both last until the document is rechecked: by a paste, by Ignore All, or by closing and opening the document. A recheck when Find closes would cure it.
++- The limitations of 1.3.0 stand: the size in Settings is in CSS pixels; a selection that cuts through Markdown syntax in source view is counted as the text it would be on its own; hyphenated words count as two.
+diff --git a/desktop/about.cjs b/desktop/about.cjs
+new file mode 100644
+index 0000000..bc68ded
+--- /dev/null
++++ b/desktop/about.cjs
+@@ -0,0 +1,33 @@
++// Help > About PicoMarQ: what the box says and where its buttons lead.
++// Kept free of Electron imports so it can be unit-tested.
++
++const PICOMARQ_PAGE = 'https://github.com/Crotalus65/PicoMarq';
++const SCRATCH_PAGE = 'https://github.com/erictli/scratch';
++
++/** Options for the native message box. */
++function aboutDialog(version) {
++  return {
++    type: 'info',
++    title: 'About PicoMarQ',
++    message: 'PicoMarQ',
++    detail: [
++      `Version ${version}`,
++      '',
++      'Based on Scratch by Eric Li and contributors.',
++      '',
++      `PicoMarQ: ${PICOMARQ_PAGE}`,
++      `Scratch: ${SCRATCH_PAGE}`,
++    ].join('\n'),
++    buttons: ['PicoMarQ on GitHub', 'Scratch on GitHub', 'Close'],
++    defaultId: 2,
++    cancelId: 2,
++    noLink: true,
++  };
++}
++
++/** The page to open for the button that was pressed; none for Close. */
++function aboutLink(response) {
++  return [PICOMARQ_PAGE, SCRATCH_PAGE][response] || null;
++}
++
++module.exports = { aboutDialog, aboutLink, PICOMARQ_PAGE, SCRATCH_PAGE };
+diff --git a/desktop/context-menu.cjs b/desktop/context-menu.cjs
+index ce937dc..1888e79 100644
+--- a/desktop/context-menu.cjs
++++ b/desktop/context-menu.cjs
+@@ -1,15 +1,15 @@
+ // The editor's right-click menu, built from Electron's `context-menu` event
+ // parameters so spelling suggestions for the word under the pointer can be
+-// offered, then Bold and Italic, Cut, Copy and Paste, plus any extra items
+-// the editor registered for the click (table commands). Kept free of
+-// Electron imports so it can be unit-tested.
++// offered (with Ignore All and Add to Dictionary), then Bold and Italic, Cut,
++// Copy and Paste, plus any extra items the editor registered for the click
++// (table commands). Kept free of Electron imports so it can be unit-tested.
+ 
+ const MAX_SUGGESTIONS = 6;
+ 
+ /**
+  * @param {object} params Electron ContextMenuParams (misspelledWord, dictionarySuggestions, editFlags).
+  * @param {Array<{ id?: string, text?: string, type?: 'separator' }>} extras Items registered by the editor.
+- * @param {{ command: (action: string, extra?: object) => void, replaceMisspelling: (text: string) => void, addToDictionary: (word: string) => void }} actions
++ * @param {{ command: (action: string, extra?: object) => void, replaceMisspelling: (text: string) => void, ignoreAll: (word: string) => void, addToDictionary: (word: string) => void }} actions
+  */
+ function contextMenuTemplate(params, extras, actions) {
+   const template = [];
+@@ -18,6 +18,8 @@ function contextMenuTemplate(params, extras, actions) {
+     const suggestions = (Array.isArray(params.dictionarySuggestions) ? params.dictionarySuggestions : []).filter(s => typeof s === 'string' && s).slice(0, MAX_SUGGESTIONS);
+     for (const suggestion of suggestions) template.push({ label: suggestion, click: () => actions.replaceMisspelling(suggestion) });
+     if (!suggestions.length) template.push({ label: 'No spelling suggestions', enabled: false });
++    // This document only, until it is closed; the dictionary is for good.
++    template.push({ label: 'Ignore All', click: () => actions.ignoreAll(misspelled) });
+     template.push({ label: 'Add to Dictionary', click: () => actions.addToDictionary(misspelled) });
+     template.push({ type: 'separator' });
+   }
+diff --git a/desktop/dictionary.cjs b/desktop/dictionary.cjs
+new file mode 100644
+index 0000000..1ac1554
+--- /dev/null
++++ b/desktop/dictionary.cjs
+@@ -0,0 +1,36 @@
++// Settings > Spelling > Clear Custom Dictionary: the "are you sure" box shown
++// before every word added with Add to Dictionary is removed.
++// Kept free of Electron imports so it can be unit-tested.
++
++const MAX_LISTED = 20;
++
++/** The words as text, without repeats, in alphabetical order. */
++function dictionaryWords(words) {
++  const unique = [...new Set((Array.isArray(words) ? words : []).filter(word => typeof word === 'string' && word))];
++  return unique.sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }) || (a < b ? -1 : a > b ? 1 : 0));
++}
++
++/** Options for the native message box. Cancel is the default button. */
++function clearDictionaryDialog(words) {
++  const list = dictionaryWords(words);
++  const one = list.length === 1;
++  const more = list.length - MAX_LISTED;
++  return {
++    type: 'warning',
++    title: 'Clear Custom Dictionary',
++    message: 'Clear the custom dictionary?',
++    detail: [
++      `${one ? 'This removes the 1 word' : `This removes all ${list.length} words`} you added with Add to Dictionary:`,
++      '',
++      `${list.slice(0, MAX_LISTED).join(', ')}${more > 0 ? `, and ${more} more` : ''}`,
++      '',
++      `${one ? 'It' : 'They'} will be marked as misspelled again. This cannot be undone.`,
++    ].join('\n'),
++    buttons: ['Clear', 'Cancel'],
++    defaultId: 1,
++    cancelId: 1,
++    noLink: true,
++  };
++}
++
++module.exports = { dictionaryWords, clearDictionaryDialog, MAX_LISTED };
+diff --git a/desktop/main.cjs b/desktop/main.cjs
+index 29ea5e0..f422fdf 100644
+--- a/desktop/main.cjs
++++ b/desktop/main.cjs
+@@ -1,4 +1,4 @@
+-const { app, BrowserWindow, Menu, dialog, ipcMain, clipboard, shell, nativeTheme, screen, session } = require('electron');
++const { app, BrowserWindow, Menu, dialog, ipcMain, clipboard, shell, nativeImage, nativeTheme, screen, session } = require('electron');
+ const path = require('node:path');
+ const crypto = require('node:crypto');
+ const fs = require('node:fs/promises');
+@@ -11,6 +11,8 @@ const { recentFiles } = require('./recent.cjs');
+ const { profileDirectory } = require('./profile.cjs');
+ const { contextMenuTemplate, sanitizeExtras } = require('./context-menu.cjs');
+ const { shouldRestoreSession } = require('./startup.cjs');
++const { aboutDialog, aboutLink } = require('./about.cjs');
++const { dictionaryWords, clearDictionaryDialog } = require('./dictionary.cjs');
+ 
+ app.setName('PicoMarQ');
+ app.setAppUserModelId('io.picomarq.markdown');
+@@ -119,8 +121,25 @@ function menuFor(record) {
+       { label: 'Zoom &Out', accelerator: 'CmdOrCtrl+-', click: action('zoom-out') },
+       { label: '&Actual Size', accelerator: 'CmdOrCtrl+0', click: action('zoom-reset') },
+     ] },
++    { id: 'help', label: '&Help', submenu: [
++      { id: 'about', label: '&About PicoMarQ', click: (_item, window) => { void showAbout(recordFor(window) || record); } },
++    ] },
+   ]);
+ }
++// Help > About PicoMarQ: the version, the acknowledgment, and the two pages.
++async function showAbout(record) {
++  try {
++    const options = aboutDialog(app.getVersion());
++    const icon = nativeImage.createFromPath(path.join(__dirname, '../app.ico'));
++    if (!icon.isEmpty()) options.icon = icon;
++    const owner = record && !record.window.isDestroyed() ? record.window : null;
++    const result = owner ? await dialog.showMessageBox(owner, options) : await dialog.showMessageBox(options);
++    const page = aboutLink(result.response);
++    if (page) await shell.openExternal(page);
++  } catch (error) {
++    dialog.showErrorBox('About PicoMarQ', error.message);
++  }
++}
+ function buildMenu() {
+   Menu.setApplicationMenu(menuFor(focusedRecord()));
+   for (const { window } of windows.values()) {
+@@ -322,6 +341,20 @@ async function handleInvoke(event, action, args = {}) {
+       }
+       return { restored: true };
+     }
++    case 'clear_custom_dictionary': {
++      // The words added with Add to Dictionary, in this profile.
++      const spelling = window.webContents.session;
++      const words = dictionaryWords(await spelling.listWordsInSpellCheckerDictionary());
++      if (!words.length) return { removed: 0, empty: true };
++      const result = await dialog.showMessageBox(window, clearDictionaryDialog(words));
++      if (result.response !== 0) return null;
++      let removed = 0;
++      for (const word of words) if (spelling.removeWordFromSpellCheckerDictionary(word)) removed += 1;
++      // Chromium does not mark the removed words again by itself: have every
++      // open document checked again.
++      for (const target of windows.values()) command(target, 'recheck-spelling');
++      return { removed, kept: words.length - removed };
++    }
+     case 'get_session': {
+       const doc = currentDocument(record);
+       return { documents: [doc], activeDocumentId: doc.id, settingsOpen: doc.view?.settingsOpen === true };
+@@ -412,7 +445,7 @@ async function handleInvoke(event, action, args = {}) {
+       window.webContents[args.action](); return;
+     }
+     case 'app_menu': return new Promise((resolve, reject) => {
+-      if (!['file', 'edit', 'view'].includes(args.menu)) return reject(new Error('Unknown menu.'));
++      if (!['file', 'edit', 'view', 'help'].includes(args.menu)) return reject(new Error('Unknown menu.'));
+       const menu = menuFor(record).getMenuItemById(args.menu).submenu;
+       const [width, height] = window.getContentSize();
+       const x = Math.max(0, Math.min(width, Math.round(Number(args.x) || 0)));
+@@ -457,13 +490,14 @@ async function createDocumentWindow(doc, { restored = false } = {}) {
+     Menu.buildFromTemplate(contextMenuTemplate(params, pending.items, {
+       command: (action, extra) => command(record, action, extra),
+       replaceMisspelling: text => window.webContents.replaceMisspelling(text),
++      ignoreAll: word => command(record, 'ignore-spelling', { word }),
+       addToDictionary: word => window.webContents.session.addWordToSpellCheckerDictionary(word),
+     })).popup({ window, callback: () => {} });
+   });
+   window.webContents.on('before-input-event', (event, input) => {
+     if (input.type !== 'keyDown') return;
+     if (input.alt && !input.control && !input.meta && !input.shift) {
+-      const menu = { f: 'file', e: 'edit', v: 'view' }[input.key.toLowerCase()];
++      const menu = { f: 'file', e: 'edit', v: 'view', h: 'help' }[input.key.toLowerCase()];
+       if (menu) { event.preventDefault(); command(record, `menu-${menu}`); }
+       return;
+     }
+diff --git a/docs/KEYBOARD-SHORTCUTS.md b/docs/KEYBOARD-SHORTCUTS.md
+index 6630af6..8ba2d21 100644
+--- a/docs/KEYBOARD-SHORTCUTS.md
++++ b/docs/KEYBOARD-SHORTCUTS.md
+@@ -19,7 +19,7 @@ PicoMarQ has two views: the **formatted view** (the normal writing view, with th
+ | Ctrl+Shift+M | Switch between the formatted view and the Markdown source view |
+ | Ctrl+, | Settings |
+ | Esc | Leave Settings |
+-| Alt+F, Alt+E, Alt+V | Open the File, Edit, or View menu |
++| Alt+F, Alt+E, Alt+V, Alt+H | Open the File, Edit, View, or Help menu |
+ 
+ Open Recent, Revert to Saved, and Apply Smart Typography have no shortcut; they are in the File and Edit menus.
+ 
+@@ -136,7 +136,7 @@ Edit > Apply Smart Typography converts a whole document at once, in a single und
+ | Link editor | Esc | Cancel |
+ | Formula editor | Ctrl+Enter | Apply the formula |
+ | Formula editor | Esc | Cancel |
+-| Menu button (File, Edit, View) focused | Down arrow | Open that menu |
++| Menu button (File, Edit, View, Help) focused | Down arrow | Open that menu |
+ | Menu button focused | Left or Right arrow | Move to the next menu |
+ 
+ ## Mouse
+@@ -145,7 +145,7 @@ Edit > Apply Smart Typography converts a whole document at once, in a single und
+ | --- | --- |
+ | Ctrl+click on a link | Open it in your browser (a plain click just places the cursor) |
+ | Ctrl+mouse wheel | Zoom |
+-| Right-click | Spelling suggestions for the word under the pointer, Add to Dictionary, Bold, Italic, Cut, Copy, Paste, and table commands when the cursor is in a table (in source view, Bold and Italic wrap the selection in Markdown markers) |
++| Right-click | Spelling suggestions for the word under the pointer, Ignore All (in this document, until it is closed), Add to Dictionary, Bold, Italic, Cut, Copy, Paste, and table commands when the cursor is in a table (in source view, Bold and Italic wrap the selection in Markdown markers) |
+ | Double-click a page-edge handle | Return Page Width to Full (Settings > User Interface > Page Width, Custom) |
+ 
+ ## Markdown source view
+diff --git a/package-lock.json b/package-lock.json
+index 5d2d3b0..82562cc 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.3.0",
++  "version": "1.3.1",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.3.0",
++      "version": "1.3.1",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+diff --git a/package.json b/package.json
+index c1e64fb..e36ee29 100644
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.3.0",
++  "version": "1.3.1",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -19,7 +19,9 @@
+     "test:close-window": "node tests/close-command-smoke.cjs",
+     "test:settings": "node tests/settings-smoke.cjs",
+     "test:spelling": "node tests/spelling-smoke.cjs",
+-    "test:word-count": "node tests/word-count-smoke.cjs"
++    "test:word-count": "node tests/word-count-smoke.cjs",
++    "test:ignore": "node tests/ignore-smoke.cjs",
++    "test:dictionary": "node tests/dictionary-smoke.cjs"
+   },
+   "dependencies": {
+     "@radix-ui/react-alert-dialog": "^1.1.15",
+diff --git a/scripts/repack-windows-from-1.3.0.py b/scripts/repack-windows-from-1.3.0.py
+new file mode 100644
+index 0000000..d57fdec
+--- /dev/null
++++ b/scripts/repack-windows-from-1.3.0.py
+@@ -0,0 +1,219 @@
++#!/usr/bin/env python3
++"""Repackage PicoMarQ 1.3.1 from the 1.3.0 portable Windows release.
++
++Keeps the 1.3.0 package's Electron 44.6.0 runtime, replaces the application
++files (resources/app: desktop, dist, package.json) with this source, which
++must already be built (npm ci && npm run build), and updates the version
++information of the unsigned executable from 1.3.0 to 1.3.1: the two version
++strings and the two numbers of the fixed version record that hold the third
++part of the version.
++Usage:
++  python scripts/repack-windows-from-1.3.0.py BASE-1.3.0.zip [OUTPUT-1.3.1.zip]
++"""
++import json
++import hashlib
++import shutil
++import struct
++import sys
++import tempfile
++import zipfile
++from pathlib import Path, PurePosixPath
++
++ROOT = Path(__file__).resolve().parents[1]
++OLD = '1.3.0'
++NEW = '1.3.1'
++
++
++def sha256(path):
++    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++
++def version_numbers(version):
++    """'1.3.0' as the two 32-bit values of VS_FIXEDFILEINFO: (major.minor, patch.0)."""
++    major, minor, patch = (int(part) for part in version.split('.'))
++    return (major << 16) | minor, patch << 16
++
++
++def pe_sections(data):
++    """Return PE section extents and the security directory for sanity checks."""
++    if data[:2] != b'MZ':
++        raise ValueError('Not a Windows PE executable (no MZ).')
++    e_lfanew = struct.unpack_from('<I', data, 0x3C)[0]
++    if data[e_lfanew:e_lfanew + 4] != b'PE\0\0':
++        raise ValueError('Not a PE executable (no PE signature).')
++    coff = e_lfanew + 4
++    count = struct.unpack_from('<H', data, coff + 2)[0]
++    optional = coff + 20
++    opt_size = struct.unpack_from('<H', data, coff + 16)[0]
++    if struct.unpack_from('<H', data, optional)[0] != 0x20b:
++        raise ValueError('Expected 64-bit PE32+ executable.')
++    if struct.unpack_from('<II', data, optional + 112 + 8*4) != (0, 0):
++        raise ValueError('Expected an unsigned executable; refusing to break a signature.')
++    checksum = struct.unpack_from('<I', data, optional + 64)[0]
++    if checksum:
++        raise ValueError('Expected zero PE checksum; refusing to overwrite a checksummed executable.')
++    sections = {}
++    for index in range(count):
++        at = optional + opt_size + index*40
++        name = bytes(data[at:at+8]).split(b'\0')[0].decode('ascii')
++        virtual_size, virtual_addr, raw_size, raw_ptr = struct.unpack_from('<IIII', data, at + 8)
++        if raw_ptr + raw_size > len(data):
++            raise ValueError(f'Invalid section {name} raw size.')
++        sections[name] = (raw_ptr, raw_size)
++    if '.rsrc' not in sections:
++        raise ValueError('Missing PE resource section.')
++    return sections
++
++
++def update_version_resource(exe_path):
++    original = exe_path.read_bytes()
++    sections = pe_sections(original)
++    resource_start, resource_length = sections['.rsrc']
++    new_bytes = bytearray(original)
++    resource = original[resource_start:resource_start+resource_length]
++    old_unicode = OLD.encode('utf-16-le')
++    new_unicode = NEW.encode('utf-16-le')
++    if len(old_unicode) != len(new_unicode):
++        raise ValueError('The version strings must have the same length to be replaced in place.')
++    matches = []
++    where = 0
++    while True:
++        index = resource.find(old_unicode, where)
++        if index == -1:
++            break
++        matches.append(index)
++        where = index + len(old_unicode)
++    # Existing unsigned PicoMarQ.exe contains FileVersion and ProductVersion.
++    if len(matches) != 2:
++        raise ValueError(f'Expected two strings {OLD} in .rsrc; found {len(matches)}')
++    for index in matches:
++        at = resource_start + index
++        new_bytes[at:at+len(old_unicode)] = new_unicode
++    fixed_signature = struct.pack('<I', 0xFEEF04BD)
++    positions = []
++    where = 0
++    while True:
++        index = resource.find(fixed_signature, where)
++        if index == -1:
++            break
++        positions.append(index)
++        where = index + 4
++    if len(positions) != 1:
++        raise ValueError(f'Expected one VS_FIXEDFILEINFO structure, got {len(positions)}')
++    at = resource_start + positions[0]
++    fixed = struct.unpack_from('<13I', original, at)
++    old_parts = version_numbers(OLD)
++    new_parts = version_numbers(NEW)
++    if (fixed[2],fixed[3],fixed[4],fixed[5]) != old_parts*2:
++        raise ValueError(f'Unexpected numeric version metadata: {fixed[2:6]}')
++    # File version and product version, each as (major.minor, patch.0).
++    for rel_offset, value in zip((2,3,4,5), new_parts*2):
++        struct.pack_into('<I', new_bytes, at + rel_offset*4, value)
++    if pe_sections(new_bytes) != sections:
++        raise ValueError('Patch changed PE section layout.')
++    # No original runtime bytes outside the .rsrc section have changed.
++    assert new_bytes[:resource_start] == original[:resource_start]
++    assert new_bytes[resource_start+resource_length:] == original[resource_start+resource_length:]
++    for name,(offset,length) in sections.items():
++        if name != '.rsrc' and new_bytes[offset:offset+length] != original[offset:offset+length]:
++            raise ValueError(f'Non-resource section changed: {name}')
++    old_strings = new_bytes[resource_start:resource_start+resource_length].count(old_unicode)
++    new_strings = new_bytes[resource_start:resource_start+resource_length].count(new_unicode)
++    if old_strings != 0 or new_strings != 2:
++        raise ValueError('Incorrect updated resource version strings.')
++    updated = struct.unpack_from('<13I', new_bytes, at)
++    if (updated[2],updated[3],updated[4],updated[5]) != new_parts*2:
++        raise ValueError('Numeric version verification failed.')
++    exe_path.write_bytes(new_bytes)
++    return {
++        'original_exe_sha256': hashlib.sha256(original).hexdigest(),
++        'updated_exe_sha256': hashlib.sha256(new_bytes).hexdigest(),
++        'version_strings_changed': len(matches),
++        'numeric_version_values_changed': sum(1 for a, b in zip(old_parts*2, new_parts*2) if a != b),
++        'runtime_sections_unchanged': True,
++    }
++
++
++def package(base, output):
++    source_pkg = json.loads((ROOT/'package.json').read_text())
++    if source_pkg['version'] != NEW:
++        raise ValueError('Source package version does not match expected release.')
++    with tempfile.TemporaryDirectory(prefix='picomarq-windows-') as tmp:
++        tmp = Path(tmp)
++        with zipfile.ZipFile(base) as z:
++            names = z.namelist()
++            for member in names:
++                p = PurePosixPath(member)
++                if not p.parts or p.parts[0] != 'PicoMarQ' or '..' in p.parts or p.is_absolute() or '\\' in member:
++                    raise ValueError(f'Unsafe/malformed ZIP entry: {member}')
++            if 'PicoMarQ/PicoMarQ.exe' not in names:
++                raise ValueError('Baseline portable ZIP is missing PicoMarQ.exe')
++            z.extractall(tmp)
++        win = tmp/'PicoMarQ'
++        app = win/'resources/app'
++        prior = json.loads((app/'package.json').read_text())
++        if prior.get('version') != OLD:
++            raise ValueError(f'Baseline app must be {OLD}')
++        # Replace renderer and desktop app with the exact supplied source version.
++        for directory in ('dist','desktop'):
++            shutil.rmtree(app/directory)
++            shutil.copytree(ROOT/directory,app/directory)
++        for filename in ('LICENSE','THIRD-PARTY-NOTICES.txt','app.ico'):
++            shutil.copy2(ROOT/filename,app/filename)
++        (app/'package.json').write_text(json.dumps({
++            'name': source_pkg['name'],
++            'productName': source_pkg['productName'],
++            'version': NEW,
++            'main': source_pkg['main'],
++        },indent=2)+'\n')
++        for name,src in {
++            'START-HERE.txt': 'START-HERE.txt',
++            'KEYBOARD-SHORTCUTS.md':'docs/KEYBOARD-SHORTCUTS.md',
++            'APP-LICENSE.txt':'LICENSE',
++            'THIRD-PARTY-NOTICES.txt':'THIRD-PARTY-NOTICES.txt',
++        }.items():
++            shutil.copy2(ROOT/src,win/name)
++        verification = update_version_resource(win/'PicoMarQ.exe')
++        (win/'RELEASE-VALIDATION.txt').write_text(
++            'PicoMarQ 1.3.1 portable Windows release\n\n'
++            'Assembled from the PicoMarQ 1.3.0 portable release. Its Electron\n'
++            '44.6.0 x64 runtime is unchanged; the application files in\n'
++            'resources\\app are replaced with PicoMarQ 1.3.1, and the version\n'
++            'information of PicoMarQ.exe changes from 1.3.0 to 1.3.1 (two\n'
++            'strings and two numbers of the fixed version record). No\n'
++            'other bytes of the executable or the runtime files change.\n\n'
++            'The 1.3.1 renderer is compiled from the 1.3.1 source (npm ci,\n'
++            'npm run build). Tested on Linux with the same Electron 44.6.0:\n'
++            'unit tests, Chromium browser checks, and the desktop, typography,\n'
++            'startup, close, settings, spelling, word-count, Ignore All and\n'
++            'dictionary checks (see VALIDATION.md in the source package). Not\n'
++            'run on Windows here; this unsigned build should be checked on\n'
++            'Windows 10/11.\n\n'
++            f'Baseline executable SHA-256: {verification["original_exe_sha256"]}\n'
++            f'Updated executable SHA-256:  {verification["updated_exe_sha256"]}\n'
++        )
++        if json.loads((app/'package.json').read_text())['version'] != NEW:
++            raise AssertionError('App metadata version mismatch')
++        output.parent.mkdir(parents=True,exist_ok=True)
++        if output.exists():
++            output.unlink()
++        with zipfile.ZipFile(output,mode='w',compression=zipfile.ZIP_DEFLATED,compresslevel=6,allowZip64=True) as z:
++            for item in sorted(win.rglob('*')):
++                if item.is_file():
++                    z.write(item,arcname=Path('PicoMarQ')/item.relative_to(win))
++        with zipfile.ZipFile(output) as z:
++            corrupt = z.testzip()
++            if corrupt:
++                raise ValueError(f'Archive CRC failure: {corrupt}')
++            assert json.loads(z.read('PicoMarQ/resources/app/package.json'))['version'] == NEW
++            assert z.read('PicoMarQ/PicoMarQ.exe')[:2] == b'MZ'
++        return verification
++
++if __name__ == '__main__':
++    if len(sys.argv) not in (2,3):
++        raise SystemExit(__doc__)
++    base = Path(sys.argv[1]).resolve()
++    target = Path(sys.argv[2]).resolve() if len(sys.argv) == 3 else ROOT/'release'/f'PicoMarQ-Windows-x64-{NEW}.zip'
++    summary = package(base,target)
++    print(f'Created: {target} ({target.stat().st_size:,} bytes)')
++    print(json.dumps(summary,indent=2))
+diff --git a/src/App.tsx b/src/App.tsx
+index 1486cbf..ec91b5b 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -7,6 +7,7 @@ import { Toaster } from './components/ui/Toaster';
+ import { TooltipProvider } from './components/ui/Tooltip';
+ import { invoke, runContextMenuAction, type DocumentState, type DesktopCommand, type WorkspaceState } from './lib/desktop';
+ import { wordCountLabel } from './lib/word-count';
++import { forgetIgnoredWords } from './lib/ignored-spelling';
+ 
+ function nameOf(doc: DocumentState) { return doc.path?.split(/[\\/]/).pop() || doc.name || 'Untitled'; }
+ function blankDocument(existing: DocumentState[] = []): DocumentState {
+@@ -106,6 +107,8 @@ function DocumentApp() {
+     workspaceRef.current = next;
+     setWorkspace(next);
+     for (const id of handlesRef.current.keys()) if (!next.documents.some(doc => doc.id === id)) handlesRef.current.delete(id);
++    // Words ignored by the spelling checker last as long as their document is open.
++    forgetIgnoredWords(next.documents.map(doc => doc.id));
+   }, []);
+   const captureDocument = useCallback((id: string): DocumentState | null => {
+     const current = workspaceRef.current?.documents.find(doc => doc.id === id);
+@@ -294,6 +297,10 @@ function DocumentApp() {
+         }
+         break;
+       case 'context-menu-item': runContextMenuAction(command.id); break;
++      // Right-click > Ignore All on a word the spelling checker marked.
++      case 'ignore-spelling': if (command.word) handle?.ignoreSpelling(command.word); break;
++      // Unlike the default below, this must not leave Settings.
++      case 'recheck-spelling': handle?.command('recheck-spelling'); break;
+       default: showSettings(false); handle?.command(command.action);
+     }
+   };
+diff --git a/src/components/editor/ApplicationMenu.tsx b/src/components/editor/ApplicationMenu.tsx
+index 2a3c2ac..10a1bfc 100644
+--- a/src/components/editor/ApplicationMenu.tsx
++++ b/src/components/editor/ApplicationMenu.tsx
+@@ -3,7 +3,7 @@ import { toast } from 'sonner';
+ import { invoke } from '../../lib/desktop';
+ import { cn } from '../../lib/utils';
+ 
+-const menus = ['File', 'Edit', 'View'] as const;
++const menus = ['File', 'Edit', 'View', 'Help'] as const;
+ 
+ export function ApplicationMenu({ active = true }: { active?: boolean }) {
+   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+diff --git a/src/components/editor/Editor.tsx b/src/components/editor/Editor.tsx
+index 25abf48..94b6938 100644
+--- a/src/components/editor/Editor.tsx
++++ b/src/components/editor/Editor.tsx
+@@ -24,8 +24,10 @@ import { countWords, countDocumentWords, countSelectedWords } from "../../lib/wo
+ import { createTextareaMeasurer, lastIndexWhere, textareaOffsetTops } from "../../lib/textarea-position";
+ import { resolveAutoDirection } from "../../lib/text-direction";
+ import { recheckSpelling } from "../../lib/spelling";
++import { ignoreWord, ignoredWords } from "../../lib/ignored-spelling";
+ import { convertMarkdownTypography, convertTypography, insideProtectedMarkdown, keystrokeReplacement } from "../../lib/smart-typography";
+ import { SmartTypography } from "./SmartTypography";
++import { IgnoredSpelling, ignoredSpellingKey } from "./IgnoredSpelling";
+ import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+ import { lowlight } from "./lowlight";
+ import { IncrementalLowlightPlugin } from "./lowlight-plugin";
+@@ -387,6 +389,8 @@ export interface EditorHandle {
+   getContent: () => string;
+   getSession: () => ViewState;
+   command: (action: string) => void;
++  /** "Ignore All" in the spelling menu: stop marking this word in this document. */
++  ignoreSpelling: (word: string) => void;
+ }
+ interface EditorProps {
+   previewMode: PreviewModeData;
+@@ -985,6 +989,7 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+       }),
+       Wikilink,
+       SmartTypography.configure({ enabled: () => smartTypographyRef.current }),
++      IgnoredSpelling.configure({ words: () => ignoredWords(currentNoteIdRef.current) }),
+       ScratchBlockMath.configure({
+         katexOptions: {
+           throwOnError: false,
+@@ -2025,9 +2030,17 @@ export function Editor({ previewMode, active = true, initialSession, resumeSessi
+           sourceScrollLeft: textarea?.scrollLeft ?? 0,
+         };
+       },
++      ignoreSpelling: (word) => {
++        // The words stay with the document (not with this editor), so they
++        // survive Revert and a visit to the Markdown source view.
++        const words = ignoreWord(currentNote.id, word);
++        editor.view.dispatch(editor.state.tr.setMeta(ignoredSpellingKey, { words }));
++      },
+       command: (action) => {
+         if (action === 'source') toggleSourceMode();
+         else if (action === 'smart-typography') applySmartTypography();
++        // The dictionary changed (Settings > Clear Custom Dictionary).
++        else if (action === 'recheck-spelling') recheckSpelling(editor.view.dom);
+         else if (action === 'find' || action === 'replace') {
+           if (action === 'replace') setIsReplaceOpen(true);
+           openEditorSearch();
+diff --git a/src/components/editor/IgnoredSpelling.ts b/src/components/editor/IgnoredSpelling.ts
+new file mode 100644
+index 0000000..3ca8f11
+--- /dev/null
++++ b/src/components/editor/IgnoredSpelling.ts
+@@ -0,0 +1,215 @@
++import { Extension } from "@tiptap/core";
++import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
++import { Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
++import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
++import { findIgnoredRanges, ignoredForms, NO_IGNORED_FORMS, type IgnoredForms } from "../../lib/ignored-spelling";
++import { cancelSpellingRecheck, keepCaretOutOfIgnoredWords, postponeSpellingRecheck, recheckSpelling, recheckSpellingSoon } from "../../lib/spelling";
++
++/**
++ * "Ignore All" for the spelling checker, in the formatted view.
++ *
++ * Chromium has no way to ignore a word short of adding it to the dictionary.
++ * It does leave a word unmarked when the word starts inside an element that
++ * has spell checking switched off, so the first letter of every occurrence
++ * of an ignored word is wrapped (as a decoration, not as document content)
++ * in <span spellcheck="false">. Nothing is saved with the document, and the
++ * Markdown is untouched.
++ *
++ * Only the first letter, because Chromium runs its background checks only
++ * while the caret is at a place where spell checking is on: with the whole
++ * word wrapped, they would stop whenever the caret rests inside an ignored
++ * word or at its end, which is where it is right after the word is typed.
++ * With one letter wrapped, the caret can only be "inside" the wrapper at its
++ * two edges, and there the selection is rewritten to name the same place
++ * from outside (keepCaretOutOfIgnoredWords in lib/spelling.ts).
++ *
++ * The catch: when a wrapper appears or disappears, or text is typed against
++ * one, ProseMirror rewrites the text nodes beside it, and Chromium drops
++ * every spelling underline in a text node that is rewritten. Chromium puts
++ * them back by itself only when the change was typed and the paragraph is
++ * short (it then rechecks the paragraph). In every other case the editor
++ * asks for a full recheck (lib/spelling.ts): at once after Ignore All, and
++ * once editing has paused after anything else.
++ */
++
++export const ignoredSpellingKey = new PluginKey<IgnoredSpellingState>("ignoredSpelling");
++
++export interface IgnoredSpellingOptions {
++  /** The words already ignored in this document when the editor is created. */
++  words: () => ReadonlySet<string>;
++}
++
++interface IgnoredSpellingState {
++  words: ReadonlySet<string>;
++  forms: IgnoredForms;
++  decorations: DecorationSet;
++  /** Raised by every change that may have cost other words their underlines. */
++  revision: number;
++  cause: "ignore" | "edit";
++  /** The longest text block involved in that change, in characters. */
++  longestBlock: number;
++}
++
++// Chromium rechecks a paragraph of up to 1,024 characters around typed text;
++// in a longer one only the part near the cursor.
++const SELF_HEALING_BLOCK = 900;
++// Above this many changed blocks (new content, a large paste) start afresh.
++const REBUILD_ABOVE = 50;
++
++const ATTRIBUTES = { spellcheck: "false", "data-ignored-spelling": "" };
++const COMBINING_MARK = /\p{M}/u;
++
++/** The text of a block, one character per document position inside it. */
++function blockText(block: ProseMirrorNode): string {
++  let text = "";
++  block.forEach((child) => { text += child.isText ? child.text : "￼".repeat(child.nodeSize); });
++  return text;
++}
++
++/** The first letter of each ignored word in a block (with its combining marks): what gets wrapped. */
++function wrapperRanges(block: ProseMirrorNode, pos: number, forms: IgnoredForms): Array<[number, number]> {
++  const text = blockText(block);
++  return findIgnoredRanges(text, forms).map(([from, to]) => {
++    let end = from + ((text.codePointAt(from) ?? 0) > 0xFFFF ? 2 : 1);
++    while (end < to && COMBINING_MARK.test(text.charAt(end))) end++;
++    return [pos + 1 + from, pos + 1 + Math.min(end, to)];
++  });
++}
++
++function buildAll(doc: ProseMirrorNode, forms: IgnoredForms): DecorationSet {
++  if (forms === NO_IGNORED_FORMS) return DecorationSet.empty;
++  const decorations: Decoration[] = [];
++  doc.descendants((node, pos) => {
++    if (!node.isTextblock) return true;
++    for (const [from, to] of wrapperRanges(node, pos, forms)) decorations.push(Decoration.inline(from, to, ATTRIBUTES));
++    return false;
++  });
++  return decorations.length ? DecorationSet.create(doc, decorations) : DecorationSet.empty;
++}
++
++/** The ranges of the new document that a transaction changed. */
++function changedRanges(tr: Transaction): Array<[number, number]> {
++  const ranges: Array<[number, number]> = [];
++  tr.mapping.maps.forEach((map, index) => {
++    const rest = tr.mapping.slice(index + 1);
++    map.forEach((_oldStart, _oldEnd, newStart, newEnd) => { ranges.push([rest.map(newStart, -1), rest.map(newEnd, 1)]); });
++  });
++  return ranges;
++}
++
++function updateForEdit(tr: Transaction, state: IgnoredSpellingState): IgnoredSpellingState {
++  const doc = tr.doc;
++  const ranges = changedRanges(tr);
++  let decorations = state.decorations.map(tr.mapping, doc);
++  // The text blocks that the changes reach, including the ones next to a
++  // change (blocks that were joined or split).
++  const blocks = new Map<number, ProseMirrorNode>();
++  for (const [from, to] of ranges) {
++    doc.nodesBetween(Math.max(0, from - 1), Math.min(doc.content.size, to + 1), (node, pos) => {
++      if (blocks.size > REBUILD_ABOVE) return false;
++      if (!node.isTextblock) return true;
++      blocks.set(pos, node);
++      return false;
++    });
++    if (blocks.size > REBUILD_ABOVE) break;
++  }
++  if (blocks.size > REBUILD_ABOVE) {
++    const rebuilt = buildAll(doc, state.forms);
++    if (rebuilt === DecorationSet.empty && state.decorations === DecorationSet.empty) return state;
++    return { ...state, decorations: rebuilt, revision: state.revision + 1, cause: "edit", longestBlock: Infinity };
++  }
++  let disturbed = false;
++  let longestBlock = 0;
++  for (const [pos, block] of blocks) {
++    const end = pos + block.nodeSize;
++    const existing = decorations.find(pos, end).sort((a, b) => a.from - b.from);
++    const fresh = wrapperRanges(block, pos, state.forms);
++    const same = existing.length === fresh.length && existing.every((decoration, index) => decoration.from === fresh[index][0] && decoration.to === fresh[index][1]);
++    if (!same) decorations = decorations.remove(existing).add(doc, fresh.map(([from, to]) => Decoration.inline(from, to, ATTRIBUTES)));
++    // A wrapper appeared or went, or the edit is right beside one: the text
++    // nodes next to it are rewritten.
++    if (!same || ranges.some(([from, to]) => existing.some(decoration => decoration.from <= to + 1 && decoration.to >= from - 1))) {
++      disturbed = true;
++      longestBlock = Math.max(longestBlock, block.content.size);
++    }
++  }
++  if (disturbed) return { ...state, decorations, revision: state.revision + 1, cause: "edit", longestBlock };
++  return decorations === state.decorations ? state : { ...state, decorations };
++}
++
++export const IgnoredSpelling = Extension.create<IgnoredSpellingOptions>({
++  name: "ignoredSpelling",
++
++  addOptions() {
++    return { words: () => new Set<string>() };
++  },
++
++  addProseMirrorPlugins() {
++    const options = this.options;
++    return [
++      new Plugin<IgnoredSpellingState>({
++        key: ignoredSpellingKey,
++        state: {
++          init: (_config, editorState) => {
++            const words = options.words();
++            const forms = ignoredForms(words);
++            return { words, forms, decorations: buildAll(editorState.doc, forms), revision: 0, cause: "edit", longestBlock: 0 };
++          },
++          apply: (tr, state, _oldState, newState) => {
++            const meta = tr.getMeta(ignoredSpellingKey) as { words?: ReadonlySet<string> } | undefined;
++            if (meta?.words && meta.words !== state.words) {
++              const forms = ignoredForms(meta.words);
++              return { words: meta.words, forms, decorations: buildAll(newState.doc, forms), revision: state.revision + 1, cause: "ignore", longestBlock: 0 };
++            }
++            // Nothing is ignored in most documents: no work at all.
++            if (!tr.docChanged || state.words.size === 0) return state;
++            return updateForEdit(tr, state);
++          },
++        },
++        props: {
++          decorations: (editorState) => ignoredSpellingKey.getState(editorState)?.decorations,
++        },
++        view: (editorView: EditorView) => {
++          // True while the browser itself is applying typed input: from its
++          // "beforeinput" event until the end of that task, which includes
++          // ProseMirror reading the change.
++          let typed = false;
++          const typing = () => {
++            typed = true;
++            window.setTimeout(() => { typed = false; }, 0);
++          };
++          editorView.dom.addEventListener("beforeinput", typing, true);
++          // Wherever the selection goes while words are ignored, it must not
++          // end inside a wrapper.
++          const caretMoved = () => {
++            if (ignoredSpellingKey.getState(editorView.state)?.decorations !== DecorationSet.empty) keepCaretOutOfIgnoredWords(editorView.dom);
++          };
++          document.addEventListener("selectionchange", caretMoved);
++          return {
++            update: (view, previousState) => {
++              const previous = ignoredSpellingKey.getState(previousState);
++              const current = ignoredSpellingKey.getState(view.state);
++              if (!previous || !current) return;
++              // ProseMirror has just put the selection back in its own way.
++              caretMoved();
++              if (current.revision === previous.revision) {
++                // Still editing: a recheck that is waiting keeps waiting.
++                if (view.state.doc !== previousState.doc) postponeSpellingRecheck(view.dom);
++                return;
++              }
++              if (current.cause === "ignore") recheckSpelling(view.dom);
++              // Typed into a short paragraph: Chromium rechecks it by itself.
++              else if (!typed || current.longestBlock > SELF_HEALING_BLOCK) recheckSpellingSoon(view.dom);
++              else postponeSpellingRecheck(view.dom);
++            },
++            destroy: () => {
++              editorView.dom.removeEventListener("beforeinput", typing, true);
++              document.removeEventListener("selectionchange", caretMoved);
++              cancelSpellingRecheck(editorView.dom);
++            },
++          };
++        },
++      }),
++    ];
++  },
++});
+diff --git a/src/components/settings/EditorSettingsSection.tsx b/src/components/settings/EditorSettingsSection.tsx
+index 2d22db4..ae46751 100644
+--- a/src/components/settings/EditorSettingsSection.tsx
++++ b/src/components/settings/EditorSettingsSection.tsx
+@@ -472,10 +472,52 @@ export function AppearanceSettingsSection() {
+           </p>
+         </div>
+       </section>
++
++      <div className="border-t border-border border-dashed" />
++
++      <SpellingSection />
+     </div>
+   );
+ }
+ 
++// Words added with Add to Dictionary (right-click a misspelled word) stay in
++// the dictionary until they are cleared here. The desktop shell asks first.
++function SpellingSection() {
++  const [busy, setBusy] = useState(false);
++  const [status, setStatus] = useState<string | null>(null);
++  const clearDictionary = async () => {
++    setBusy(true);
++    setStatus(null);
++    try {
++      const result = await invoke<{ removed: number; kept?: number; empty?: boolean } | null>('clear_custom_dictionary');
++      if (!result) return;
++      if (result.empty) setStatus('The custom dictionary is empty.');
++      else setStatus(`Removed ${result.removed === 1 ? '1 word' : `${result.removed.toLocaleString()} words`} from the custom dictionary.${result.kept ? ` ${result.kept.toLocaleString()} could not be removed.` : ''}`);
++    } catch (error) {
++      setStatus(`Could not clear the custom dictionary: ${error instanceof Error ? error.message : String(error)}`);
++    } finally {
++      setBusy(false);
++    }
++  };
++  return (
++    <section>
++      <h2 className="text-xl font-medium mb-3">Spelling</h2>
++      <div className="rounded-[10px] border border-border p-4 space-y-3">
++        <div className="flex flex-wrap items-center justify-between gap-3">
++          <span className="text-sm text-text font-medium">Custom Dictionary</span>
++          <Button variant="outline" size="lg" onClick={clearDictionary} disabled={busy} aria-describedby="custom-dictionary-description">
++            Clear Custom Dictionary…
++          </Button>
++        </div>
++        <p id="custom-dictionary-description" className="text-xs text-text-muted">
++          Removes every word you added with Add to Dictionary, after asking. Those words are marked as misspelled again.
++        </p>
++        {status && <p data-dictionary-status role="status" aria-live="polite" className="text-xs text-text-muted">{status}</p>}
++      </div>
++    </section>
++  );
++}
++
+ // Expandable subsection for customizing colors for a single theme mode
+ function ColorsExpandable({
+   label,
+diff --git a/src/lib/desktop.ts b/src/lib/desktop.ts
+index 1e0d381..e2e7f3d 100644
+--- a/src/lib/desktop.ts
++++ b/src/lib/desktop.ts
+@@ -1,4 +1,4 @@
+-export interface DesktopCommand { action: string; path?: string; id?: string; token?: string }
++export interface DesktopCommand { action: string; path?: string; id?: string; token?: string; word?: string }
+ export interface ViewState {
+   sourceMode?: boolean;
+   selection?: { anchor: number; head: number };
+diff --git a/src/lib/ignored-spelling.ts b/src/lib/ignored-spelling.ts
+new file mode 100644
+index 0000000..b44ef5e
+--- /dev/null
++++ b/src/lib/ignored-spelling.ts
+@@ -0,0 +1,113 @@
++// "Ignore All" in the right-click spelling menu: words the spelling checker
++// should leave alone in one document, for as long as that document is open.
++//
++// Nothing here is saved. The lists live in this window's memory, one per
++// open document, and are gone when the document is closed. A word to keep
++// for good belongs in the dictionary (Add to Dictionary).
++
++const NONE: ReadonlySet<string> = new Set();
++const ignoredByDocument = new Map<string, ReadonlySet<string>>();
++
++const APOSTROPHES = /[’ʼ]/g;
++const POSSESSIVE = /.'s$/i;
++// A word: letters and digits, with apostrophes only between them.
++const WORD = /[\p{L}\p{M}\p{N}]+(?:['’ʼ][\p{L}\p{M}\p{N}]+)*/gu;
++const WHOLE_WORD = /^[\p{L}\p{M}\p{N}]+(?:'[\p{L}\p{M}\p{N}]+)*$/u;
++const WORD_CHARACTER = /[\p{L}\p{M}\p{N}]/u;
++
++/**
++ * The form under which a word is kept: curly apostrophes become straight
++ * ones, and a possessive is kept as its base word ("Qarth's" as "Qarth"),
++ * so that ignoring either form covers both.
++ */
++export function normalizeIgnoredWord(word: string): string {
++  const plain = word.trim().replace(APOSTROPHES, "'");
++  return POSSESSIVE.test(plain) ? plain.slice(0, -2) : plain;
++}
++
++/** The words ignored in a document. The same set object until the list changes. */
++export function ignoredWords(documentId: string | null | undefined): ReadonlySet<string> {
++  return (documentId && ignoredByDocument.get(documentId)) || NONE;
++}
++
++/** Add a word to a document's list; returns the list (a new set when it grew). */
++export function ignoreWord(documentId: string, word: string): ReadonlySet<string> {
++  const current = ignoredWords(documentId);
++  const normalized = normalizeIgnoredWord(word);
++  if (!normalized || normalized.length > 100 || current.has(normalized)) return current;
++  const next = new Set(current).add(normalized);
++  ignoredByDocument.set(documentId, next);
++  return next;
++}
++
++/** Drop the lists of documents that are no longer open in this window. */
++export function forgetIgnoredWords(openDocumentIds: Iterable<string>): void {
++  if (ignoredByDocument.size === 0) return;
++  const open = new Set(openDocumentIds);
++  for (const id of [...ignoredByDocument.keys()]) if (!open.has(id)) ignoredByDocument.delete(id);
++}
++
++/** The spellings that a list of ignored words covers, prepared for searching. */
++export interface IgnoredForms {
++  /** Spellings made of letters, digits and inner apostrophes: looked up word by word. */
++  readonly words: ReadonlySet<string>;
++  /** Spellings with other characters in them (the checker decides what a word is): searched for as they are. */
++  readonly other: readonly string[];
++}
++export const NO_IGNORED_FORMS: IgnoredForms = { words: new Set(), other: [] };
++
++/**
++ * Every spelling that the ignored words cover, as dictionaries treat their
++ * entries: the word as given, in capitals, and (for a lower-case word) with a
++ * capital first letter, as at the start of a sentence.
++ */
++export function ignoredForms(ignored: ReadonlySet<string>): IgnoredForms {
++  if (ignored.size === 0) return NO_IGNORED_FORMS;
++  const words = new Set<string>();
++  const other = new Set<string>();
++  for (const word of ignored) {
++    const spellings = [word, word.toUpperCase()];
++    if (word === word.toLowerCase()) spellings.push(word.charAt(0).toUpperCase() + word.slice(1));
++    for (const spelling of spellings) (WHOLE_WORD.test(spelling) ? words : other).add(spelling);
++  }
++  return { words, other: [...other] };
++}
++
++/**
++ * Where ignored words occur in a run of text, as [start, end) offsets of
++ * whole words, in order. A possessive of an ignored word counts as that word.
++ */
++export function findIgnoredRanges(text: string, forms: IgnoredForms): Array<[number, number]> {
++  const ranges: Array<[number, number]> = [];
++  if (!text) return ranges;
++  if (forms.words.size) {
++    WORD.lastIndex = 0;
++    for (let match = WORD.exec(text); match; match = WORD.exec(text)) {
++      const word = match[0].replace(APOSTROPHES, "'");
++      if (forms.words.has(word) || (POSSESSIVE.test(word) && forms.words.has(word.slice(0, -2)))) ranges.push([match.index, match.index + match[0].length]);
++    }
++  }
++  if (forms.other.length) {
++    const plain = text.replace(APOSTROPHES, "'");
++    for (const spelling of forms.other) {
++      for (let at = plain.indexOf(spelling); at >= 0; at = plain.indexOf(spelling, at + 1)) {
++        const end = at + spelling.length;
++        const inside = (index: number) => index >= 0 && index < plain.length && WORD_CHARACTER.test(plain.charAt(index));
++        // Not part of a longer word, unless the spelling itself starts or ends with punctuation.
++        if (WORD_CHARACTER.test(spelling.charAt(0)) && inside(at - 1)) continue;
++        if (WORD_CHARACTER.test(spelling.charAt(spelling.length - 1)) && inside(end)) continue;
++        ranges.push([at, end]);
++      }
++    }
++    ranges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
++    // Overlapping finds become one range.
++    const merged: Array<[number, number]> = [];
++    for (const range of ranges) {
++      const last = merged[merged.length - 1];
++      if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
++      else merged.push(range);
++    }
++    return merged;
++  }
++  return ranges;
++}
+diff --git a/src/lib/spelling.ts b/src/lib/spelling.ts
+index 2672439..6494438 100644
+--- a/src/lib/spelling.ts
++++ b/src/lib/spelling.ts
+@@ -12,18 +12,154 @@
+ // This works only together with the UnrestrictSpellingAndGrammarForTesting
+ // switch in desktop/main.cjs; without it, Chromium ignores spell checking
+ // being turned back on.
++//
++// Chromium follows through only if, when its idle pass runs, the caret is in
++// the editor, in text that is displayed and has spell checking on. Otherwise
++// it gives up, and the underlines stay away until the caret next moves. So
++// the switching waits until the editor is on screen and holds the caret.
+ 
+ const pending = new WeakMap<HTMLElement, number>();
++const scheduled = new WeakMap<HTMLElement, number>();
++const waiting = new WeakSet<HTMLElement>();
++const hidden = new WeakMap<HTMLElement, IntersectionObserver>();
++
++// Chromium runs its background checks only on the editable text that holds
++// the caret, and only while the caret is at a place where spell checking is
++// on. With the caret somewhere else (the Find box) or inside an element with
++// spellcheck="false", a recheck asked for now would clear every underline
++// and bring none back.
++function caretAllowsChecking(editor: HTMLElement): boolean {
++  const node = document.getSelection()?.focusNode;
++  const element = node instanceof Element ? node : node?.parentElement;
++  if (!element || !editor.contains(element)) return false;
++  const off = element.closest('[spellcheck="false"]');
++  return off === null || off === editor || !editor.contains(off);
++}
++
++/**
++ * The wrapper around the first letter of an ignored word (IgnoredSpelling.ts)
++ * is such an element, and the caret is "inside" it when it stands right after
++ * that letter, or before it at the start of a paragraph. The same place can
++ * be named from outside the wrapper, where spell checking is on: the caret
++ * does not move on screen and the editor reads the same position. Returns
++ * false if the selection ends inside a wrapper where that is not possible.
++ */
++export function keepCaretOutOfIgnoredWords(editor: HTMLElement): boolean {
++  const selection = document.getSelection();
++  const node = selection?.focusNode;
++  if (!selection || !node) return true;
++  const element = node instanceof Element ? node : node.parentElement;
++  const wrapper = element?.closest("[data-ignored-spelling]");
++  if (!wrapper || !wrapper.parentNode || !editor.contains(wrapper)) return true;
++  const before = document.createRange();
++  before.selectNodeContents(wrapper);
++  before.setEnd(node, selection.focusOffset);
++  const after = document.createRange();
++  after.selectNodeContents(wrapper);
++  after.setStart(node, selection.focusOffset);
++  const atEnd = after.toString() === "";
++  if (!atEnd && before.toString() !== "") return false;
++  // Preferably in the text next to the wrapper, where the arrow keys carry
++  // on as usual; failing that (nothing beside it), between the nodes.
++  const text = atEnd ? firstText(wrapper.nextSibling) : lastText(wrapper.previousSibling);
++  const index = Array.prototype.indexOf.call(wrapper.parentNode.childNodes, wrapper);
++  const target: Node = text ?? wrapper.parentNode;
++  const offset = text ? (atEnd ? 0 : text.length) : (atEnd ? index + 1 : index);
++  if (selection.isCollapsed || !selection.anchorNode) selection.collapse(target, offset);
++  else selection.setBaseAndExtent(selection.anchorNode, selection.anchorOffset, target, offset);
++  return true;
++}
++
++function firstText(node: Node | null): Text | null {
++  if (!node) return null;
++  if (node.nodeType === Node.TEXT_NODE) return node as Text;
++  return document.createTreeWalker(node, NodeFilter.SHOW_TEXT).nextNode() as Text | null;
++}
++
++function lastText(node: Node | null): Text | null {
++  if (!node) return null;
++  if (node.nodeType === Node.TEXT_NODE) return node as Text;
++  return document.createTreeWalker(node, NodeFilter.SHOW_TEXT).lastChild() as Text | null;
++}
++
++/** Recheck as soon as the caret is in the editor, at a place that allows checking. */
++function recheckWhenCaretAllows(editor: HTMLElement): void {
++  if (waiting.has(editor)) return;
++  waiting.add(editor);
++  const retry = () => {
++    if (editor.isConnected && !caretAllowsChecking(editor)) return;
++    document.removeEventListener("selectionchange", retry);
++    waiting.delete(editor);
++    if (editor.isConnected) recheckSpelling(editor);
++  };
++  document.addEventListener("selectionchange", retry);
++}
++
++/**
++ * Recheck once the editor is on screen again. While it is hidden (Settings
++ * or the Markdown source view is open) Chromium would drop every underline
++ * and, finding the caret in text that is not displayed, stop checking: the
++ * underlines would stay away until the caret is moved.
++ */
++function recheckWhenShown(editor: HTMLElement): void {
++  if (hidden.has(editor)) return;
++  // The callback must not hold on to the editor: an observer that is
++  // observing is kept alive, and would keep a closed document's editor too.
++  const observer = new IntersectionObserver((entries) => {
++    const shown = entries.find(entry => entry.isIntersecting);
++    if (!shown) return;
++    observer.disconnect();
++    hidden.delete(shown.target as HTMLElement);
++    recheckSpelling(shown.target as HTMLElement);
++  });
++  hidden.set(editor, observer);
++  observer.observe(editor);
++}
++
++/** Drop a recheck that recheckSpellingSoon has scheduled, or that waits for the editor to be shown. */
++export function cancelSpellingRecheck(editor: HTMLElement | null | undefined): void {
++  if (!editor) return;
++  hidden.get(editor)?.disconnect();
++  hidden.delete(editor);
++  const timer = scheduled.get(editor);
++  if (timer === undefined) return;
++  window.clearTimeout(timer);
++  scheduled.delete(editor);
++}
+ 
+ export function recheckSpelling(editor: HTMLElement | null | undefined): void {
+   if (!editor) return;
++  // This recheck covers whatever a scheduled one was for.
++  cancelSpellingRecheck(editor);
+   const previous = pending.get(editor);
+   if (previous !== undefined) window.clearTimeout(previous);
+   // After the paste or new content is in the document.
+   pending.set(editor, window.setTimeout(() => {
+     pending.delete(editor);
+     if (!editor.isConnected || editor.getAttribute("spellcheck") !== "true") return;
++    if (editor.getClientRects().length === 0) { recheckWhenShown(editor); return; }
++    keepCaretOutOfIgnoredWords(editor);
++    if (!caretAllowsChecking(editor)) { recheckWhenCaretAllows(editor); return; }
+     editor.setAttribute("spellcheck", "false");
+     editor.setAttribute("spellcheck", "true");
+   }, 0));
+ }
++
++/**
++ * The same recheck, once editing has paused. For underlines that were lost
++ * where Chromium will not look again by itself (see IgnoredSpelling.ts);
++ * waiting keeps the other underlines from blinking in the middle of typing.
++ */
++export function recheckSpellingSoon(editor: HTMLElement | null | undefined, delay = 1000): void {
++  if (!editor) return;
++  cancelSpellingRecheck(editor);
++  scheduled.set(editor, window.setTimeout(() => {
++    scheduled.delete(editor);
++    recheckSpelling(editor);
++  }, delay));
++}
++
++/** Editing goes on: move a scheduled recheck further away. */
++export function postponeSpellingRecheck(editor: HTMLElement | null | undefined, delay = 1000): void {
++  if (editor && scheduled.has(editor)) recheckSpellingSoon(editor, delay);
++}
+diff --git a/tests/about-dictionary.test.cjs b/tests/about-dictionary.test.cjs
+new file mode 100644
+index 0000000..c709988
+--- /dev/null
++++ b/tests/about-dictionary.test.cjs
+@@ -0,0 +1,61 @@
++const { test } = require('node:test');
++const assert = require('node:assert/strict');
++const { aboutDialog, aboutLink, PICOMARQ_PAGE, SCRATCH_PAGE } = require('../desktop/about.cjs');
++const { dictionaryWords, clearDictionaryDialog, MAX_LISTED } = require('../desktop/dictionary.cjs');
++const project = require('../package.json');
++
++test('About PicoMarQ shows the version, the acknowledgment and both pages', () => {
++  const about = aboutDialog(project.version);
++  assert.equal(about.title, 'About PicoMarQ');
++  assert.equal(about.message, 'PicoMarQ');
++  assert.deepEqual(about.detail.split('\n'), [
++    `Version ${project.version}`,
++    '',
++    'Based on Scratch by Eric Li and contributors.',
++    '',
++    'PicoMarQ: https://github.com/Crotalus65/PicoMarq',
++    'Scratch: https://github.com/erictli/scratch',
++  ]);
++  assert.match(project.version, /^\d+\.\d+\.\d+$/);
++  // No personal name anywhere in the box.
++  assert.doesNotMatch(JSON.stringify(about), /copyright|©|\bby (?!Eric Li)/i);
++});
++
++test('About PicoMarQ: the buttons open the two pages, Close and Esc open nothing', () => {
++  const about = aboutDialog('1.0.0');
++  assert.deepEqual(about.buttons, ['PicoMarQ on GitHub', 'Scratch on GitHub', 'Close']);
++  assert.equal(about.buttons[about.defaultId], 'Close');
++  assert.equal(about.buttons[about.cancelId], 'Close');
++  assert.equal(about.noLink, true);
++  assert.equal(aboutLink(0), PICOMARQ_PAGE);
++  assert.equal(aboutLink(1), SCRATCH_PAGE);
++  assert.equal(aboutLink(2), null);
++  assert.equal(aboutLink(undefined), null);
++  for (const page of [PICOMARQ_PAGE, SCRATCH_PAGE]) assert.equal(new URL(page).protocol, 'https:');
++});
++
++test('the custom dictionary is listed without repeats, in alphabetical order whatever the case', () => {
++  assert.deepEqual(dictionaryWords(['Zorblat', 'apple', 'Qarth', 'qarth', 'Qarth', '', null, 7]), ['apple', 'Qarth', 'qarth', 'Zorblat']);
++  assert.deepEqual(dictionaryWords(undefined), []);
++  assert.deepEqual(dictionaryWords(new Set(['a'])), []);
++});
++
++test('Clear Custom Dictionary asks first, names the words, and Cancel is the default', () => {
++  const two = clearDictionaryDialog(['Zorblat', 'Qarth']);
++  assert.equal(two.title, 'Clear Custom Dictionary');
++  assert.equal(two.message, 'Clear the custom dictionary?');
++  assert.deepEqual(two.detail.split('\n'), ['This removes all 2 words you added with Add to Dictionary:', '', 'Qarth, Zorblat', '', 'They will be marked as misspelled again. This cannot be undone.']);
++  assert.deepEqual(two.buttons, ['Clear', 'Cancel']);
++  assert.equal(two.buttons[two.defaultId], 'Cancel');
++  assert.equal(two.buttons[two.cancelId], 'Cancel');
++  const one = clearDictionaryDialog(['Qarth']);
++  assert.deepEqual(one.detail.split('\n'), ['This removes the 1 word you added with Add to Dictionary:', '', 'Qarth', '', 'It will be marked as misspelled again. This cannot be undone.']);
++});
++
++test('Clear Custom Dictionary lists at most twenty words and counts the rest', () => {
++  const words = Array.from({ length: MAX_LISTED + 7 }, (_, i) => `word${String(i).padStart(2, '0')}`);
++  const lines = clearDictionaryDialog(words).detail.split('\n');
++  assert.equal(lines[0], `This removes all ${MAX_LISTED + 7} words you added with Add to Dictionary:`);
++  assert.equal(lines[2], `${words.slice(0, MAX_LISTED).join(', ')}, and 7 more`);
++  assert.equal(clearDictionaryDialog(words.slice(0, MAX_LISTED)).detail.split('\n')[2], words.slice(0, MAX_LISTED).join(', '));
++});
+diff --git a/tests/context-menu.test.cjs b/tests/context-menu.test.cjs
+index 3abfccc..1ff3d3c 100644
+--- a/tests/context-menu.test.cjs
++++ b/tests/context-menu.test.cjs
+@@ -4,17 +4,18 @@ const { contextMenuTemplate, sanitizeExtras } = require('../desktop/context-menu
+ 
+ function actions() {
+   const calls = [];
+-  return { calls, command: (action, extra) => calls.push(['command', action, extra]), replaceMisspelling: text => calls.push(['replace', text]), addToDictionary: word => calls.push(['add', word]) };
++  return { calls, command: (action, extra) => calls.push(['command', action, extra]), replaceMisspelling: text => calls.push(['replace', text]), ignoreAll: word => calls.push(['ignore', word]), addToDictionary: word => calls.push(['add', word]) };
+ }
+ const labels = template => template.map(item => item.type === 'separator' ? '|' : item.label || item.role);
+ 
+-test('a misspelled word gets its suggestions and Add to Dictionary first', () => {
++test('a misspelled word gets its suggestions, Ignore All and Add to Dictionary first', () => {
+   const a = actions();
+   const template = contextMenuTemplate({ misspelledWord: 'acommodate', dictionarySuggestions: ['accommodate', 'accommodated'], editFlags: { canCut: false, canCopy: false } }, [], a);
+-  assert.deepEqual(labels(template), ['accommodate', 'accommodated', 'Add to Dictionary', '|', 'Bold', 'Italic', '|', 'cut', 'copy', 'paste']);
++  assert.deepEqual(labels(template), ['accommodate', 'accommodated', 'Ignore All', 'Add to Dictionary', '|', 'Bold', 'Italic', '|', 'cut', 'copy', 'paste']);
+   template[0].click();
+   template[2].click();
+-  assert.deepEqual(a.calls, [['replace', 'accommodate'], ['add', 'acommodate']]);
++  template[3].click();
++  assert.deepEqual(a.calls, [['replace', 'accommodate'], ['ignore', 'acommodate'], ['add', 'acommodate']]);
+   assert.equal(template.find(item => item.role === 'cut').enabled, false);
+   assert.equal(template.find(item => item.role === 'copy').enabled, false);
+   assert.equal(template.find(item => item.role === 'paste').enabled, undefined);
+@@ -22,16 +23,17 @@ test('a misspelled word gets its suggestions and Add to Dictionary first', () =>
+ 
+ test('a misspelled word without suggestions says so; suggestions are capped at six', () => {
+   const none = contextMenuTemplate({ misspelledWord: 'zzxq', dictionarySuggestions: [] }, [], actions());
+-  assert.deepEqual(labels(none).slice(0, 3), ['No spelling suggestions', 'Add to Dictionary', '|']);
++  assert.deepEqual(labels(none).slice(0, 4), ['No spelling suggestions', 'Ignore All', 'Add to Dictionary', '|']);
+   assert.equal(none[0].enabled, false);
+   const many = contextMenuTemplate({ misspelledWord: 'w', dictionarySuggestions: ['1', '2', '3', '4', '5', '6', '7', '8'] }, [], actions());
+-  assert.deepEqual(labels(many).slice(0, 7), ['1', '2', '3', '4', '5', '6', 'Add to Dictionary']);
++  assert.deepEqual(labels(many).slice(0, 8), ['1', '2', '3', '4', '5', '6', 'Ignore All', 'Add to Dictionary']);
+ });
+ 
+ test('no misspelling gives Bold, Italic and the clipboard items, with table items appended', () => {
+   const a = actions();
+   const template = contextMenuTemplate({ editFlags: { canCut: true, canCopy: true } }, [{ id: 'x1', text: 'Add Row Below' }, { type: 'separator' }, { id: 'x2', text: 'Delete Table' }], a);
+   assert.deepEqual(labels(template), ['Bold', 'Italic', '|', 'cut', 'copy', 'paste', '|', 'Add Row Below', '|', 'Delete Table']);
++  assert.equal(template.some(item => item.label === 'Ignore All' || item.label === 'Add to Dictionary'), false);
+   template[template.length - 1].click();
+   template[0].click();
+   template[1].click();
+diff --git a/tests/desktop-smoke.cjs b/tests/desktop-smoke.cjs
+index 5bee949..d5f86cb 100644
+--- a/tests/desktop-smoke.cjs
++++ b/tests/desktop-smoke.cjs
+@@ -140,7 +140,7 @@ async function main() {
+   }
+   await launch();
+   const labels = await electron.evaluate(({ Menu }) => Menu.getApplicationMenu().items.map(item => item.label));
+-  assert.deepEqual(labels, ['&File', '&Edit', '&View']);
++  assert.deepEqual(labels, ['&File', '&Edit', '&View', '&Help']);
+   assert.equal(await electron.evaluate(({ app }) => app.getName()), 'PicoMarQ');
+   assert((await page.title()).endsWith('PicoMarQ'));
+   assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--editor-max-width')), '100%');
+@@ -148,12 +148,13 @@ async function main() {
+   assert.deepEqual(await recentPaths(), []);
+   assert.deepEqual(await electron.evaluate(({ Menu }) => Menu.getApplicationMenu().getMenuItemById('open-recent').submenu.items.map(item => ({ label: item.label, enabled: item.enabled }))), [{ label: 'No recent files', enabled: false }]);
+   assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false);
+-  assert.deepEqual(await page.getByRole('navigation', { name: 'Application menus' }).getByRole('button').allTextContents(), ['File', 'Edit', 'View']);
++  assert.deepEqual(await page.getByRole('navigation', { name: 'Application menus' }).getByRole('button').allTextContents(), ['File', 'Edit', 'View', 'Help']);
+   assert.equal(await page.locator('[data-sidebar]').count(), 0);
+   const layout = await page.evaluate(() => {
+     const header = document.querySelector('[data-editor-header]').getBoundingClientRect();
+     const toolbar = document.querySelector('[data-format-bar]').getBoundingClientRect();
+-    const view = [...document.querySelectorAll('nav button')].find(button => button.textContent === 'View').getBoundingClientRect();
++    // The last menu must end before the unsaved-changes dot.
++    const view = [...document.querySelectorAll('nav button')].find(button => button.textContent === 'Help').getBoundingClientRect();
+     const status = document.querySelector('[data-editor-header] [role="status"]').getBoundingClientRect();
+     // The Find magnifier is the last button of the formatting toolbar, at its right end; the menu row has none in the formatted view.
+     const find = document.querySelector('[data-formatting-toolbar] [aria-label="Find in document"]').getBoundingClientRect();
+@@ -168,7 +169,7 @@ async function main() {
+   assert(layout.findRightGap >= 8 && layout.findRightGap <= 16, `Find magnifier is not at the right end of the toolbar (${layout.findRightGap}px)`);
+   assert(layout.findAfterIcons > 40, 'Find magnifier is not separated from the formatting icons');
+   assert(Math.abs(layout.centerDifference) < 1);
+-  assert.equal((await page.locator('[data-document-id][aria-hidden="false"] [data-editor-header]').innerText()).replace(/\s/g, ''), 'FileEditView');
++  assert.equal((await page.locator('[data-document-id][aria-hidden="false"] [data-editor-header]').innerText()).replace(/\s/g, ''), 'FileEditViewHelp');
+   for (const name of [/Inline Code/, /Code Block/, /Block Math/, /Wikilink/i, /View Markdown Source/, /View Formatted/, /Export/, /Heading 4/]) assert.equal(await page.getByRole('button', { name }).count(), 0);
+   const editor = page.locator('[data-document-id][aria-hidden="false"] .tiptap');
+   await assertWordCount(0);
+@@ -227,6 +228,35 @@ async function main() {
+   assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false);
+   console.log('PASS: relocated Edit clipboard commands, Ctrl+E, Alt+V, and hidden native menu bar');
+ 
++  // Help > About PicoMarQ: the version, the acknowledgment, and buttons that
++  // open PicoMarQ's page and Scratch's page in the browser.
++  const helpCount = await electron.evaluate(() => global.testContextMenus.length);
++  await page.keyboard.press('Alt+h');
++  await until(async () => await electron.evaluate(() => global.testContextMenus.length) > helpCount, 'Alt+H did not open Help');
++  assert.deepEqual(await electron.evaluate(() => global.testContextMenus.at(-1).menu.items.map(item => item.label)), ['&About PicoMarQ']);
++  await electron.evaluate(() => global.testContextMenus.at(-1).options.callback());
++  await until(async () => await page.getByRole('button', { name: 'Help', exact: true }).getAttribute('aria-expanded') === 'false', 'Help menu did not close');
++  await electron.evaluate(({ shell }) => { global.testOpened = []; shell.openExternal = async url => { global.testOpened.push(url); }; });
++  const version = require(path.join(root, 'package.json')).version;
++  for (const [response, opened] of [[0, ['https://github.com/Crotalus65/PicoMarq']], [1, ['https://github.com/erictli/scratch']], [2, []]]) {
++    await electron.evaluate((_electron, response) => { global.testPrompts.length = 0; global.testOpened.length = 0; global.testResponses.push(response); }, response);
++    await menuItem('Help', 'About PicoMarQ');
++    await until(async () => await electron.evaluate(() => global.testPrompts.length) === 1, 'About PicoMarQ did not open');
++    await pause(150);
++    const about = await electron.evaluate(() => ({ ...global.testPrompts[0], icon: undefined }));
++    assert.equal(about.title, 'About PicoMarQ');
++    assert.equal(about.message, 'PicoMarQ');
++    assert.deepEqual(about.detail.split('\n'), [`Version ${version}`, '', 'Based on Scratch by Eric Li and contributors.', '', 'PicoMarQ: https://github.com/Crotalus65/PicoMarq', 'Scratch: https://github.com/erictli/scratch']);
++    assert.deepEqual(about.buttons, ['PicoMarQ on GitHub', 'Scratch on GitHub', 'Close']);
++    assert.equal(about.defaultId, 2);
++    assert.equal(about.cancelId, 2);
++    assert.deepEqual(await electron.evaluate(() => global.testOpened), opened);
++  }
++  assert.equal(await electron.evaluate(({ app }) => app.getVersion()), version);
++  // Later checks count the message boxes shown.
++  await electron.evaluate(() => { global.testPrompts.length = 0; });
++  console.log(`PASS: Help menu (Alt+H) with About PicoMarQ: version ${version}, based on Scratch by Eric Li, buttons open the PicoMarQ and Scratch pages`);
++
+   const savedFile = path.join(work, 'My ünicode document.md');
+   await electron.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, savedFile);
+   await menuItem('File', 'Save');
+diff --git a/tests/dictionary-smoke.cjs b/tests/dictionary-smoke.cjs
+new file mode 100644
+index 0000000..ead92cb
+--- /dev/null
++++ b/tests/dictionary-smoke.cjs
+@@ -0,0 +1,133 @@
++// Settings > Spelling > Clear Custom Dictionary, in the real Electron app,
++// with the words added the way a user adds them: right-click, Add to
++// Dictionary. Needs a graphical session or Xvfb, and a US English dictionary
++// (see tests/spelling-harness.cjs). Without one it is skipped.
++//
++// What it guards: the button asks first and Cancel changes nothing; Clear
++// removes every added word, and the words are underlined again in every open
++// document (Chromium does not mark them again by itself), also in the
++// document behind Settings, which is hidden when the words are cleared; an
++// empty dictionary is reported without asking; words ignored with Ignore All
++// stay ignored.
++// Usage: node tests/dictionary-smoke.cjs
++const assert = require('node:assert/strict');
++const { startSpellingApp, active, pause } = require('./spelling-harness.cjs');
++let app;
++
++const FIRST = `# Dictionary Check
++
++Qarth is a walled city. The peeple of Qarth recieve few visitors, says Zorblat.
++
++Zorblat adds that Qarth has one definately tall gate, and that Vexil is far.
++`;
++const SECOND = `# Second Document
++
++Here Zorblat writes about Qarth again, with an occured error.
++`;
++
++async function main() {
++  app = await startSpellingApp({ name: 'dictionary-smoke', display: process.env.SCRATCH_DISPLAY_NUMBER || '128' });
++  if (!app) { console.log('SKIP: no US English dictionary (set PICOMARQ_TEST_BDIC or install hunspell-en-us)'); return; }
++  const { expectMarks, rightClick, choose, command } = app;
++  const second = await app.open(await app.write('Second Document.md', SECOND));
++  await expectMarks({ Zorblat: 'red', Qarth: 'red', occured: 'red' }, 'second document opened', 10000);
++  const first = await app.open(await app.write('Dictionary Check.md', FIRST));
++  await expectMarks({ Qarth: 'red', Zorblat: 'red', Vexil: 'red', peeple: 'red', recieve: 'red', definately: 'red' }, 'first document opened', 10000);
++  assert.deepEqual(await app.dictionaryWords(), []);
++
++  // Settings in the current window, and the Spelling section's parts.
++  const button = () => app.page.getByRole('button', { name: 'Clear Custom Dictionary…' });
++  const status = () => app.page.locator('[data-dictionary-status]');
++  const openSettings = async () => { await command('settings'); await button().waitFor({ timeout: 5000 }); };
++  const closeSettings = async () => { await app.page.keyboard.press('Escape'); await app.page.waitForSelector(`${active} .tiptap`, { state: 'visible' }); };
++
++  // 1. Nothing added yet: no question, just a note.
++  await openSettings();
++  assert.deepEqual(await app.page.locator('h2').allTextContents().then(headings => headings.slice(-2)), ['Startup', 'Spelling'], 'Spelling should be the last section of Settings');
++  await button().click();
++  await status().waitFor({ timeout: 5000 });
++  assert.equal(await status().innerText(), 'The custom dictionary is empty.');
++  assert.deepEqual(await app.dialogs(), [], 'An empty dictionary needs no question');
++  await closeSettings();
++  console.log('PASS: Settings ends with a Spelling section; an empty custom dictionary is reported without asking');
++
++  // 2. Add two words from the right-click menu, and ignore a third.
++  for (const word of ['Qarth', 'Zorblat']) {
++    const menu = await rightClick(word, 0);
++    assert(menu.includes('Add to Dictionary'), `Menu for ${word}: ${menu.join(', ')}`);
++    await choose('Add to Dictionary');
++    await expectMarks({ [word]: 'plain' }, `${word} added to the dictionary`);
++  }
++  await rightClick('Vexil', 0);
++  await choose('Ignore All');
++  await expectMarks({ Qarth: 'plain', Zorblat: 'plain', Vexil: 'ignored', peeple: 'red', recieve: 'red', definately: 'red' }, 'two words added, one ignored');
++  assert.deepEqual((await app.dictionaryWords()).sort(), ['Qarth', 'Zorblat']);
++  await app.use(second);
++  await expectMarks({ Qarth: 'plain', Zorblat: 'plain', occured: 'red' }, 'added words in the other open document');
++  await app.use(first);
++  console.log('PASS: Add to Dictionary removes the underlines in every open document; Ignore All adds nothing to the dictionary');
++
++  // 3. Clear asks first; Cancel is the default and changes nothing.
++  await openSettings();
++  await app.answer(1);
++  await button().click();
++  await pause(600);
++  const [question, ...extra] = await app.dialogs();
++  assert.equal(extra.length, 0);
++  assert.equal(question.title, 'Clear Custom Dictionary');
++  assert.equal(question.message, 'Clear the custom dictionary?');
++  assert.deepEqual(question.detail.split('\n'), ['This removes all 2 words you added with Add to Dictionary:', '', 'Qarth, Zorblat', '', 'They will be marked as misspelled again. This cannot be undone.']);
++  assert.deepEqual(question.buttons, ['Clear', 'Cancel']);
++  assert.equal(question.defaultId, 1);
++  assert.equal(question.cancelId, 1);
++  assert.equal(await status().count(), 0, 'Cancel should leave no message');
++  assert.deepEqual((await app.dictionaryWords()).sort(), ['Qarth', 'Zorblat']);
++  await closeSettings();
++  await expectMarks({ Qarth: 'plain', Zorblat: 'plain', Vexil: 'ignored', peeple: 'red' }, 'after Cancel');
++  console.log('PASS: Clear Custom Dictionary asks first, lists the words, and Cancel (the default) changes nothing');
++
++  // 4. Clear removes the words; they are underlined again in both documents.
++  await openSettings();
++  await app.answer(0);
++  await button().click();
++  await status().waitFor({ timeout: 5000 });
++  assert.equal(await status().innerText(), 'Removed 2 words from the custom dictionary.');
++  assert.equal((await app.dialogs()).length, 1);
++  assert.deepEqual(await app.dictionaryWords(), []);
++  assert.equal(await button().count(), 1, 'Settings should stay open after clearing');
++  // A person stays in Settings longer than Chromium waits before it looks at
++  // the document (0.2 s). The document is hidden then, and Chromium gives up.
++  await pause(700);
++  await closeSettings();
++  const back = await expectMarks({ Qarth: 'red', Zorblat: 'red', Vexil: 'ignored', peeple: 'red', recieve: 'red', definately: 'red' }, 'after Clear, back in the document');
++  await app.use(second);
++  await expectMarks({ Qarth: 'red', Zorblat: 'red', occured: 'red' }, 'after Clear, in the other open document');
++  console.log(`PASS: Clear removes every added word; they are underlined again in both open documents (${back} ms after leaving Settings); the word ignored with Ignore All stays ignored`);
++
++  // 5. The cleared words stay cleared: adding one again starts from one word.
++  await app.use(first);
++  await rightClick('Qarth', 0);
++  await choose('Add to Dictionary');
++  await expectMarks({ Qarth: 'plain', Zorblat: 'red' }, 'a word added again after clearing');
++  assert.deepEqual(await app.dictionaryWords(), ['Qarth']);
++  await openSettings();
++  await app.answer(0);
++  await button().click();
++  await status().waitFor({ timeout: 5000 });
++  assert.equal(await status().innerText(), 'Removed 1 word from the custom dictionary.');
++  assert.equal((await app.dialogs())[0].detail.split('\n')[0], 'This removes the 1 word you added with Add to Dictionary:');
++  await pause(700);
++  await closeSettings();
++  await expectMarks({ Qarth: 'red', Zorblat: 'red' }, 'after clearing one word');
++  console.log('PASS: the dictionary can be filled and cleared again');
++  assert.equal(app.errors.length, 0, app.errors.join('\n'));
++}
++
++const watchdog = setTimeout(() => { console.error('Dictionary checks timed out'); process.exit(1); }, 240000);
++main().then(() => console.log('DICTIONARY CHECKS DONE')).catch(error => {
++  console.error(error);
++  process.exitCode = 1;
++}).finally(async () => {
++  await app?.stop();
++  clearTimeout(watchdog);
++});
+diff --git a/tests/ignore-smoke.cjs b/tests/ignore-smoke.cjs
+new file mode 100644
+index 0000000..434104b
+--- /dev/null
++++ b/tests/ignore-smoke.cjs
+@@ -0,0 +1,227 @@
++// "Ignore All" in the right-click spelling menu, in the real Electron app.
++// Needs a graphical session or Xvfb, and a US English dictionary (see
++// tests/spelling-harness.cjs). Without one it is skipped.
++//
++// What it guards: every occurrence of an ignored word loses its underline and
++// later ones never get one; the other misspellings keep theirs, although
++// wrapping the first letter of the ignored words makes Chromium drop
++// underlines near them (the last paragraph is far from the caret, where
++// Chromium does not look again by itself); Chromium's background checks go on
++// wherever the caret is in the document, and a recheck waits while the caret
++// is in the Find panel; the list lasts through Undo, a paste, the Markdown
++// source view, Replace All and Revert, and is gone when the document is
++// closed. The Markdown is never changed and nothing is added to the
++// dictionary.
++// Usage: node tests/ignore-smoke.cjs
++const assert = require('node:assert/strict');
++const { startSpellingApp, active, pause } = require('./spelling-harness.cjs');
++let app;
++
++const filler = Array.from({ length: 30 }, (_, i) => `Sentence number ${i + 1} of this long paragraph says nothing of interest about the weather.`).join(' ');
++const LONG = `The long paragraph begins with a seperate mistake. ${filler} It ends here`;
++const DOCUMENT = `# Ignore All Check
++
++Qarth is a walled city. The peeple of Qarth recieve few visitors, and Qarth's gates are tall.
++
++In bold, **Qarth** counts too. Not the same word: Qarths. One definately wrong word.
++
++${LONG}
++
++The last paragraph has an occured error, a long way from Qarth.
++`;
++
++async function main() {
++  app = await startSpellingApp({ name: 'ignore-smoke', display: process.env.SCRATCH_DISPLAY_NUMBER || '127' });
++  if (!app) { console.log('SKIP: no US English dictionary (set PICOMARQ_TEST_BDIC or install hunspell-en-us)'); return; }
++  const { expectMarks, watch, rightClick, choose, command, markdown, selectionState } = app;
++  const file = await app.write('Ignore All Check.md', DOCUMENT);
++  await app.open(file);
++  const page = () => app.page;
++
++  // Put the caret in the text block that contains `block`: at its end, or at
++  // an offset into the first occurrence of `word` in it.
++  const caret = (block, word, offset = 0) => page().evaluate(({ block, word, offset, active }) => {
++    const editor = document.querySelector(`${active} .tiptap`).editor;
++    let target = null;
++    editor.state.doc.descendants((node, pos) => {
++      if (target === null && node.isTextblock && node.textContent.includes(block)) target = word ? pos + 1 + node.textContent.indexOf(word) + offset : pos + node.nodeSize - 1;
++      return target === null;
++    });
++    if (target === null) throw new Error(`No block with "${block}"`);
++    editor.chain().focus().setTextSelection(target).run();
++    return target;
++  }, { block, word, offset, active });
++  const head = () => page().evaluate(active => document.querySelector(`${active} .tiptap`).editor.state.selection.head, active);
++  // The editor learns of a caret move a moment after the key (selectionchange).
++  const headBecomes = async (expected, what) => {
++    const start = Date.now();
++    let actual;
++    while ((actual = await head()) !== expected) {
++      if (Date.now() - start > 1000) assert.fail(`${what}: caret at ${actual}, expected ${expected}; ${JSON.stringify(await selectionState())}`);
++      await pause(20);
++    }
++  };
++
++  const others = { peeple: 'red', recieve: 'red', definately: 'red', seperate: 'red', occured: 'red' };
++  await expectMarks({ Qarth: 'red', "Qarth's": 'red', Qarths: 'red', ...others }, 'opened file', 10000);
++  const original = await markdown();
++
++  // 1. The menu, and Ignore All.
++  const menu = await rightClick('Qarth', 1);
++  const separator = menu.indexOf('-');
++  assert.deepEqual(menu.slice(separator - 2, separator), ['Ignore All', 'Add to Dictionary'], `Spelling items: ${menu.join(', ')}`);
++  assert(separator >= 3, `Expected suggestions or "No spelling suggestions" above Ignore All: ${menu.join(', ')}`);
++  await choose('Ignore All');
++  const blink = await expectMarks({ Qarth: 'ignored', "Qarth's": 'ignored', Qarths: 'red', ...others }, 'Ignore All');
++  assert.equal(await markdown(), original, 'Ignore All must not change the Markdown');
++  assert.equal(await page().locator('footer').innerText().then(text => text.includes('Unsaved')), false, 'Ignore All must not mark the document as changed');
++  assert.deepEqual(await app.dictionaryWords(), [], 'Ignore All must not add to the dictionary');
++  assert.equal(await page().locator(`${active} .tiptap [data-ignored-spelling]`).evaluateAll(wrappers => wrappers.every(wrapper => wrapper.textContent.length === 1 && wrapper.getAttribute('spellcheck') === 'false')), true, 'Only the first letter of an ignored word is wrapped');
++  console.log(`PASS: Ignore All sits above Add to Dictionary; every "Qarth" (plain, bold, possessive) loses its underline, "Qarths" and the other misspellings keep theirs (back after ${blink} ms); Markdown and dictionary untouched`);
++
++  // 2. An ignored word is no longer a misspelling in the menu, and a
++  // double-click still selects all of it.
++  const ignoredMenu = await rightClick('Qarth', 0);
++  assert.equal(ignoredMenu.includes('Ignore All') || ignoredMenu.includes('Add to Dictionary'), false, `Menu on an ignored word: ${ignoredMenu.join(', ')}`);
++  assert.equal(ignoredMenu[0], 'Bold');
++  await page().keyboard.press('Escape');
++  const point = await app.pointOf('Qarth', 1);
++  await page().mouse.dblclick(point.x, point.y);
++  await pause(200);
++  assert.equal(await page().evaluate(() => document.getSelection().toString()), 'Qarth', 'A double-click should select the whole ignored word');
++  console.log('PASS: the right-click menu on an ignored word has no spelling items; a double-click selects the whole word');
++
++  // 3. Chromium stops its background checks while the caret is inside an
++  // element with spell checking off. The caret is "inside" a wrapper right
++  // after the first letter of an ignored word, and before that letter at the
++  // start of a paragraph. The checks must go on there, and the keys must
++  // work as usual.
++  for (const [place, offset] of [['right after the first letter of an ignored word', 1], ['before an ignored word at the start of a paragraph', 0]]) {
++    const at = await caret('walled city', 'Qarth', offset);
++    await pause(300);
++    const selection = await selectionState();
++    assert(!selection.focus.includes('in wrapper'), `Caret ${place}: the selection should be named from outside the wrapper: ${JSON.stringify(selection)}`);
++    const seen = await watch(['occured', 'definately'], () => command('recheck-spelling'), { duration: 3000 });
++    assert(seen.some(sample => sample.occured?.[0] === 'plain'), `Caret ${place}: the recheck did not start`);
++    assert(seen.slice(-5).every(sample => sample.occured?.[0] === 'red' && sample.definately?.[0] === 'red'), `Caret ${place}: the underlines did not come back: ${JSON.stringify(seen.slice(-3))}; ${JSON.stringify(await selectionState())}`);
++    assert.equal(await head(), at, `Caret ${place}: the caret moved`);
++  }
++  const wordStart = await caret('walled city', 'Qarth', 0);
++  for (let step = 1; step <= 5; step++) { await page().keyboard.press('ArrowRight'); await headBecomes(wordStart + step, 'Right Arrow through an ignored word'); }
++  for (let step = 4; step >= 0; step--) { await page().keyboard.press('ArrowLeft'); await headBecomes(wordStart + step, 'Left Arrow through an ignored word'); }
++  // Without waiting between the keys, as with a held-down arrow key.
++  for (let step = 1; step <= 5; step++) await page().keyboard.press('ArrowRight');
++  await headBecomes(wordStart + 5, 'Five quick Right Arrows');
++  for (let step = 1; step <= 5; step++) await page().keyboard.press('ArrowLeft');
++  await headBecomes(wordStart, 'Five quick Left Arrows');
++  await page().keyboard.press('ArrowRight');
++  await page().keyboard.type('x', { delay: 35 });
++  await expectMarks({ Qxarth: 'red', peeple: 'red', recieve: 'red' }, 'a letter typed right after the first letter of an ignored word');
++  await page().keyboard.press('Backspace');
++  await expectMarks({ Qarth: 'ignored', "Qarth's": 'ignored', peeple: 'red', recieve: 'red', ...others }, 'the letter removed again');
++  await page().keyboard.press('Home');
++  await page().keyboard.type('So ', { delay: 35 });
++  for (let i = 0; i < 3; i++) await page().keyboard.press('Backspace');
++  await expectMarks({ Qarth: 'ignored', peeple: 'red', recieve: 'red', ...others }, 'typing before an ignored word at the start of a paragraph');
++  console.log('PASS: with the caret at either edge of a wrapper the background checks go on (a full recheck completes), the arrow keys step through the word, and typing there works');
++
++  // 4. Typing the word again in a short paragraph: no underline for it, and
++  // nothing else blinks (Chromium rechecks the paragraph by itself). A typed
++  // possessive, with the curly apostrophe of Smart Typography, counts too.
++  await caret('One definately wrong word');
++  let samples = await watch(['definately', 'occured', 'seperate'], () => page().keyboard.type(" Then Qarth fell and Qarth's peeple left", { delay: 35 }));
++  assert(samples.every(s => s.occured?.every(state => state === 'red') && s.seperate?.every(state => state === 'red')), 'Underlines in other paragraphs blinked while an ignored word was typed in a short paragraph');
++  assert(samples.slice(-10).every(s => s.definately?.every(state => state === 'red')), 'The misspelling in the same short paragraph lost its underline');
++  await expectMarks({ Qarth: 'ignored', 'Qarth’s': 'ignored', peeple: 'red', definately: 'red' }, 'typed occurrence');
++  console.log('PASS: an ignored word typed again in a short paragraph gets no underline (nor does its possessive), and no other underline is lost or blinks');
++
++  // 5. Typing right after an ignored word, mid-paragraph.
++  await caret('walled city', 'The peeple of Qarth', 'The peeple of Qarth'.length);
++  samples = await watch(['recieve', 'occured'], () => page().keyboard.type(' still', { delay: 35 }));
++  assert(samples.every(s => s.occured?.every(state => state === 'red')), 'Underlines in other paragraphs blinked while typing after an ignored word');
++  assert(samples.every(s => s.recieve?.every(state => state === 'red')), 'The underline later in the paragraph was lost while typing after an ignored word');
++  await expectMarks({ Qarth: 'ignored', peeple: 'red', recieve: 'red' }, 'typing after an ignored word');
++  console.log('PASS: typing right after an ignored word keeps the underlines later in the paragraph');
++
++  // 6. The same in a long paragraph, where Chromium only rechecks near the
++  // caret: the editor asks for a full recheck once typing has paused.
++  await caret('It ends here');
++  await page().keyboard.type(' in Qarth', { delay: 35 });
++  const healed = await expectMarks({ Qarth: 'ignored', seperate: 'red', ...others }, 'long paragraph');
++  console.log(`PASS: in a 2,600-character paragraph the far misspelling has its underline again ${healed} ms after an ignored word was typed`);
++
++  // 7. An ignored word that is edited is a different word; Undo brings the ignored one back.
++  await caret('The last paragraph');
++  await page().keyboard.type(' Qarth', { delay: 35 });
++  await page().keyboard.press('Backspace');
++  await page().keyboard.type(' ', { delay: 35 });
++  await expectMarks({ Qart: 'red', occured: 'red' }, 'ignored word edited into another word');
++  await page().keyboard.press('Backspace');
++  await page().keyboard.type('h', { delay: 35 });
++  await expectMarks({ Qarth: 'ignored', occured: 'red' }, 'word completed again');
++  await page().keyboard.press('Control+z');
++  await page().keyboard.press('Control+z');
++  await page().keyboard.press('Control+y');
++  await expectMarks({ Qarth: 'ignored', ...others }, 'Undo and Redo');
++  console.log('PASS: an edited occurrence is checked again as a new word; Undo and Redo keep the other underlines');
++
++  // 8. A paste, the Markdown source view, and a second ignored word.
++  await app.electron.evaluate(({ clipboard }) => clipboard.writeText('Pasted: Qarth is far, and tommorow is another day.'));
++  await page().keyboard.press('Control+End');
++  await page().keyboard.press('Enter');
++  await page().keyboard.press('Control+V');
++  await expectMarks({ Qarth: 'ignored', tommorow: 'red', ...others }, 'paste');
++  await command('source');
++  const textarea = page().locator(`${active} textarea`);
++  await textarea.waitFor();
++  await textarea.evaluate(t => { t.focus(); t.setSelectionRange(t.value.length, t.value.length); });
++  await page().keyboard.type('\n\nFrom the source view: Qarth and an embarass error.');
++  await command('source');
++  await page().waitForSelector(`${active} .tiptap`, { state: 'visible' });
++  await expectMarks({ Qarth: 'ignored', embarass: 'red', tommorow: 'red', ...others }, 'back from the Markdown source view');
++  await rightClick('peeple', 0);
++  await choose('Ignore All');
++  await expectMarks({ Qarth: 'ignored', peeple: 'ignored', recieve: 'red', definately: 'red', seperate: 'red', occured: 'red' }, 'second ignored word');
++  console.log('PASS: the list holds through a paste and the Markdown source view, and takes a second word');
++
++  // 9. A change made from the Find panel, next to an ignored word, also needs
++  // a full recheck. It must wait until the caret is back in the document:
++  // Chromium checks only the text that holds the caret, so with the caret in
++  // the Replace box it would clear every underline and bring none back.
++  await command('replace');
++  const replaceBox = page().getByPlaceholder('Replace with...');
++  await page().getByPlaceholder('Find in note...').fill('Qarth is far');
++  await replaceBox.fill('Qarth was far');
++  const elsewhere = ['recieve', 'definately', 'seperate', 'occured'];
++  samples = await watch(elsewhere, () => replaceBox.press('Control+Enter'), { duration: 3000 });
++  assert((await markdown()).includes('Qarth was far'), 'Replace All should have changed the text');
++  assert(samples.every(s => elsewhere.every(word => s[word]?.every(state => state === 'red'))), `Underlines disappeared while the caret was in the Replace box: ${JSON.stringify(samples.find(s => !elsewhere.every(word => s[word]?.every(state => state === 'red'))))}`);
++  await page().keyboard.press('Escape');
++  await expectMarks({ Qarth: 'ignored', peeple: 'ignored', tommorow: 'red', embarass: 'red', recieve: 'red', definately: 'red', seperate: 'red', occured: 'red' }, 'back in the document after Replace All');
++  console.log('PASS: after Replace All next to an ignored word the underlines stay while the caret is in the Find panel, and the document is rechecked when the caret returns');
++
++  // 10. Revert to Saved reloads the file in the same window: the list stays.
++  await app.answer(0);
++  await command('revert');
++  await page().waitForFunction(active => !document.querySelector(`${active} .tiptap`)?.textContent.includes('tommorow'), active, { timeout: 10000 });
++  await expectMarks({ Qarth: 'ignored', "Qarth's": 'ignored', peeple: 'ignored', Qarths: 'red', recieve: 'red', definately: 'red', seperate: 'red', occured: 'red' }, 'after Revert to Saved', 10000);
++  assert.equal(await markdown(), original, 'Revert should restore the saved Markdown');
++  console.log('PASS: Revert to Saved keeps the ignored words of the open document');
++
++  // 11. Closing the document forgets them.
++  await app.win.evaluate(window => window.close());
++  await pause(800);
++  await app.open(file);
++  await expectMarks({ Qarth: 'red', "Qarth's": 'red', Qarths: 'red', ...others }, 'reopened document', 10000);
++  console.log('PASS: after the document is closed and opened again, the words are underlined again');
++  assert.equal(app.errors.length, 0, app.errors.join('\n'));
++}
++
++const watchdog = setTimeout(() => { console.error('Ignore All checks timed out'); process.exit(1); }, 240000);
++main().then(() => console.log('IGNORE ALL CHECKS DONE')).catch(error => {
++  console.error(error);
++  process.exitCode = 1;
++}).finally(async () => {
++  await app?.stop();
++  clearTimeout(watchdog);
++});
+diff --git a/tests/ignored-spelling.test.mts b/tests/ignored-spelling.test.mts
+new file mode 100644
+index 0000000..a6ab52d
+--- /dev/null
++++ b/tests/ignored-spelling.test.mts
+@@ -0,0 +1,74 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { findIgnoredRanges, forgetIgnoredWords, ignoredForms, ignoredWords, ignoreWord, normalizeIgnoredWord, NO_IGNORED_FORMS } from '../src/lib/ignored-spelling.ts';
++
++// The words found in a text, for a list of ignored words.
++const found = (text: string, ...ignored: string[]) => findIgnoredRanges(text, ignoredForms(new Set(ignored.map(normalizeIgnoredWord)))).map(([from, to]) => text.slice(from, to));
++
++test('an ignored word is found as a whole word, wherever punctuation allows', () => {
++  assert.deepEqual(found('Qarth is far. In Qarth, "Qarth" (Qarth) Qarth-born; Qarth.', 'Qarth'), ['Qarth', 'Qarth', 'Qarth', 'Qarth', 'Qarth', 'Qarth']);
++  assert.deepEqual(findIgnoredRanges('The city of Qarth.', ignoredForms(new Set(['Qarth']))), [[12, 17]]);
++  // Not inside a longer word, with letters, digits or an apostrophe-joined part around it.
++  assert.deepEqual(found("Qarths aQarth Qarth2 2Qarth O'Qarth Qarth'ian", 'Qarth'), []);
++  assert.deepEqual(found('', 'Qarth'), []);
++  assert.deepEqual(found('Qarth', ), []);
++});
++
++test('a possessive of an ignored word is covered, with a straight or a curly apostrophe', () => {
++  assert.deepEqual(found("Qarth's gates and Qarth’s walls, QARTH'S too", 'Qarth'), ["Qarth's", 'Qarth’s', "QARTH'S"]);
++  // Ignoring the possessive ignores the word itself: it is kept as its base.
++  assert.equal(normalizeIgnoredWord('Qarth’s'), 'Qarth');
++  assert.equal(normalizeIgnoredWord("Qarth's"), 'Qarth');
++  assert.equal(normalizeIgnoredWord("  don't "), "don't");
++  assert.equal(normalizeIgnoredWord("'s"), "'s");
++  assert.deepEqual(found("Qarth and Qarth's", "Qarth's"), ['Qarth', "Qarth's"]);
++  // An apostrophe inside the word is part of it.
++  assert.deepEqual(found("O'Qarth said so; O’Qarth too, but not Qarth", "O'Qarth"), ["O'Qarth", 'O’Qarth']);
++});
++
++test('capitals follow the dictionary rule: a lower-case word also matches at the start of a sentence and in capitals', () => {
++  assert.deepEqual(found('gonna Gonna GONNA gOnna', 'gonna'), ['gonna', 'Gonna', 'GONNA']);
++  // A word with a capital matches as written, and in capitals.
++  assert.deepEqual(found('Qarth qarth QARTH QArth', 'Qarth'), ['Qarth', 'QARTH']);
++  assert.deepEqual(found('McQarth mcqarth MCQARTH Mcqarth', 'McQarth'), ['McQarth', 'MCQARTH']);
++});
++
++test('letters of any alphabet, combining marks and digits belong to a word', () => {
++  assert.deepEqual(found('Zoë, Zoe and Zoës; Zoë with a combining mark', 'Zoë'), ['Zoë']);
++  assert.deepEqual(found('Zoë and Zoe', 'Zoë'), ['Zoë']);
++  assert.deepEqual(found('Москва и Москварека', 'Москва'), ['Москва']);
++  assert.deepEqual(found('R2D2 and R2D22', 'R2D2'), ['R2D2']);
++  // The placeholder that stands for an image or a line break ends a word.
++  assert.deepEqual(found('Qarth￼Qarth', 'Qarth'), ['Qarth', 'Qarth']);
++});
++
++test('a spelling with other characters in it is searched for as it is', () => {
++  assert.deepEqual(found('See example.con and example.cons, not anexample.con', 'example.con'), ['example.con']);
++  assert.deepEqual(found('well-nigh, well-nighs, swell-nigh', 'well-nigh'), ['well-nigh']);
++  // Together with ordinary words, in order, and without overlaps.
++  assert.deepEqual(found('Qarth has well-nigh no gates. Qarth!', 'well-nigh', 'Qarth'), ['Qarth', 'well-nigh', 'Qarth']);
++  assert.deepEqual(findIgnoredRanges('a-b a-b', ignoredForms(new Set(['a-b']))), [[0, 3], [4, 7]]);
++});
++
++test('the list belongs to one document and is forgotten when the document is closed', () => {
++  assert.equal(ignoredWords('first').size, 0);
++  assert.equal(ignoredWords(null).size, 0);
++  const one = ignoreWord('first', 'Qarth’s');
++  assert.deepEqual([...one], ['Qarth']);
++  assert.equal(ignoredWords('first'), one, 'the same set until the list changes');
++  assert.equal(ignoreWord('first', 'Qarth'), one, 'a word that is already ignored changes nothing');
++  assert.equal(ignoreWord('first', '   '), one);
++  assert.equal(ignoreWord('first', 'x'.repeat(101)), one);
++  const two = ignoreWord('first', 'peeple');
++  assert.notEqual(two, one, 'a new set when the list grows, so that the editor notices');
++  assert.deepEqual([...two], ['Qarth', 'peeple']);
++  assert.deepEqual([...one], ['Qarth'], 'the earlier set is left as it was');
++  ignoreWord('second', 'Zorblat');
++  assert.deepEqual([...ignoredWords('second')], ['Zorblat']);
++  forgetIgnoredWords(['second']);
++  assert.equal(ignoredWords('first').size, 0);
++  assert.deepEqual([...ignoredWords('second')], ['Zorblat']);
++  forgetIgnoredWords([]);
++  assert.equal(ignoredWords('second').size, 0);
++  assert.equal(ignoredForms(new Set()), NO_IGNORED_FORMS);
++});
+diff --git a/tests/spelling-harness.cjs b/tests/spelling-harness.cjs
+new file mode 100644
+index 0000000..938b8b6
+--- /dev/null
++++ b/tests/spelling-harness.cjs
+@@ -0,0 +1,226 @@
++// Shared by tests/ignore-smoke.cjs and tests/dictionary-smoke.cjs: starts the
++// real Electron app with a US English dictionary and reads the red spelling
++// underlines off the screen. Needs a graphical session or Xvfb, and a
++// dictionary: PICOMARQ_TEST_BDIC=/path/en-US-10-1.bdic, or the system's
++// Hunspell en_US files, which are converted with scripts/hunspell-to-bdic.py.
++const assert = require('node:assert/strict');
++const fs = require('node:fs/promises');
++const fsSync = require('node:fs');
++const path = require('node:path');
++const { spawn, execFileSync } = require('node:child_process');
++const { _electron } = require('playwright');
++
++const root = path.resolve(__dirname, '..');
++const active = '[data-document-id][aria-hidden="false"]';
++const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
++
++function dictionary(work) {
++  if (process.env.PICOMARQ_TEST_BDIC) return process.env.PICOMARQ_TEST_BDIC;
++  if (!fsSync.existsSync('/usr/share/hunspell/en_US.dic')) return null;
++  const out = path.join(work, 'en-US-10-1.bdic');
++  execFileSync('python3', ['-I', path.join(root, 'scripts/hunspell-to-bdic.py'), '/usr/share/hunspell/en_US', out], { stdio: 'ignore' });
++  return out;
++}
++
++/**
++ * Start the app. Returns null when there is no dictionary to test with.
++ * `app.page` and `app.win` are the document window that was opened last (or
++ * chosen with app.use); every helper works on that window.
++ */
++async function startSpellingApp({ name, display }) {
++  const work = path.join(__dirname, 'tmp', name);
++  await fs.rm(work, { recursive: true, force: true });
++  await fs.mkdir(path.join(work, 'data', 'Dictionaries'), { recursive: true });
++  const bdic = dictionary(work);
++  if (!bdic) return null;
++  // Electron reads an existing dictionary file instead of downloading one.
++  await fs.copyFile(bdic, path.join(work, 'data', 'Dictionaries', 'en-US-10-1.bdic'));
++  let virtualDisplay;
++  if (process.platform === 'linux' && !process.env.DISPLAY) {
++    const binary = process.env.SCRATCH_XVFB || 'Xvfb';
++    virtualDisplay = spawn(binary, [':' + display, '-screen', '0', '1440x1800x24', '-listen', 'tcp', '-nolisten', 'unix', '-nolisten', 'local', '-ac'], { env: process.env, stdio: 'ignore' });
++    process.env.DISPLAY = '127.0.0.1:' + display;
++    await pause(500);
++  }
++  const electron = await _electron.launch({ executablePath: require('electron'), args: process.platform === 'linux' ? ['--no-sandbox', '--disable-gpu', root] : [root], env: { ...process.env, SCRATCH_TEST_MODE: '1', SCRATCH_TEST_DATA: path.join(work, 'data') }, timeout: 20000 });
++  const first = await electron.firstWindow();
++  await first.waitForSelector(`${active} .tiptap`, { timeout: 15000 });
++  await electron.evaluate(({ Menu, dialog }) => {
++    global.spellingMenus = [];
++    global.spellingDialogs = [];
++    global.spellingAnswers = [];
++    // Keep the real native menus and their handlers; only do not show them.
++    Menu.prototype.popup = function () { global.spellingMenus.push(this); };
++    // Message boxes are answered from spellingAnswers (Cancel when it is empty).
++    dialog.showMessageBox = async (_window, options) => { global.spellingDialogs.push({ ...options, icon: undefined }); return { response: global.spellingAnswers.length ? global.spellingAnswers.shift() : (options.cancelId ?? 1) }; };
++  });
++
++  const app = { electron, work, errors: [], page: null, win: null };
++
++  app.stop = async () => {
++    try { await electron.evaluate(({ app }) => app.exit()); } catch {}
++    virtualDisplay?.kill();
++  };
++
++  // Write a Markdown file into the work folder.
++  app.write = async (fileName, content) => {
++    const file = path.join(work, fileName);
++    await fs.writeFile(file, content);
++    return file;
++  };
++
++  // Make a document window the one the helpers work on.
++  app.use = async page => {
++    app.page = page;
++    app.win = await electron.browserWindow(page);
++    await app.win.evaluate(window => window.focus());
++    // Finds whole words in the formatted view, block by block: the wrapper of
++    // an ignored word splits it into two text nodes, so words are looked for
++    // in each block's whole text.
++    await page.evaluate(active => {
++      window.findWords = words => {
++        const root = document.querySelector(`${active} .tiptap`);
++        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
++        const blocks = new Map();
++        for (let node; (node = walker.nextNode());) {
++          const block = node.parentElement.closest('p, h1, h2, h3, h4, h5, h6, pre, li, td, th') || root;
++          if (!blocks.has(block)) blocks.set(block, { text: '', parts: [] });
++          const entry = blocks.get(block);
++          entry.parts.push({ node, start: entry.text.length });
++          entry.text += node.data;
++        }
++        const out = [];
++        for (const { text, parts } of blocks.values()) {
++          const at = offset => { for (let i = parts.length - 1; i >= 0; i--) if (parts[i].start <= offset) return { node: parts[i].node, offset: offset - parts[i].start }; };
++          const re = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu;
++          for (let m = re.exec(text); m; m = re.exec(text)) {
++            if (!words.includes(m[0])) continue;
++            const from = at(m.index), to = at(m.index + m[0].length - 1);
++            const range = document.createRange();
++            range.setStart(from.node, from.offset); range.setEnd(to.node, to.offset + 1);
++            out.push({ word: m[0], range, wrapped: !!from.node.parentElement.closest('[data-ignored-spelling]') });
++          }
++        }
++        return out;
++      };
++    }, active);
++  };
++
++  // Open a file the way Windows does when a .md file is double-clicked.
++  app.open = async file => {
++    const opened = electron.waitForEvent('window', { timeout: 15000 });
++    await electron.evaluate(({ app }, { file, dir }) => app.emit('second-instance', {}, [process.execPath, file], dir), { file, dir: path.dirname(file) });
++    const page = await opened;
++    page.on('pageerror', error => app.errors.push(String(error)));
++    await page.waitForSelector(`${active} .tiptap p`, { timeout: 15000 });
++    const win = await electron.browserWindow(page);
++    await win.evaluate(window => window.setBounds({ x: 0, y: 0, width: 1300, height: 1700 }));
++    await app.use(page);
++    await pause(500);
++    return page;
++  };
++
++  // Every whole-word occurrence of the listed words, in document order: 'red'
++  // (spelling underline), 'ignored' (no underline, first letter in an
++  // ignored-word wrapper) or 'plain' (no underline).
++  app.marks = async words => {
++    const rects = await app.page.evaluate(words => window.findWords(words).map(({ word, range, wrapped }) => {
++      const r = range.getBoundingClientRect();
++      return { word, x: r.x, y: r.y, w: r.width, h: r.height, wrapped, onScreen: r.top >= 0 && r.bottom + 4 <= innerHeight };
++    }), words);
++    return app.win.evaluate(async (window, rects) => {
++      const image = await window.webContents.capturePage();
++      const { width, height } = image.getSize();
++      const bitmap = image.toBitmap(); // BGRA
++      const isRed = i => bitmap[i + 2] > 170 && bitmap[i + 1] < 100 && bitmap[i] < 100;
++      return rects.map(r => {
++        if (!r.onScreen) return { word: r.word, state: 'off-screen' };
++        let count = 0;
++        for (let y = Math.max(0, Math.floor(r.y)); y < Math.min(height, Math.ceil(r.y + r.h + 4)); y++)
++          for (let x = Math.max(0, Math.floor(r.x) - 1); x < Math.min(width, Math.ceil(r.x + r.w) + 1); x++)
++            if (isRed((y * width + x) * 4)) count++;
++        return { word: r.word, state: count > 4 ? 'red' : r.wrapped ? 'ignored' : 'plain' };
++      });
++    }, rects);
++  };
++  app.byWord = list => { const out = {}; for (const mark of list) (out[mark.word] ||= []).push(mark.state); return out; };
++  app.describe = list => Object.entries(app.byWord(list)).map(([word, states]) => `${word}: ${states.join(' ')}`).join(' | ');
++
++  // Where the selection is, for failure messages: Chromium's background
++  // checks stop while its focus is inside a wrapper.
++  app.selectionState = () => app.page.evaluate(active => {
++    const selection = document.getSelection();
++    const show = (node, offset) => node ? `${node.nodeType === 3 ? JSON.stringify(node.data.slice(0, 16)) : `<${node.nodeName.toLowerCase()}>`}@${offset}${(node.nodeType === 1 ? node : node.parentElement)?.closest('[data-ignored-spelling]') ? ' (in wrapper)' : ''}` : 'none';
++    const editor = document.querySelector(`${active} .tiptap`).editor;
++    return { anchor: show(selection.anchorNode, selection.anchorOffset), focus: show(selection.focusNode, selection.focusOffset), editor: `${editor.state.selection.anchor}-${editor.state.selection.head}`, focused: document.hasFocus() };
++  }, active);
++
++  // Wait until the words are in the expected states, e.g.
++  // { Qarth: 'ignored', peeple: 'red' } (every occurrence in that state) or
++  // { Qarth: ['ignored', 'red'] }. Returns the time it took.
++  app.expectMarks = async (expected, step, timeout = 6000) => {
++    const words = Object.keys(expected);
++    const start = Date.now();
++    for (;;) {
++      const last = await app.marks(words);
++      const found = app.byWord(last);
++      if (words.every(word => {
++        const states = found[word] || [];
++        const want = expected[word];
++        return states.length > 0 && (Array.isArray(want) ? states.length === want.length && states.every((state, i) => state === want[i]) : states.every(state => state === want));
++      })) return Date.now() - start;
++      if (Date.now() - start > timeout) assert.fail(`${step}: expected ${JSON.stringify(expected)}, found ${app.describe(last)}; selection ${JSON.stringify(await app.selectionState())}`);
++      await pause(150);
++    }
++  };
++
++  // Sample the words' states while something happens and for a while after.
++  app.watch = async (words, during, { duration = 2500 } = {}) => {
++    const samples = [];
++    let running = true;
++    const sampler = (async () => { while (running) { samples.push(app.byWord(await app.marks(words))); await pause(60); } })();
++    await during();
++    await pause(duration);
++    running = false;
++    await sampler;
++    return samples;
++  };
++
++  app.pointOf = async (word, nth = 0) => {
++    const point = await app.page.evaluate(({ word, nth }) => {
++      const found = window.findWords([word])[nth];
++      if (!found) return null;
++      const r = found.range.getBoundingClientRect();
++      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
++    }, { word, nth });
++    assert(point, `"${word}" (occurrence ${nth + 1}) is not in the document`);
++    return point;
++  };
++
++  // Right-click a word; the native menu is captured instead of shown.
++  // Returns its labels ('-' for a separator).
++  app.rightClick = async (word, nth = 0) => {
++    const point = await app.pointOf(word, nth);
++    await electron.evaluate(() => { global.spellingMenus.length = 0; });
++    await app.page.mouse.click(point.x, point.y, { button: 'right' });
++    const start = Date.now();
++    while (!await electron.evaluate(() => global.spellingMenus.length)) {
++      if (Date.now() - start > 5000) assert.fail(`no right-click menu for "${word}"`);
++      await pause(50);
++    }
++    return electron.evaluate(() => global.spellingMenus[0].items.map(item => item.type === 'separator' ? '-' : item.label));
++  };
++  app.choose = label => electron.evaluate((_electron, label) => { global.spellingMenus[0].items.find(item => item.label === label).click(); }, label);
++
++  // Send a menu command to the current window.
++  app.command = (action, extra = {}) => app.win.evaluate((window, command) => window.webContents.send('scratch:command', command), { action, ...extra });
++  app.markdown = () => app.page.evaluate(active => document.querySelector(`${active} .tiptap`).editor.getMarkdown(), active);
++  app.dictionaryWords = () => electron.evaluate(({ session }) => session.defaultSession.listWordsInSpellCheckerDictionary());
++  // Answer the next message box (0 is its first button) and read what was shown.
++  app.answer = response => electron.evaluate((_electron, response) => { global.spellingAnswers.push(response); }, response);
++  app.dialogs = () => electron.evaluate(() => global.spellingDialogs.splice(0));
++
++  return app;
++}
++
++module.exports = { startSpellingApp, active, pause, root };

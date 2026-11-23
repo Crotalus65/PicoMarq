@@ -1,0 +1,27 @@
+// Addresses and the other computer they point at (null: this computer, or not a file at all).
+// Used by tests/shared-folders.test.cjs (the main process) and tests/shared-folders.test.mts (the page).
+module.exports = [
+  ['file://server/share/x.png', 'server'],
+  ['file://SERVER/share/x.png', 'server'],
+  ['file://server.example.com/share/x.png', 'server.example.com'],
+  ['file://192.168.1.20/share/x.png', '192.168.1.20'],
+  ['file:////server/share/x.png', 'server'],
+  ['file://///server/share/x.png', 'server'],
+  ['file:///%5C%5Cserver%5Cshare%5Cx.png', 'server'],
+  ['file:///%2F%2Fserver/share/x.png', 'server'],
+  ['file:///\\\\server\\share\\x.png', 'server'],
+  ['file:\\\\\\\\server\\share\\x.png', 'server'],
+  ['  fi\tle://ser\nver/share/x.png ', 'server'],
+  ['FILE:////SERVER/share/x.png', 'server'],
+  ['file:///C:/Users/a/picture.png', null],
+  ['file:///C:/Users/a/my%20pictures/b.png', null],
+  ['file:///home/a/picture.png', null],
+  ['file://localhost/C:/Users/a/picture.png', null],
+  ['file:///Z:/mapped/drive/picture.png', null],
+  ['https://example.com/picture.png', null],
+  ['http://example.com//double/slash.png', null],
+  ['data:image/png;base64,AAAA', null],
+  ['blob:null/1234', null],
+  ['pictures/relative.png', null],
+  ['', null],
+];

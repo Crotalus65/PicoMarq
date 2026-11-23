@@ -1,0 +1,616 @@
+--- a/README.md
++++ b/README.md
+@@ -9,7 +9,8 @@
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. This is an unsigned personal test build, independent of upstream Scratch.
+ 
+ - PicoMarQ uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
+-- Version 1.2.2 fixes restoration after closing the final window. Its close button, Ctrl+W, and Alt+F4 now use the same session-preserving exit as File > Exit. Closing immediately after a file launch waits for startup to finish; rapid window closes are processed in order so the final document is retained.
++- Version 1.2.3 makes File > Close Window and Ctrl+W leave a fresh blank document when closing the last document. The replacement keeps the same size, position and maximized state. Save/Discard/Cancel still applies, and a cancelled Save As retains the original draft. With several windows, Close Window closes only the selected one. Repeatedly closing the blank document keeps the app open.
++- Version 1.2.2 fixes restoration after using the title-bar close button or Alt+F4 on the final window. These use the same session-preserving exit as File > Exit. Closing immediately after a file launch waits for startup to finish; rapid window closes are processed in order so the final document is retained.
+ - Version 1.2.1 places Startup at the bottom of Settings, below User Interface.
+ - Version 1.2.0 adds Settings > Startup > When PicoMarQ starts: Restore previous session (the default for existing profiles) or Start new session. The choice applies at the next launch, is remembered in AppData on each machine, and keeps preferences and recent files. New-session startup opens one blank document, or the file supplied by Windows when launched through a file association.
+ - Restore mode continues automatic draft recovery. In New mode, unsaved recovery snapshots trigger a Restore Session / Start New Session prompt before any previous documents are cleared. Restore is the default and the Escape/close action; explicitly choosing New discards the recovered edits while leaving saved files untouched.
+@@ -24,7 +25,7 @@
+ - The PicoMarQ icon in the window and Windows executable: a white sheet with a folded corner and a bold red outline, carrying the Markdown "M" whose right stem runs down into an arrowhead. It fills the icon square like other app icons, with transparent corners.
+ - A live word count beside zoom in the status bar. It counts document text in both editing views, excluding Markdown formatting markers and hidden link URLs. The settings sample preview has been removed.
+ - Markdown files are saved manually. Recovery snapshots merge independently for each window, retaining drafts, selection, scroll, source mode, size, position, and maximized state. Preferences remain in the existing AppData profile and changes apply to every open window.
+-- File > Close Window (Ctrl+W), the title-bar close button, and Alt+F4 close only that window after Save/Discard/Cancel. Closing one of several windows removes its document from the restored workspace. Closing the last window exits the app and retains that final saved document for restoration when Restore is selected. Discard keeps the saved version of a named document and removes an untitled draft.
++- File > Close Window (Ctrl+W) removes the current document from the session after Save/Discard/Cancel. It closes that window when others remain, or replaces the final document with a blank at the same position when no other window remains. A failed replacement load keeps the original document and recovery data. The title-bar close button and Alt+F4 close the native window; on the last window they exit and retain its saved document for restoration when Restore is selected. Discard during Exit keeps the saved version of a named document and removes an untitled draft.
+ - File > Exit (Ctrl+Shift+Q) checks all windows and retains the remaining saved documents for the next launch when Restore is selected. Discard choices take effect only after every prompt succeeds; a later Cancel preserves all drafts and windows. Cancelling Save As also cancels closing. Unsaved drafts remain available for recovery after an unexpected termination.
+ - Revert to Saved confirms before rereading the current file from disk in the same window and clearing its undo history. It is disabled for untitled documents. A failed read preserves current text. The Refresh control for external edits uses the same operation.
+ - Find and Replace stays above the scrolling text in both views until explicitly closed. Each window has independent Find and Undo state.
+@@ -72,13 +73,13 @@
+ npm start
+ ```
+ 
+-`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.2.2.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.2.3.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+ ## Verification
+ 
+-`npm run test:close-restore` closes and relaunches the actual application for both two-document close orders, an immediate file launch/close, the native Ctrl+W accelerator, rapid closes, final-window Save/Discard/Cancel and Save As, and the intentional blank startup in New mode. The first case reproduces the erased-session bug on 1.2.1.
++`npm run test:close-window` exercises the real File menu, native Ctrl+W, renderer close command, repeated blank closes, exact replacement bounds, fresh Undo, Save/Discard/Cancel, Save As cancellation and saving, replacement-load failure, rapid closes, and restarting without resurrecting an explicitly closed file. `npm run test:close-restore` closes native windows and relaunches the actual application for both two-document close orders, an immediate file launch/close, rapid closes, closing during startup, final-window Save/Discard/Cancel and Save As, and the intentional blank startup in New mode. Its first case reproduces the erased-session bug on 1.2.1.
+ 
+ `npm test` checks atomic writes, external-edit conflicts, missing files, backup recovery, independent document merges/removal, window position recovery, recent files, old profiles, context menus, smart typography, and Markdown escaping. `npm run test:equivalence` compares the editing performance paths with stock TipTap. `npm run test:typography` checks typography and settings in Electron. `npm run test:startup` covers the new selector, persistence and live synchronization, legacy defaults, next-launch behavior, saved-file and preference preservation, requested-file launches, and both recovery choices after an actual forced termination. `npm run test:desktop` covers the real editor, native clipboard between windows, compact layout, file operations, zoom and wrapping, independent undo, shared settings, multiwindow recovery, source selection/scroll/bounds restoration, Revert and failed reads, duplicate Open/Save As, subsequent launch routing, individual Save/Discard/Cancel, coordinated Exit cancellation, and old-profile migration. Desktop tests need a graphical session or Xvfb; set `SCRATCH_XVFB` to a custom Xvfb executable if necessary. They exercise subsequent launch events directly; Windows shell associations and native Windows dialogs require a Windows bench check.
+ 
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.2.2
++PICOMARQ — WINDOWS BUILD 1.2.3
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+@@ -44,12 +44,17 @@
+ Older PicoMarQ/Quill profiles are reused automatically. Previously open
+ documents appear in their own windows with their recovered drafts.
+ 
+-Ctrl+W, Alt+F4, and the title-bar X close the current window after checking
+-its unsaved changes. Closing one of several windows removes that document
+-from the next session. Closing the last window exits and keeps that final
+-document for the next launch when Restore previous session is selected,
+-just like File > Exit. This also works when a file is closed immediately
+-after opening it from Windows.
++File > Close Window (Ctrl+W) checks the current document's unsaved changes.
++With several windows open, it closes only that window. With one window
++open, it closes that document and leaves a fresh blank document at the
++same size and position, including maximized state. The app stays open.
++Cancel or a cancelled Save As leaves the original document open. An
++explicitly closed document is removed from the next session.
++
++Alt+F4 and the title-bar X close the native window. Closing the final
++window this way exits and keeps its saved document for the next launch
++when Restore previous session is selected, just like File > Exit. This
++also works when a file is closed immediately after opening from Windows.
+ 
+ File > Exit (Ctrl+Shift+Q) checks every window and keeps all remaining saved
+ documents for restoration as separate windows next time when Restore is
+@@ -70,7 +75,7 @@
+ Ctrl+O          Open files in separate windows
+ Ctrl+S          Save
+ F12             Save As
+-Ctrl+W          Close this window
++Ctrl+W          Close document; keep a blank if it is the last window
+ Alt+F4          Close this window
+ Ctrl+Shift+Q    Exit all windows
+ Ctrl+P          Print this document
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,61 +1,69 @@
+-# PicoMarQ 1.2.2 validation
++# PicoMarQ 1.2.3 validation
+ 
+-## Defect and fix
++## Close Window behavior
+ 
+-Closing the final window in 1.2.1 removed its document from the recovery
+-session. File > Exit kept documents, so restoration depended on how the
+-application was closed. This reproduced both reported blank-startup cases.
+-The new close/restore regression suite fails on the unmodified 1.2.1 code
+-with "Closing the final document erased the session".
++File > Close Window and Ctrl+W check unsaved changes and close the current
++document. With several document windows, only the selected window closes.
++With one window, a fresh blank document replaces it at the same normal bounds
++and with the same maximized state. The replacement uses the normal New-document
++initialization, with a new identity, filename, editor and undo history. The
++explicitly closed document is removed from the recovery session.
+ 
+-The final window now uses the same Save/Discard/Cancel and session-persistence
+-transaction as File > Exit. Closing one of several windows still removes only
+-that window from the next session. Close requests are serialized and wait for
+-window destruction so rapid closes retain the final document. Closing or
+-exiting during startup waits for all restored and requested windows to exist.
++The replacement is created before the original window closes, so the app keeps
++a live window. A cancelled close, cancelled Save As, or failed replacement load
++keeps the original document open. Closing the same blank repeatedly keeps the
++app open. Queued file opens and multiple close requests are processed in order.
+ 
+-The Startup control remains below User Interface. Start New Session continues
+-to open a blank document intentionally. AppData profile selection and settings
+-are unchanged; no migration or installation is required.
++The title-bar X, Alt+F4 and File > Exit retain their session-preserving exit
++behavior from 1.2.2. Startup still offers Restore previous session and Start new
++session below User Interface. AppData profile selection and settings are unchanged.
+ 
+ ## Checks for this release
+ 
+ - All 28 unit tests passed (18 CommonJS and 10 TypeScript tests).
+ - TypeScript and production Vite build passed.
+-- Actual Electron close/restore suite passed, with full application relaunches:
+-  - Two saved documents, both close orders, final document restored.
+-  - A file supplied at cold launch and immediately closed, then restored.
+-  - Native Ctrl+W on the final window, then restored.
+-  - Simultaneous close requests, with the final document retained.
+-  - Closing a window or exiting while multiple windows are still restoring.
+-  - Final-window Cancel, immediate Save, Discard, cancelled Save As and
+-    successful untitled Save As; explicit untitled Discard still removes it.
+-  - Start New Session still starts blank and retains its preference.
+-- Complete desktop suite passed, including native clipboard between windows,
+-  independent Undo, shared settings, multiwindow crash recovery, selection,
+-  scroll and window bounds, Revert, file conflicts, duplicate opens, launch
+-  routing, close prompts, coordinated Exit cancellation and legacy profiles.
+-  It now also verifies restoration after closing the final window with Ctrl+W.
+-- Complete startup suite passed, including the Startup selector, live settings
+-  synchronization, old-profile defaults, both startup modes, file requests,
+-  preference and saved-file preservation, and recovery after forced termination.
++- Actual Electron Close Window suite passed:
++  - The compact File menu's real Close Window handler and owning window.
++  - Native Ctrl+W and the renderer close command.
++  - Repeatedly closing a blank document, without exiting or accumulating windows.
++  - Exact replacement bounds and a new document identity and undo history.
++  - Revert disabled for the blank document, and the closed file absent on restart.
++  - Named-document Cancel, immediate Save and Discard.
++  - Untitled Save As cancellation and successful Save As before replacement.
++  - A forced replacement-load failure, retaining the original document/window
++    and removing the failed replacement from recovery data.
++  - Rapid Close Window commands on two documents, leaving exactly one blank at
++    the final window's position.
++- The full close/restore suite passed: both two-document native close orders,
++  immediate file launch/close, simultaneous closes, closing or exiting during
++  startup, final-window Save/Discard/Cancel and Save As, and New-mode startup.
++- The full startup suite passed: preference persistence and synchronization,
++  old-profile defaults, both startup modes, requested files, saved-file and
++  preference preservation, and recovery after forced termination.
++- The full desktop suite passed, including editor layout, native clipboard,
++  independent Undo, file operations/conflicts, multiwindow recovery, selection,
++  scroll, bounds, Revert, launch routing, coordinated Exit cancellation and old
++  profiles. Its final Ctrl+W now verifies a blank replacement and no closed-file
++  restoration. The New-window test waits for renderer initialization as well as
++  native window creation.
+ 
+-The editing engine and Settings layout are unchanged in this release. The
+-separate typography and Markdown reference-equivalence suites were not rerun.
++The editor source and Settings layout are unchanged. The separate typography
++and Markdown reference-equivalence suites were not rerun.
+ 
+ ## Packaging and platform coverage
+ 
+-The Windows x64 runtime is the official Electron 44.6.0 release, downloaded
+-with checksum verification. Packaging verifies executable code/data and other
+-resources after applying PicoMarQ's name, version and icon. Both final ZIPs
+-pass CRC checks; all bundled desktop code and compiled assets match this source
+-build, and the application and executable report version 1.2.2.
++The Windows ZIP includes the official Electron 44.6.0 x64 runtime previously
++downloaded with checksum verification. PicoMarQ's executable name, icon and
++version are embedded and verified; executable code/data sections on disk match
++the official runtime. Every ZIP entry is checked against the official runtime
++or the current source/build. Both ZIPs pass CRC checks, and bundled application
++and executable metadata report version 1.2.3.
+ 
+ Interactive checks run in Electron 44.6.0 on Linux with Xvfb. Windows execution,
+-Windows shell file associations and native Windows dialogs remain untested here.
+-Cold launches use real file arguments and subsequent launches exercise Electron's
+-second-instance routing in the desktop suite.
++Windows shell file associations, maximized window behavior and native Windows
++dialogs remain untested here. Normal window size and position are exercised
++with actual Electron windows; maximized state uses the existing restoration path.
+ 
+ Extract the Windows ZIP's complete PicoMarQ folder. Close every old PicoMarQ
+-window before replacing application files. Existing preferences and recovery
+-data stay in AppData on each machine.
++window before replacing application files. Preferences and recovery data stay
++in AppData on each machine.
+--- a/desktop/main.cjs
++++ b/desktop/main.cjs
+@@ -83,7 +83,7 @@
+       { label: '&Save', accelerator: 'CmdOrCtrl+S', click: action('save') },
+       { label: 'Save &As…', accelerator: 'F12', click: action('save-as') },
+       { id: 'revert', label: 'Revert to Saved…', enabled: !!record?.path, click: action('revert') },
+-      { label: '&Close Window', accelerator: 'CmdOrCtrl+W', click: (_item, window) => (recordFor(window) || record)?.window.close() },
++      { id: 'close-window', label: '&Close Window', accelerator: 'CmdOrCtrl+W', click: (_item, window) => enqueueClose(recordFor(window) || record, { replaceLast: true }) },
+       { type: 'separator' },
+       { label: '&Print…', accelerator: 'CmdOrCtrl+P', click: action('print') },
+       { type: 'separator' },
+@@ -146,21 +146,21 @@
+     command(record, 'cancel-close', { token });
+   }
+ }
+-function enqueueClose(record) {
+-  if (record.closeQueued || record.closeApproved || quitting) return;
++function enqueueClose(record, { replaceLast = false } = {}) {
++  if (!record || record.closeQueued || record.closeApproved || quitting) return;
+   record.closeQueued = true;
+-  // Wait for each actual window destruction before deciding which close is
+-  // the final application exit, including when several closes arrive together.
+-  closeQueue = closeQueue.catch(console.error).then(() => requestClose(record))
++  // Finish each close before deciding whether the next close exits the app
++  // or replaces the final document, including when several arrive together.
++  closeQueue = closeQueue.catch(console.error).then(() => requestClose(record, { replaceLast }))
+     .catch(console.error).finally(() => { record.closeQueued = false; });
+ }
+-async function requestClose(record) {
++async function requestClose(record, { replaceLast = false } = {}) {
+   await startupReady;
+   await openQueue;
+   if (record.window.isDestroyed() || record.closeToken || quitting) return;
+-  // Closing the final window is an application exit. Use the same snapshot
+-  // and Save/Discard/Cancel transaction as File > Exit so it can be restored.
+-  if (windows.size === 1) return requestQuit();
++  // The title-bar close exits and preserves the final session. The explicit
++  // Close Window command instead replaces the final document with a blank.
++  if (windows.size === 1 && !replaceLast) return requestQuit();
+   const token = crypto.randomUUID();
+   record.closeToken = token;
+   command(record, 'start-close', { token });
+@@ -168,7 +168,12 @@
+   try {
+     result = await prepareClose(record, token);
+     if (!result) { cancelClose([record], token); return; }
+-    // Closing one of several windows removes only it from the next startup.
++    // Show the replacement before closing the original so there is always a
++    // live window. A failed replacement leaves the original document open.
++    if (replaceLast) await enqueueOpen(async () => {
++      if (windows.size === 1) await newDocumentWindow({ replacing: record });
++    });
++    // An explicitly closed document is removed from the next startup.
+     await store.removeDocuments([record.id]);
+     await store.update({ window: geometry(record) });
+     await store.flush();
+@@ -260,7 +265,7 @@
+       });
+     }
+     case 'set_title': window.setTitle(args.title || 'PicoMarQ'); return;
+-    case 'close_window': window.close(); return;
++    case 'close_window': enqueueClose(record, { replaceLast: true }); return;
+     case 'quit': void requestQuit(); return;
+     case 'close_prompting': if (record.closeToken === args.token) clearTimeout(record.closingTimer); return;
+     case 'close_cancelled': finishCloseReply(record, args.token, null); return;
+@@ -427,15 +432,20 @@
+   } catch (error) { record.closeApproved = true; window.destroy(); throw error; }
+   return record;
+ }
+-async function newDocumentWindow() {
++async function newDocumentWindow({ replacing } = {}) {
+   assertOpeningAllowed();
+-  const documents = store.get().documents;
++  const documents = store.get().documents.filter(doc => doc.id !== replacing?.id);
+   let name = 'Untitled';
+   for (let number = 2; documents.some(doc => !doc.path && doc.name === name); number++) name = `Untitled ${number}`;
+-  const doc = { id: crypto.randomUUID(), name, path: null, content: '', diskContent: '', modified: Date.now() / 1000, view: {} };
++  const doc = { id: crypto.randomUUID(), name, path: null, content: '', diskContent: '', modified: Date.now() / 1000, view: {}, ...(replacing ? { window: geometry(replacing) } : {}) };
+   await store.updateDocument(doc, { create: true, activate: true });
+-  const record = await createDocumentWindow(doc);
+-  return record.id;
++  try {
++    const record = await createDocumentWindow(doc, { restored: !!replacing });
++    return record.id;
++  } catch (error) {
++    await store.removeDocuments([doc.id]);
++    throw error;
++  }
+ }
+ async function openDocumentWindow(file) {
+   assertOpeningAllowed();
+--- a/docs/KEYBOARD-SHORTCUTS.md
++++ b/docs/KEYBOARD-SHORTCUTS.md
+@@ -1,6 +1,6 @@
+ # PicoMarQ keyboard shortcuts
+ 
+-Version 1.2.2. Windows keys are shown; on a Mac, read Cmd for Ctrl and Option for Alt.
++Version 1.2.3. Windows keys are shown; on a Mac, read Cmd for Ctrl and Option for Alt.
+ 
+ PicoMarQ has two views: the **formatted view** (the normal writing view, with the icon toolbar) and the **Markdown source view** (the raw text of your file). Shortcuts in the first two sections work in both views unless noted.
+ 
+@@ -12,7 +12,7 @@
+ | Ctrl+O | Open files in separate windows (several can be selected at once) |
+ | Ctrl+S | Save (asks for a filename the first time) |
+ | F12 | Save As |
+-| Ctrl+W | Close the current window (asks about its unsaved changes) |
++| Ctrl+W | Close the current document; leave a blank at the same position if it is the last window (asks about unsaved changes) |
+ | Ctrl+P | Print |
+ | Alt+F4 | Close the current window |
+ | Ctrl+Shift+Q | Exit all windows (asks about every unsaved document) |
+@@ -23,9 +23,13 @@
+ 
+ Open Recent, Revert to Saved, and Apply Smart Typography have no shortcut; they are in the File and Edit menus.
+ 
+-Closing one of several windows removes that document from the next session.
+-Closing the final window exits and preserves its saved document for restoration,
+-the same as File > Exit, when Settings > Startup is set to Restore previous session.
++File > Close Window and Ctrl+W close one of several windows, or replace the last
++document with a blank at the same size and position. The app stays open, and the
++explicitly closed document is removed from the next session.
++
++The title-bar X and Alt+F4 close the native window. Closing the final window this
++way exits and preserves its saved document for restoration, the same as File >
++Exit, when Settings > Startup is set to Restore previous session.
+ 
+ ## Editing, finding, and zoom
+ 
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.2.2",
++  "version": "1.2.3",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.2.2",
++      "version": "1.2.3",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.2.2",
++  "version": "1.2.3",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -15,7 +15,8 @@
+     "test:equivalence": "vite build --config tests/markdown-equivalence/vite.config.ts && node tests/markdown-equivalence/run.cjs",
+     "test:typography": "node tests/typography-smoke.cjs",
+     "test:startup": "node tests/startup-smoke.cjs",
+-    "test:close-restore": "node tests/close-restore-smoke.cjs"
++    "test:close-restore": "node tests/close-restore-smoke.cjs",
++    "test:close-window": "node tests/close-command-smoke.cjs"
+   },
+   "dependencies": {
+     "@radix-ui/react-alert-dialog": "^1.1.15",
+--- /dev/null
++++ b/tests/close-command-smoke.cjs
+@@ -0,0 +1,199 @@
++const assert = require('node:assert/strict');
++const fs = require('node:fs/promises');
++const path = require('node:path');
++const { spawn } = require('node:child_process');
++const { _electron } = require('playwright');
++const work = path.join(__dirname, 'tmp', 'close-command');
++const profile = path.join(work, 'data');
++const file = path.join(work, 'Close target.md');
++const saved = path.join(work, 'Saved and closed.md');
++const baseline = 'Saved document text';
++const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
++let application, display;
++let completed = false;
++const errors = [];
++const watchdog = setTimeout(() => { console.error('Close Window checks timed out'); process.exit(1); }, 180000);
++process.on('exit', () => { if (!completed) process.exitCode = 1; });
++async function until(check, message) {
++  const start = Date.now();
++  while (Date.now() - start < 15000) { if (await check()) return; await pause(50); }
++  throw new Error(message);
++}
++async function session() { return JSON.parse(await fs.readFile(path.join(profile, 'session.json'), 'utf8')); }
++function doc(filePath, id) { return { id, path: filePath, content: baseline, diskContent: baseline, view: { sourceMode: true } }; }
++async function seed(documents = [doc(file, 'original')]) {
++  await fs.mkdir(profile, { recursive: true });
++  await fs.writeFile(file, baseline);
++  await fs.writeFile(path.join(profile, 'session.json'), JSON.stringify({ version: 1, settings: { startupBehavior: 'restore' }, documents, activeDocumentId: documents[0]?.id ?? null, recentFiles: [file] }));
++}
++async function launch() {
++  application = await _electron.launch({ executablePath: require('electron'), args: [...(process.platform === 'linux' ? ['--no-sandbox', '--disable-gpu'] : []), path.join(__dirname, 'startup-harness.cjs')], env: { ...process.env, SCRATCH_TEST_MODE: '1', SCRATCH_TEST_DATA: profile }, timeout: 20000 });
++  const watch = page => page.on('pageerror', error => errors.push(String(error)));
++  application.windows().forEach(watch); application.on('window', watch);
++  await application.firstWindow();
++}
++async function pages(count = 1) {
++  let result;
++  await until(async () => {
++    result = [];
++    for (const page of application.windows()) {
++      if (page.isClosed()) continue;
++      try {
++        if (!await page.locator('[data-document-id]').count()) continue;
++        result.push({ page, doc: (await page.evaluate(() => window.desktop.invoke('get_session'))).documents[0] });
++      } catch {}
++    }
++    return result.length === count;
++  }, `Expected ${count} document windows`);
++  return result;
++}
++async function source(page) {
++  const field = page.getByRole('textbox', { name: 'Markdown source' });
++  if (!await field.isVisible()) await (await application.browserWindow(page)).evaluate(win => win.webContents.send('scratch:command', { action: 'source' }));
++  await field.waitFor(); return field;
++}
++async function respond(responses) {
++  await application.evaluate((_electron, responses) => { global.startupResponses = responses; global.startupPrompts = []; }, responses);
++}
++async function closeCommand(page, method = 'menu') {
++  if (method === 'renderer') { await page.evaluate(() => window.desktop.invoke('close_window')); return; }
++  const win = await application.browserWindow(page);
++  if (method === 'shortcut') {
++    await win.evaluate(window => {
++      window.focus(); window.webContents.focus();
++      window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w', modifiers: ['control'] });
++      window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w', modifiers: ['control'] });
++    });
++    return;
++  }
++  // Exercise the compact File menu's real native command and owning window.
++  await application.evaluate(({ Menu }) => {
++    global.originalClosePopup = Menu.prototype.popup;
++    Menu.prototype.popup = function(options) { global.closePopup = { menu: this, options }; };
++  });
++  await page.getByRole('button', { name: 'File', exact: true }).click();
++  await until(() => application.evaluate(() => !!global.closePopup), 'File menu did not open');
++  await application.evaluate(({ Menu }) => {
++    const { menu, options } = global.closePopup;
++    const item = menu.getMenuItemById('close-window');
++    item.click(item, options.window, options.window.webContents);
++    options.callback();
++    Menu.prototype.popup = global.originalClosePopup;
++    global.closePopup = null;
++  });
++}
++async function replacement(page, method = 'menu') {
++  const previous = (await page.evaluate(() => window.desktop.invoke('get_session'))).documents[0];
++  const bounds = await (await application.browserWindow(page)).evaluate(win => win.getNormalBounds());
++  const closed = page.waitForEvent('close', { timeout: 20000 });
++  await closeCommand(page, method); await closed;
++  const [next] = await pages();
++  await until(async () => await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length) === 1, 'Close Window left extra native windows');
++  assert.notEqual(next.doc.id, previous.id);
++  assert.equal(next.doc.name, 'Untitled');
++  assert.equal(next.doc.path, null); assert.equal(next.doc.content, '');
++  assert.deepEqual(await (await application.browserWindow(next.page)).evaluate(win => win.getNormalBounds()), bounds, 'Replacement moved or resized the window');
++  await next.page.locator('.tiptap').waitFor();
++  assert.equal((await next.page.locator('.tiptap').innerText()).trim(), '');
++  assert.equal(await application.evaluate(({ Menu }) => Menu.getApplicationMenu().getMenuItemById('revert').enabled), false);
++  await until(async () => (await session()).documents.length === 1 && (await session()).documents[0].id === next.doc.id, 'Closed document remained in the recovery session');
++  assert.deepEqual(errors, []);
++  assert.deepEqual(await application.evaluate(() => global.startupErrors), []);
++  return next.page;
++}
++async function quit(page, native = false) {
++  const ended = application.waitForEvent('close', { timeout: 20000 });
++  if (native) await (await application.browserWindow(page)).evaluate(win => win.close());
++  else await application.evaluate(({ app }) => app.quit());
++  await ended; application = null;
++}
++async function cancelled(page) {
++  await until(async () => !await page.locator('[aria-busy="true"]').count() && await application.evaluate(() => global.startupPrompts.length === 1), 'Cancelled close did not leave the document editable');
++  assert.equal((await pages()).length, 1);
++}
++async function main() {
++  if (process.platform === 'linux' && !process.env.DISPLAY) {
++    const number = process.env.SCRATCH_DISPLAY_NUMBER || '14750';
++    display = spawn(process.env.SCRATCH_XVFB || 'Xvfb', [':' + number, '-screen', '0', '1440x1000x24', '-listen', 'tcp', '-nolisten', 'unix', '-nolisten', 'local', '-ac'], { stdio: 'ignore' });
++    process.env.DISPLAY = '127.0.0.1:' + number; await pause(500);
++  }
++  await seed(); await launch();
++  let [{ page }] = await pages();
++  await (await application.browserWindow(page)).evaluate(win => win.setBounds({ x: 55, y: 65, width: 850, height: 650 }));
++  page = await replacement(page);
++  assert.equal(await fs.readFile(file, 'utf8'), baseline);
++  for (const method of ['shortcut', 'shortcut', 'renderer']) page = await replacement(page, method);
++  const field = await source(page); await field.press('Control+Z'); assert.equal(await field.inputValue(), '', 'Blank document inherited an old undo history');
++  await quit(page); await launch();
++  [{ page }] = await pages();
++  assert.equal((await pages())[0].doc.path, null);
++  assert.equal((await pages())[0].doc.content, '');
++  await quit(page, true);
++  console.log('PASS: File Close Window, native Ctrl+W, renderer close, repeated blank closes, exact bounds, fresh Undo, and no closed-file resurrection');
++
++  await seed(); await launch(); [{ page }] = await pages();
++  let text = await source(page); await text.fill('Save this final edit immediately');
++  await respond([2]); await closeCommand(page); await cancelled(page);
++  assert.equal(await text.inputValue(), 'Save this final edit immediately');
++  await respond([0]); page = await replacement(page, 'shortcut');
++  assert.equal(await fs.readFile(file, 'utf8'), 'Save this final edit immediately');
++  await quit(page);
++  await seed(); await launch(); [{ page }] = await pages();
++  text = await source(page); await text.fill('Discard this final edit');
++  await respond([1]); page = await replacement(page, 'renderer');
++  assert.equal(await fs.readFile(file, 'utf8'), baseline);
++  await quit(page, true);
++  console.log('PASS: final named document Cancel, immediate Save, and Discard with a blank replacement only after confirmation');
++
++  await seed([]); await launch(); [{ page }] = await pages();
++  text = await source(page); await text.fill('Save this untitled document before closing');
++  await application.evaluate(({ dialog }) => { dialog.showSaveDialog = async () => ({ canceled: true }); });
++  await respond([0]); await closeCommand(page); await cancelled(page);
++  assert.equal(await text.inputValue(), 'Save this untitled document before closing');
++  await application.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, saved);
++  await respond([0]); page = await replacement(page);
++  assert.equal(await fs.readFile(saved, 'utf8'), 'Save this untitled document before closing');
++  await quit(page);
++  console.log('PASS: cancelled Save As retains the final draft; successful Save As saves it and leaves a blank document');
++
++  await seed(); await launch(); [{ page }] = await pages();
++  await application.evaluate(({ BrowserWindow }) => {
++    const load = BrowserWindow.prototype.loadURL;
++    BrowserWindow.prototype.loadURL = function(...args) {
++      BrowserWindow.prototype.loadURL = load;
++      return Promise.reject(new Error('Test replacement could not load'));
++    };
++  });
++  await closeCommand(page);
++  await until(async () => await application.evaluate(() => global.startupErrors.length === 1) && !await page.locator('[aria-busy="true"]').count(), 'Failed replacement did not retain the original window');
++  assert.deepEqual((await session()).documents.map(doc => doc.id), ['original']);
++  assert.equal(await (await source(page)).inputValue(), baseline);
++  assert.equal((await pages())[0].doc.path, file);
++  await application.evaluate(() => { global.startupErrors = []; });
++  await quit(page, true);
++  console.log('PASS: a replacement-load failure keeps the original document, window and recovery data');
++
++  const other = path.join(work, 'Other.md'); await fs.writeFile(other, baseline);
++  await seed([doc(file, 'first'), doc(other, 'last')]); await launch();
++  const windows = await pages(2);
++  const ids = [];
++  for (const id of ['first', 'last']) ids.push(await (await application.browserWindow(windows.find(entry => entry.doc.id === id).page)).evaluate(win => win.id));
++  await (await application.browserWindow(windows.find(entry => entry.doc.id === 'last').page)).evaluate(win => win.setBounds({ x: 75, y: 85, width: 800, height: 600 }));
++  const oldClosed = windows.map(entry => entry.page.waitForEvent('close'));
++  await application.evaluate(({ BrowserWindow, Menu }, ids) => {
++    const item = Menu.getApplicationMenu().getMenuItemById('close-window');
++    for (const id of ids) { const win = BrowserWindow.fromId(id); item.click(item, win, win.webContents); }
++  }, ids);
++  await Promise.all(oldClosed); [{ page }] = await pages();
++  assert.equal((await pages())[0].doc.path, null);
++  assert.deepEqual(await (await application.browserWindow(page)).evaluate(win => win.getNormalBounds()), { x: 75, y: 85, width: 800, height: 600 });
++  assert.equal((await session()).documents.length, 1);
++  assert.deepEqual(errors, []); assert.deepEqual(await application.evaluate(() => global.startupErrors), []);
++  await quit(page, true);
++  console.log('PASS: rapid Close Window commands close the selected documents and leave one blank at the last window position');
++  completed = true; console.log('ALL CLOSE WINDOW CHECKS PASSED');
++}
++main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
++  if (application) try { await application.evaluate(({ app }) => app.exit(1)); } catch {}
++  display?.kill(); clearTimeout(watchdog);
++});
+--- a/tests/close-restore-smoke.cjs
++++ b/tests/close-restore-smoke.cjs
+@@ -112,12 +112,8 @@
+   await launch();
+   let windows = await pages(1);
+   assert.equal(windows[0].doc.path, alpha);
+-  await closeLast(windows[0].page, true);
+-  await launch();
+-  windows = await pages(1);
+-  assert.equal(windows[0].doc.path, alpha, 'Ctrl+W failed to preserve the final document');
+-  await closeLast(windows[0].page);
+-  console.log('PASS: immediate close after a file launch and native Ctrl+W both preserve the final document');
++  await closeLast(windows[0].page);
++  console.log('PASS: immediate title-bar close after a file launch preserves the final document');
+ 
+   // Rapid close requests must be serialized so one of them is the final exit.
+   await seed([doc(alpha, 'alpha'), doc(beta, 'beta')]);
+--- a/tests/desktop-smoke.cjs
++++ b/tests/desktop-smoke.cjs
+@@ -609,7 +609,8 @@
+   assert.equal(await windowCount(), 3);
+   await dispatch('new');
+   await until(async () => await windowCount() === 4, 'New did not create a window');
+-  const untitled = (await pagesForDocuments()).find(entry => !entry.document.path);
++  let untitled;
++  await until(async () => { untitled = (await pagesForDocuments()).find(entry => !entry.document.path); return !!untitled; }, 'New window did not finish loading');
+   await selectWindow(untitled.document.id);
+   assert.equal(await electron.evaluate(({ Menu }) => Menu.getApplicationMenu().getMenuItemById('revert').enabled), false);
+   await rich().click();
+@@ -634,17 +635,17 @@
+   await until(async () => await windowCount() === 1, 'Discard did not close only gamma');
+   await selectWindow(copyFile);
+   assert.equal(await text().inputValue(), longSource);
+-  const closed = electron.waitForEvent('close');
++  const closed = page.waitForEvent('close');
+   await nativeClose();
+   await closed;
+-  electron = null;
+-  assert.deepEqual((await readSession()).documents.map(doc => doc.path), [copyFile], 'The final window must remain available for restoration');
+-  await launch();
+-  await until(async () => await windowCount() === 1, 'Final window was not restored');
+-  await selectWindow(copyFile);
+-  assert.equal(await text().inputValue(), longSource);
++  await until(async () => (await pagesForDocuments()).length === 1, 'Final Close Window did not leave one blank document');
++  const blank = (await pagesForDocuments())[0];
++  assert.equal(blank.document.path, null);
++  assert.equal(blank.document.content, '');
++  await selectWindow(blank.document.id);
+   await quit();
+-  console.log('PASS: New window, disabled untitled Revert, individual Save/Discard/Cancel, cancelled Save As, last-window exit');
++  assert.deepEqual((await readSession()).documents, [], 'Close Window retained the explicitly closed file');
++  console.log('PASS: New window, disabled untitled Revert, individual Save/Discard/Cancel, cancelled Save As, final Close Window leaves a blank document');
+ 
+   // Migrate a real pre-window v1 profile, including an unsaved untitled document.
+   const legacy = {

@@ -1,0 +1,218 @@
+--- a/README.md
++++ b/README.md
+@@ -9,6 +9,7 @@
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. This is an unsigned personal test build, independent of upstream Scratch.
+ 
+ - PicoMarQ uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- Version 1.2.1 places Startup at the bottom of Settings, below User Interface.
+ - Version 1.2.0 adds Settings > Startup > When PicoMarQ starts: Restore previous session (the default for existing profiles) or Start new session. The choice applies at the next launch, is remembered in AppData on each machine, and keeps preferences and recent files. New-session startup opens one blank document, or the file supplied by Windows when launched through a file association.
+ - Restore mode continues automatic draft recovery. In New mode, unsaved recovery snapshots trigger a Restore Session / Start New Session prompt before any previous documents are cleared. Restore is the default and the Escape/close action; explicitly choosing New discards the recovered edits while leaving saved files untouched.
+ - File > New creates another window. File > Open, Open Recent, and file-association launches create a window for each selected file. Reopening an already-open file raises its existing window, preserving unsaved edits and avoiding conflicting copies. Open Recent keeps the last four distinct files opened or saved, including after restarting.
+@@ -70,7 +71,7 @@
+ npm start
+ ```
+ 
+-`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.2.0.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.2.1.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.2.0
++PICOMARQ — WINDOWS BUILD 1.2.1
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+@@ -12,7 +12,8 @@
+ AppData profile on each machine.
+ 
+ STARTUP CHOICE
+-Settings > Startup > When PicoMarQ starts offers Restore previous session
++Settings > Startup (below User Interface) > When PicoMarQ starts offers
++Restore previous session
+ (the default) or Start new session. The change takes effect at the next
+ launch and does not close the documents you are currently editing.
+ 
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,55 +1,30 @@
+-# PicoMarQ 1.2.0 validation
++# PicoMarQ 1.2.1 validation
+ 
+-The source and Windows bundle were prepared from the same build. The existing
+-AppData profile selection is unchanged. Each recovered document becomes an
+-independent native window, and each renderer can update only its own document.
++This release moves Startup from the top of Settings to the bottom, immediately
++below User Interface. The control, saved preference, defaults, and recovery
++behavior are unchanged from 1.2.0. AppData profile selection is unchanged.
+ 
+-## Completed checks
++## Checks for this release
+ 
+-- `npm run build`: TypeScript and production Vite build pass.
+-- `npm test`: 28 tests pass, including independent document recovery merges,
+-  atomic saving, external-edit conflicts, backup recovery, old-profile handling,
+-  context menus, Markdown escapes, smart typography, legacy startup defaults,
+-  and the separation of startup preferences from unsaved-draft recovery.
+-- `npm run test:desktop`: passes in the actual Electron 44.6.0 application on
+-  Linux with Xvfb. Covers the existing compact layout and editing controls;
+-  separate windows for New/Open; duplicate Open protection; cross-window native
+-  clipboard and independent undo; shared settings; simultaneous recovery;
+-  Revert cancellation, failed reads, disk reload, stable document identity, and
+-  undo reset; duplicate Save As; multiple/relative subsequent-launch paths;
+-  individual Save/Discard/Cancel and cancelled Save As; deferred Discard during
+-  Exit; crash recovery; individual selection, scroll and window bounds;
+-  restoration after Exit; last-window close; and migration of an existing v1
+-  AppData profile including an unsaved untitled draft.
+-- `npm run test:typography`: passes in Electron, including both editing views,
+-  settings, the Heading 4 style, and whole-document conversions and undo.
+-- `npm run test:startup`: passes in the actual Electron application. Covers
+-  the Settings > Startup selector, default restoration of old profiles,
+-  preference persistence and synchronization, retaining the current session
+-  until the next launch, starting with one blank document, preserving files
+-  and appearance/recent files, shell-supplied filenames, actual forced-exit
+-  recovery of named and untitled drafts, accepting and declining recovery,
+-  and retaining the saved preference after one-time recovery. The Settings
+-  layout was also inspected visually.
++- TypeScript and production Vite build.
++- Actual Electron Settings render: section order Theme, Typography,
++  User Interface, Startup; the two startup choices remain available and save
++  correctly. The final layout was inspected visually.
++- Windows packaging verifies executable code/data and resources after applying
++  PicoMarQ's name, icon and version. Both ZIPs pass integrity checks; bundled
++  desktop code and compiled assets match the source build.
+ 
+-The unchanged editing engine passed the Markdown-equivalence suite for 1.1.0
+-(64 documents, 3,392 edited states, and 81 document round-trips). This release
+-changes startup and settings only; that suite was not rerun.
++Version 1.2.0 passed all 28 unit tests and the startup, multiwindow desktop,
++recovery, and typography suites. Those suites were not repeated for this
++layout-only change. The unchanged editing engine also passed the Markdown
++reference-equivalence suite in 1.1.0.
+ 
+ ## Platform coverage
+ 
+-The Windows x64 runtime is Electron's official 44.6.0 release, downloaded with
+-checksum verification. The packaging script verifies executable code/data and
+-resources when applying PicoMarQ's name, icon and version. The Windows ZIP
+-contains the runtime and needs no installer or separately installed Node.js.
++UI verification runs in Electron 44.6.0 on Linux with Xvfb. The Windows x64
++runtime is the official Electron release, downloaded with checksum verification.
++Windows execution and Windows-native dialogs remain untested here.
+ 
+-Windows execution, Windows-native dialogs, Windows font enumeration and actual
+-Explorer/default-app launches have not been run in this Linux environment.
+-Subsequent-launch routing is exercised through Electron's real event handler;
+-the operating-system association itself still needs a Windows bench check.
+-
+-## Build and packaging
+-
+-See README.md. The Windows ZIP extracts to a `PicoMarQ` folder. Close all old
+-windows before replacing an existing application folder's contents. No AppData
+-files are included in the ZIP or changed by copying the application files.
++The Windows ZIP extracts to a PicoMarQ folder. Close all old windows before
++replacing an existing application folder's contents. Copying the application
++files preserves the existing preferences and recovery data in AppData.
+--- a/docs/KEYBOARD-SHORTCUTS.md
++++ b/docs/KEYBOARD-SHORTCUTS.md
+@@ -1,6 +1,6 @@
+ # PicoMarQ keyboard shortcuts
+ 
+-Version 1.2.0. Windows keys are shown; on a Mac, read Cmd for Ctrl and Option for Alt.
++Version 1.2.1. Windows keys are shown; on a Mac, read Cmd for Ctrl and Option for Alt.
+ 
+ PicoMarQ has two views: the **formatted view** (the normal writing view, with the icon toolbar) and the **Markdown source view** (the raw text of your file). Shortcuts in the first two sections work in both views unless noted.
+ 
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.2.0",
++  "version": "1.2.1",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.2.0",
++      "version": "1.2.1",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.2.0",
++  "version": "1.2.1",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+--- a/src/components/settings/EditorSettingsSection.tsx
++++ b/src/components/settings/EditorSettingsSection.tsx
+@@ -153,29 +153,6 @@
+ 
+   return (
+     <div className="space-y-8 py-8">
+-      <section>
+-        <h2 className="text-xl font-medium mb-3">Startup</h2>
+-        <div className="rounded-[10px] border border-border p-4 space-y-3">
+-          <div className="flex flex-wrap items-center justify-between gap-3">
+-            <label htmlFor="startup-behavior" className="text-sm text-text font-medium">When PicoMarQ starts</label>
+-            <Select
+-              id="startup-behavior"
+-              value={startupBehavior}
+-              onChange={event => setStartupBehavior(event.target.value as StartupBehavior)}
+-              aria-describedby="startup-description"
+-              className="w-64 max-w-full"
+-            >
+-              <option value="restore">Restore previous session</option>
+-              <option value="new">Start new session</option>
+-            </Select>
+-          </div>
+-          <p id="startup-description" className="text-xs text-text-muted">
+-            Applies the next time PicoMarQ starts. Preferences and recent files are kept. After an unexpected shutdown, unsaved work can still be recovered.
+-          </p>
+-        </div>
+-      </section>
+-      <div className="border-t border-border border-dashed" />
+-
+       {/* Theme Section */}
+       <section className="pb-2">
+         <h2 className="text-xl font-medium mb-3">Theme</h2>
+@@ -406,6 +383,30 @@
+           </div>
+         </div>
+ 
++      </section>
++
++      <div className="border-t border-border border-dashed" />
++
++      <section>
++        <h2 className="text-xl font-medium mb-3">Startup</h2>
++        <div className="rounded-[10px] border border-border p-4 space-y-3">
++          <div className="flex flex-wrap items-center justify-between gap-3">
++            <label htmlFor="startup-behavior" className="text-sm text-text font-medium">When PicoMarQ starts</label>
++            <Select
++              id="startup-behavior"
++              value={startupBehavior}
++              onChange={event => setStartupBehavior(event.target.value as StartupBehavior)}
++              aria-describedby="startup-description"
++              className="w-64 max-w-full"
++            >
++              <option value="restore">Restore previous session</option>
++              <option value="new">Start new session</option>
++            </Select>
++          </div>
++          <p id="startup-description" className="text-xs text-text-muted">
++            Applies the next time PicoMarQ starts. Preferences and recent files are kept. After an unexpected shutdown, unsaved work can still be recovered.
++          </p>
++        </div>
+       </section>
+     </div>
+   );

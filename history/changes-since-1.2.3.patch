@@ -1,0 +1,515 @@
+--- a/README.md
++++ b/README.md
+@@ -9,6 +9,7 @@
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. This is an unsigned personal test build, independent of upstream Scratch.
+ 
+ - PicoMarQ uses one independent native window per document. File, Edit, and View keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- Version 1.2.4 displays blockquotes in regular text with their existing gray left rule and no automatic quotation marks; explicitly italicized words inside quotations remain italic. Settings > Theme > Customize colors now has separate Text and UI groups, with six additional per-theme colors for Headings 1–4, Bold, and Italic. Normal paragraph text and those six categories default to black in light mode and white in dark mode. Colors are display-only preferences, not Markdown document formatting.
+ - Version 1.2.3 makes File > Close Window and Ctrl+W leave a fresh blank document when closing the last document. The replacement keeps the same size, position and maximized state. Save/Discard/Cancel still applies, and a cancelled Save As retains the original draft. With several windows, Close Window closes only the selected one. Repeatedly closing the blank document keeps the app open.
+ - Version 1.2.2 fixes restoration after using the title-bar close button or Alt+F4 on the final window. These use the same session-preserving exit as File > Exit. Closing immediately after a file launch waits for startup to finish; rapid window closes are processed in order so the final document is retained.
+ - Version 1.2.1 places Startup at the bottom of Settings, below User Interface.
+@@ -43,7 +44,7 @@
+ 
+ Added/pasted images are embedded as data URLs. Existing relative image links resolve against the document's location. Source and code blocks stay monospace. Switching open documents preserves their undo histories. Recovery after a restart does not restore undo history; opening a recovered document starts a new undo history.
+ 
+-The Windows runtime has been packaged from Electron's official release with checksum verification. Interactive editor, clipboard, file operations, and recovery are tested with Electron on Linux; Windows-native dialogs, font enumeration, window chrome, and execution need checking on a Windows test bench.
++The version 1.2.3 Windows runtime was packaged from Electron's official release with checksum verification. The version 1.2.4 Windows executable is not yet available from this source delivery; the release requires a Windows/Electron packaging environment. The prior release had Electron-on-Linux interaction tests. For 1.2.4, CSS and color-picker interactions were checked in Chromium; Electron execution and Windows-native behavior have not been rerun.
+ 
+ ## Performance
+ 
+@@ -73,7 +74,7 @@
+ npm start
+ ```
+ 
+-`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.2.3.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.2.4.zip`, containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory.
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.2.3
++PICOMARQ — WINDOWS BUILD 1.2.4
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,69 +1,16 @@
+-# PicoMarQ 1.2.3 validation
++# PicoMarQ 1.2.4 — validation and release status
+ 
+-## Close Window behavior
++Changes: remove decorative blockquote italics/quotation marks while retaining indentation/gray rule; add configurable heading 1–4, bold, and italic rendering colors in distinct Text and UI settings groups; default body and new formatting colors to #000000 (light) and #FFFFFF (dark). Colors are stored solely in the application settings; Markdown serialization is unchanged.
+ 
+-File > Close Window and Ctrl+W check unsaved changes and close the current
+-document. With several document windows, only the selected window closes.
+-With one window, a fresh blank document replaces it at the same normal bounds
+-and with the same maximized state. The replacement uses the normal New-document
+-initialization, with a new identity, filename, editor and undo history. The
+-explicitly closed document is removed from the recovery session.
++The source includes the updated TypeScript, CSS, package metadata, and source tests. The already bundled JavaScript/CSS output was also patched to match these particular changes because this execution environment could not resolve registry.npmjs.org to download project dependencies and execute a clean Vite build. Rebuild from source with `npm ci && npm run build` in an environment with dependency access; output filenames/hashes will differ. The copy of the prebuilt assets is not a substitute for a clean, dependency-complete build verification.
+ 
+-The replacement is created before the original window closes, so the app keeps
+-a live window. A cancelled close, cancelled Save As, or failed replacement load
+-keeps the original document open. Closing the same blank repeatedly keeps the
+-app open. Queued file opens and multiple close requests are processed in order.
++Validation performed here:
++- `node --test tests/*.test.cjs`: passed 22 tests (18 existing plus 4 new color/markup checks).
++- `node --check dist/assets/index-N7AKkEmi.js`: passed syntax check.
++- Browser regression tests `python tests/colors-browser-smoke.py`: PASSED using headless Chromium and the bundled UI in an isolated browser harness, confirming quote rendering, color pickers, light/dark values, independent preferences, and no style injection into Markdown.
++- `npm test` (full command): the CommonJS suite passed, while the TypeScript suite could not complete because the `marked` package was missing. The smart-typography cases ran (5 passed) but the Markdown-escape suite failed to import `marked` before its tests started.
++- TypeScript compilation, real Electron/Playwright interaction, and Windows-native smoke tests: NOT RUN; dependencies and Windows Electron runtime unavailable.
+ 
+-The title-bar X, Alt+F4 and File > Exit retain their session-preserving exit
+-behavior from 1.2.2. Startup still offers Restore previous session and Start new
+-session below User Interface. AppData profile selection and settings are unchanged.
++Windows packaging: `npm run package:windows` ordinarily downloads Electron 44.6.0 x64, builds the Vite application, adds the icon/version resources, and creates a portable ZIP containing PicoMarQ.exe and its supporting files. This environment could not download the Electron binary or project dependencies. **No Windows executable is included in this source delivery**, and no claim of executable validation is made. For a Windows build use a networked Node.js environment and check execution on Windows 10/11 before deployment.
+ 
+-## Checks for this release
+-
+-- All 28 unit tests passed (18 CommonJS and 10 TypeScript tests).
+-- TypeScript and production Vite build passed.
+-- Actual Electron Close Window suite passed:
+-  - The compact File menu's real Close Window handler and owning window.
+-  - Native Ctrl+W and the renderer close command.
+-  - Repeatedly closing a blank document, without exiting or accumulating windows.
+-  - Exact replacement bounds and a new document identity and undo history.
+-  - Revert disabled for the blank document, and the closed file absent on restart.
+-  - Named-document Cancel, immediate Save and Discard.
+-  - Untitled Save As cancellation and successful Save As before replacement.
+-  - A forced replacement-load failure, retaining the original document/window
+-    and removing the failed replacement from recovery data.
+-  - Rapid Close Window commands on two documents, leaving exactly one blank at
+-    the final window's position.
+-- The full close/restore suite passed: both two-document native close orders,
+-  immediate file launch/close, simultaneous closes, closing or exiting during
+-  startup, final-window Save/Discard/Cancel and Save As, and New-mode startup.
+-- The full startup suite passed: preference persistence and synchronization,
+-  old-profile defaults, both startup modes, requested files, saved-file and
+-  preference preservation, and recovery after forced termination.
+-- The full desktop suite passed, including editor layout, native clipboard,
+-  independent Undo, file operations/conflicts, multiwindow recovery, selection,
+-  scroll, bounds, Revert, launch routing, coordinated Exit cancellation and old
+-  profiles. Its final Ctrl+W now verifies a blank replacement and no closed-file
+-  restoration. The New-window test waits for renderer initialization as well as
+-  native window creation.
+-
+-The editor source and Settings layout are unchanged. The separate typography
+-and Markdown reference-equivalence suites were not rerun.
+-
+-## Packaging and platform coverage
+-
+-The Windows ZIP includes the official Electron 44.6.0 x64 runtime previously
+-downloaded with checksum verification. PicoMarQ's executable name, icon and
+-version are embedded and verified; executable code/data sections on disk match
+-the official runtime. Every ZIP entry is checked against the official runtime
+-or the current source/build. Both ZIPs pass CRC checks, and bundled application
+-and executable metadata report version 1.2.3.
+-
+-Interactive checks run in Electron 44.6.0 on Linux with Xvfb. Windows execution,
+-Windows shell file associations, maximized window behavior and native Windows
+-dialogs remain untested here. Normal window size and position are exercised
+-with actual Electron windows; maximized state uses the existing restoration path.
+-
+-Extract the Windows ZIP's complete PicoMarQ folder. Close every old PicoMarQ
+-window before replacing application files. Preferences and recovery data stay
+-in AppData on each machine.
++Migration: existing settings files remain compatible. Newly added color keys are optional, per-theme values; missing keys use the defaults and resetting removes only the override. Markup and document contents are not modified by these display settings.
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.2.3",
++  "version": "1.2.4",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.2.3",
++      "version": "1.2.4",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.2.3",
++  "version": "1.2.4",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+--- a/src/App.css
++++ b/src/App.css
+@@ -32,7 +32,13 @@
+   --color-bg-secondary: #fafaf9;
+   --color-bg-muted: rgba(28, 25, 23, 0.06);
+   --color-bg-emphasis: rgba(28, 25, 23, 0.09);
+-  --color-text: #1c1917;
++  --color-text: #000000;
++  --color-heading-1: #000000;
++  --color-heading-2: #000000;
++  --color-heading-3: #000000;
++  --color-heading-4: #000000;
++  --color-bold: #000000;
++  --color-italic: #000000;
+   --color-text-muted: #78716c;
+   --color-text-inverse: #fafaf9;
+   --color-border: rgba(28, 25, 23, 0.08);
+@@ -79,7 +85,13 @@
+   --color-bg-secondary: rgb(14, 12, 11);
+   --color-bg-muted: rgba(250, 249, 249, 0.05);
+   --color-bg-emphasis: rgba(250, 249, 249, 0.08);
+-  --color-text: #fafaf9;
++  --color-text: #ffffff;
++  --color-heading-1: #ffffff;
++  --color-heading-2: #ffffff;
++  --color-heading-3: #ffffff;
++  --color-heading-4: #ffffff;
++  --color-bold: #ffffff;
++  --color-italic: #ffffff;
+   --color-text-muted: #a8a29e;
+   --color-text-inverse: #0c0a09;
+   --color-border: rgba(250, 249, 249, 0.07);
+@@ -368,6 +380,7 @@
+ .prose h1 {
+   font-family: var(--editor-font-family);
+   font-size: var(--editor-h1-size);
++  color: var(--color-heading-1);
+   font-weight: var(--editor-bold-weight);
+   line-height: 1.2;
+   margin-top: 1em;
+@@ -377,6 +390,7 @@
+ .prose h2 {
+   font-family: var(--editor-font-family);
+   font-size: var(--editor-h2-size);
++  color: var(--color-heading-2);
+   font-weight: var(--editor-bold-weight);
+   line-height: 1.3;
+   margin-top: 1em;
+@@ -386,6 +400,7 @@
+ .prose h3 {
+   font-family: var(--editor-font-family);
+   font-size: var(--editor-h3-size);
++  color: var(--color-heading-3);
+   font-weight: var(--editor-bold-weight);
+   line-height: 1.3;
+   margin-top: 1em;
+@@ -396,6 +411,7 @@
+ .prose h4 {
+   font-family: var(--editor-font-family);
+   font-size: var(--editor-h4-size);
++  color: var(--color-heading-4);
+   font-weight: 400;
+   font-style: italic;
+   line-height: 1.3;
+@@ -417,7 +433,13 @@
+ .prose strong,
+ .prose b {
+   font-weight: var(--editor-bold-weight);
+-  color: var(--color-text);
++  color: var(--color-bold);
++}
++
++/* Explicit emphasis (including inside blockquotes) has its own display color. */
++.prose em,
++.prose i {
++  color: var(--color-italic);
+ }
+ 
+ /* Code blocks and inline code */
+@@ -670,12 +692,23 @@
+   color: var(--color-text-muted);
+ }
+ 
+-/* Blockquotes */
++/* Blockquotes: retain the gray rule and indentation, but do not italicize
++   the entire quote or generate typographic quote marks.  Explicit <em>
++   remains italic, including when nested inside a quotation. */
+ .prose
+   :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+-  color: var(--color-text-muted);
++  color: var(--color-text);
++  font-style: normal;
++  font-weight: 400;
++  quotes: none;
+   border-left-color: var(--color-border);
+   border-inline-start-color: var(--color-border);
++}
++.prose
++  :where(blockquote p:first-of-type):not(:where([class~="not-prose"], [class~="not-prose"] *))::before,
++.prose
++  :where(blockquote p:last-of-type):not(:where([class~="not-prose"], [class~="not-prose"] *))::after {
++  content: none;
+ }
+ 
+ /* Search match highlighting - uses the selection color */
+--- a/src/components/settings/EditorSettingsSection.tsx
++++ b/src/components/settings/EditorSettingsSection.tsx
+@@ -19,12 +19,19 @@
+   { key: "bg-secondary", label: "Secondary background", group: "Surfaces" },
+   { key: "bg-muted", label: "Hover & Subtle Fill", group: "Surfaces" },
+   { key: "bg-emphasis", label: "Strong Fill", group: "Surfaces" },
+-  // Text & UI
+-  { key: "text", label: "Text", group: "Text & UI" },
+-  { key: "text-muted", label: "Secondary Text", group: "Text & UI" },
+-  { key: "accent", label: "Primary & Buttons", group: "Text & UI" },
+-  { key: "border", label: "Borders", group: "Text & UI" },
+-  { key: "selection", label: "Selection Highlight", group: "Text & UI" },
++  // Document text colors are editor-only preferences, not Markdown styles.
++  { key: "text", label: "Normal paragraph text", group: "Text" },
++  { key: "heading-1", label: "Heading 1", group: "Text" },
++  { key: "heading-2", label: "Heading 2", group: "Text" },
++  { key: "heading-3", label: "Heading 3", group: "Text" },
++  { key: "heading-4", label: "Heading 4", group: "Text" },
++  { key: "bold", label: "Bold", group: "Text" },
++  { key: "italic", label: "Italic", group: "Text" },
++  // Interface controls
++  { key: "text-muted", label: "Secondary text", group: "UI" },
++  { key: "accent", label: "Primary & Buttons", group: "UI" },
++  { key: "border", label: "Borders", group: "UI" },
++  { key: "selection", label: "Selection Highlight", group: "UI" },
+ ];
+ 
+ // Page width options
+--- a/src/context/theme-colors.ts
++++ b/src/context/theme-colors.ts
+@@ -5,7 +5,13 @@
+     "bg-secondary": "#fafaf9",
+     "bg-muted": "rgba(28, 25, 23, 0.06)",
+     "bg-emphasis": "rgba(28, 25, 23, 0.09)",
+-    text: "#1c1917",
++    text: "#000000",
++    "heading-1": "#000000",
++    "heading-2": "#000000",
++    "heading-3": "#000000",
++    "heading-4": "#000000",
++    bold: "#000000",
++    italic: "#000000",
+     "text-muted": "#78716c",
+     border: "rgba(28, 25, 23, 0.08)",
+     accent: "#1c1917",
+@@ -16,7 +22,13 @@
+     "bg-secondary": "rgb(14, 12, 11)",
+     "bg-muted": "rgba(250, 249, 249, 0.05)",
+     "bg-emphasis": "rgba(250, 249, 249, 0.08)",
+-    text: "#fafaf9",
++    text: "#ffffff",
++    "heading-1": "#ffffff",
++    "heading-2": "#ffffff",
++    "heading-3": "#ffffff",
++    "heading-4": "#ffffff",
++    bold: "#ffffff",
++    italic: "#ffffff",
+     "text-muted": "#a8a29e",
+     border: "rgba(250, 249, 249, 0.07)",
+     accent: "#fafaf9",
+--- a/src/types/note.ts
++++ b/src/types/note.ts
+@@ -37,6 +37,12 @@
+   | "bg-muted"
+   | "bg-emphasis"
+   | "text"
++  | "heading-1"
++  | "heading-2"
++  | "heading-3"
++  | "heading-4"
++  | "bold"
++  | "italic"
+   | "text-muted"
+   | "border"
+   | "accent"
+--- a/tests/color-customization.test.cjs
++++ b/tests/color-customization.test.cjs
+@@ -0,0 +1,66 @@
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++const root = path.resolve(__dirname, '..');
++const read = name => fs.readFileSync(path.join(root, name), 'utf8');
++const colors = read('src/context/theme-colors.ts');
++const settings = read('src/components/settings/EditorSettingsSection.tsx');
++const appCss = read('src/App.css');
++const types = read('src/types/note.ts');
++const indexHtml = read('dist/index.html');
++const runtimePath = indexHtml.match(/src="\.\/assets\/([^"\s]+\.js)"/)[1];
++const runtimeCssPath = indexHtml.match(/href="\.\/assets\/([^"\s]+\.css)"/)[1];
++const runtime = read(`dist/assets/${runtimePath}`);
++const runtimeCss = read(`dist/assets/${runtimeCssPath}`);
++const keys = ['heading-1','heading-2','heading-3','heading-4','bold','italic'];
++
++test('six independently configurable display colors exist in source and the prebuilt UI', () => {
++  for (const key of keys) {
++    assert.match(types, new RegExp('\\| "'+key+'"'));
++    assert.match(settings, new RegExp('key: "'+key+'"'));
++    assert.match(colors, new RegExp('"?'+key+'"?: "#000000"'));
++    assert.match(colors, new RegExp('"?'+key+'"?: "#ffffff"'));
++    assert(runtime.includes('key:"'+key+'"'), 'prebuilt picker missing '+key);
++    assert(runtime.includes('\"'+key+'\":\"#000000\"') || runtime.includes(key+':\"#000000\"'), 'prebuilt light default missing '+key);
++    assert(runtime.includes('\"'+key+'\":\"#ffffff\"') || runtime.includes(key+':\"#ffffff\"'), 'prebuilt dark default missing '+key);
++    assert(appCss.includes('var(--color-'+key+')'), 'source CSS missing '+key);
++    assert(runtimeCss.includes('var(--color-'+key+')'), 'prebuilt CSS missing '+key);
++  }
++  assert.match(settings, /group: "Text"/);
++  assert.match(settings, /group: "UI"/);
++  assert.doesNotMatch(settings, /Text & UI/);
++});
++
++test('normal text is pure black in light and pure white in dark', () => {
++  assert.match(colors, /text: "#000000"/);
++  assert.match(colors, /text: "#ffffff"/);
++  assert.match(appCss, /--color-text: #000000;/);
++  assert.match(appCss, /--color-text: #ffffff;/);
++  assert.match(runtimeCss, /--color-text:#000000;/);
++  assert.match(runtimeCss, /--color-text:#ffffff;/);
++});
++
++test('blockquote retains side rule, drops quote marks and forced italics', () => {
++  assert.match(appCss, /quotes: none;/);
++  assert.match(appCss, /font-style: normal;/);
++  assert.match(appCss, /border-inline-start-color: var\(--color-border\);/);
++  assert.match(appCss, /blockquote p:first-of-type/);
++  assert.match(appCss, /blockquote p:last-of-type/);
++  assert.match(appCss, /content: none;/);
++  assert.match(runtimeCss, /quotes:none;/);
++  assert.match(runtimeCss, /font-style:normal;/);
++  assert.match(runtimeCss, /blockquote p:first-of-type/);
++  assert.match(runtimeCss, /content:none/);
++  assert.match(appCss, /\.prose em,[\s\S]*?\.prose i \{[\s\S]*?--color-italic/);
++});
++
++test('colors are appearance preferences, not Markdown formatting changes', () => {
++  const theme = read('src/context/ThemeContext.tsx');
++  assert.match(types, /customColorsLight\?: CustomColors/);
++  assert.match(types, /customColorsDark\?: CustomColors/);
++  assert.match(theme, /patch\(\{ \[settingKey\]: colors \}\)/);
++  assert.match(theme, /--color-\$\{key\}/);
++  assert(!read('src/components/editor/markdown-serialize.ts').includes('customColors'));
++  assert(!read('src/components/editor/markdown-serialize.ts').includes('heading-1'));
++});
+--- a/tests/colors-browser-smoke.py
++++ b/tests/colors-browser-smoke.py
+@@ -0,0 +1,116 @@
++"""Browser-only regression test for PicoMarQ theme/quote display.
++
++Usage: python tests/colors-browser-smoke.py
++Requires Python's playwright package and /usr/bin/chromium.
++Loads bundled CSS/JS into an isolated about:blank document with an in-memory
++localStorage shim. Does not exercise Electron or filesystem saves.
++"""
++from pathlib import Path
++import re
++from playwright.sync_api import sync_playwright
++
++ROOT = Path(__file__).resolve().parents[1]
++MARKDOWN = "# Heading one\n\n## Heading two\n\n### Heading three\n\n#### Heading four\n\nRegular *italic* and **bold**.\n\n> Quoted *italic* and **bold**.\n"
++HTML = (ROOT / 'dist/index.html').read_text()
++CSS = (ROOT / 'dist/assets' / re.search(r'href="\./assets/([^"\s]+\.css)"', HTML).group(1)).read_text()
++JS = (ROOT / 'dist/assets' / re.search(r'src="\./assets/([^"\s]+\.js)"', HTML).group(1)).read_text()
++
++with sync_playwright() as p:
++    browser = p.chromium.launch(headless=True, executable_path="/usr/bin/chromium", args=["--no-sandbox", "--disable-gpu"])
++    page = browser.new_page(viewport={"width": 1300, "height": 1100})
++    errors = []
++    page.on('pageerror', lambda exc: errors.append(str(exc)))
++    page.set_content('<!doctype html><html><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>')
++    page.evaluate("""({content}) => {
++      const data = new Map();
++      Object.defineProperty(window, 'localStorage', {configurable: true, value: {
++        getItem: k => data.get(k) ?? null,
++        setItem: (k,v) => data.set(k,String(v)),
++        removeItem: k => data.delete(k)
++      }});
++      localStorage.setItem('scratch-settings', JSON.stringify({theme: {mode: 'light'}, smartTypography: false}));
++      localStorage.setItem('scratch-session', JSON.stringify({documents: [{id:'verify', name:'Formatting checks', path:null, content, diskContent:content, modified:0, view:{}}], activeDocumentId:'verify', settingsOpen:false}));
++    }""", {"content": MARKDOWN})
++    page.add_style_tag(content=CSS)
++    page.add_script_tag(content=JS, type='module')
++    editor = page.locator('.tiptap').first
++    editor.locator('blockquote').wait_for(timeout=15000)
++
++    # Light defaults: all distinct formatted elements are truly black.
++    assert editor.locator('h1').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(0, 0, 0)'
++    assert editor.locator('h4').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(0, 0, 0)'
++    assert editor.locator('p').first.evaluate('(el)=>getComputedStyle(el).color') == 'rgb(0, 0, 0)'
++    quote = editor.locator('blockquote')
++    assert quote.evaluate('(el)=>getComputedStyle(el).fontStyle') == 'normal', 'Quotation must not be italicized'
++    assert quote.evaluate('(el)=>getComputedStyle(el).fontWeight') == '400'
++    assert quote.evaluate('(el)=>getComputedStyle(el.querySelector("p"), "::before").content') == 'none'
++    assert quote.evaluate('(el)=>getComputedStyle(el.querySelector("p"), "::after").content') == 'none'
++    assert quote.locator('em').evaluate('(el)=>getComputedStyle(el).fontStyle') == 'italic'
++    assert quote.locator('em').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(0, 0, 0)'
++    assert quote.evaluate('(el)=>getComputedStyle(el).borderLeftWidth') != '0px'
++    print('PASS: quote is roman, explicit emphasis italic, marks absent, gray rule retained')
++
++    # Settings only: choose a heading color, and an italic color.
++    page.locator('button[title^="Settings"]').click()
++    page.get_by_text('Customize colors', exact=True).click()
++    assert page.get_by_text('Surfaces', exact=True).count() == 1
++    assert page.get_by_text('Text', exact=True).count() == 1
++    assert page.get_by_text('UI', exact=True).count() == 1
++    for label, color in [('Heading 2', 'AA1122'), ('Italic', '3366CC'), ('Bold', '118833')]:
++        row = page.get_by_text(label, exact=True).locator('..')
++        row.get_by_role('button', name='Pick color').click()
++        row.locator('input[type=text]').fill(color)
++        row.get_by_role('button', name='Pick color').click()
++    settings = page.evaluate('JSON.parse(localStorage.getItem("scratch-settings"))')
++    assert settings['customColorsLight']['heading-2'] == '#aa1122', settings
++    assert settings['customColorsLight']['italic'] == '#3366cc', settings
++    assert settings['customColorsLight']['bold'] == '#118833', settings
++    page.get_by_role('button', name='Back to document').click()
++    assert editor.locator('h2').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(170, 17, 34)'
++    assert quote.locator('em').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(51, 102, 204)'
++    assert quote.locator('strong').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(17, 136, 51)'
++    assert quote.evaluate('(el)=>getComputedStyle(el).fontStyle') == 'normal'
++    print('PASS: per-category picker updates heading, bold, and italic display colors')
++
++    # No display color leaks into Markdown; no mutation or dirty flag.
++    assert page.evaluate('JSON.parse(localStorage.getItem("scratch-session")).documents[0].content') == MARKDOWN
++    assert page.locator('.tiptap').first.evaluate('(el)=>el.innerText.includes("Quoted italic and bold.")')
++
++    # Dark mode defaults independently, independent light preferences preserved.
++    page.locator('button[title^="Settings"]').click()
++    page.get_by_role('button', name='Dark', exact=True).click()
++    page.get_by_role('button', name='Back to document').click()
++    assert editor.locator('h1').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(255, 255, 255)'
++    assert editor.locator('h2').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(255, 255, 255)'
++    assert quote.locator('em').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(255, 255, 255)'
++    assert quote.locator('strong').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(255, 255, 255)'
++    assert editor.locator('p').first.evaluate('(el)=>getComputedStyle(el).color') == 'rgb(255, 255, 255)'
++    assert quote.evaluate('(el)=>getComputedStyle(el).fontStyle') == 'normal'
++    assert page.evaluate('JSON.parse(localStorage.getItem("scratch-settings")).customColorsLight["heading-2"]') == '#aa1122'
++
++    # Override a different color in dark mode; neither theme overwrites the other.
++    page.locator('button[title^="Settings"]').click()
++    page.get_by_text('Customize colors', exact=True).click()
++    dark_row = page.get_by_text('Heading 1', exact=True).locator('..')
++    dark_row.get_by_role('button', name='Pick color').click()
++    dark_row.locator('input[type=text]').fill('C63344')
++    dark_row.get_by_role('button', name='Pick color').click()
++    page.get_by_role('button', name='Back to document').click()
++    assert editor.locator('h1').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(198, 51, 68)'
++    page.locator('button[title^="Settings"]').click()
++    page.get_by_role('button', name='Light', exact=True).click()
++    page.get_by_role('button', name='Back to document').click()
++    assert editor.locator('h1').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(0, 0, 0)'
++    assert editor.locator('h2').evaluate('(el)=>getComputedStyle(el).color') == 'rgb(170, 17, 34)'
++
++    # Source mode must contain Markdown markers, not color attributes or styles.
++    page.keyboard.press('Control+Shift+m')
++    source = page.get_by_role('textbox', name='Markdown source')
++    source.wait_for(timeout=10000)
++    raw = source.input_value()
++    assert '> Quoted *italic* and **bold**.' in raw, raw
++    assert 'style=' not in raw and 'color:' not in raw and '<span' not in raw, raw
++    assert not errors, errors
++    print('PASS: dark defaults and overrides independent of light; Markdown source unmodified; no page errors')
++    browser.close()
++print('ALL COLOR / QUOTE BROWSER CHECKS PASSED')

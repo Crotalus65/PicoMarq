@@ -1,0 +1,235 @@
+PICOMARQ — WINDOWS BUILD 1.3.4
+
+Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+Keep every runtime file beside the executable. No installation, Node,
+account, or additional runtime is required. Windows 10/11, 64-bit.
+
+UPDATING AN EXISTING COPY
+Close all PicoMarQ windows first. Replace the contents of your existing
+PicoMarQ application folder with the contents of this ZIP's PicoMarQ
+folder. Keep the executable in the same place if Windows already uses
+it to open .md files. Preferences and recovery stay in the existing
+AppData profile on each machine.
+
+WHAT'S NEW IN 1.3.4
+A newer engine. PicoMarQ runs on Electron, which carries a copy of the
+Chromium browser engine. This version moves from Electron 44.6.0 to
+44.11.5: the same generation of the engine, with the security and bug
+fixes published since. Nothing in how PicoMarQ works has changed; the
+program itself is that of 1.3.3.
+
+Because the engine is new, every file in the PicoMarQ folder is new
+this time, not only the program's own. Update as described above: close
+PicoMarQ and replace the whole contents of the folder. If something
+behaves differently from 1.3.3, the 1.3.3 folder still works, with the
+same settings and drafts.
+
+NEW IN 1.3.3
+Undo can no longer empty a document. Before, Ctrl+Z in a file you had
+just opened, or pressed once more than you had made changes, took out
+the whole text (Ctrl+Y brought it back), and saving at that moment
+saved an empty file. Undo now stops at the text the file was opened
+with.
+
+Red lines stay put in long paragraphs. Before, in a paragraph of more
+than about 170 words, typing an apostrophe, a quotation mark, two
+hyphens or three periods removed the red lines farther than about 85
+words from the cursor; so did Bold, Italic, Undo and Enter. Typing no
+longer costs any red line. After Bold, Italic, Undo or Enter, a red
+line that goes missing is back in a second or two, and the other red
+lines do not blink.
+
+Find understands Smart Typography. A straight apostrophe or quotation
+mark typed in the Find box also finds the curly ones, two hyphens
+also find an em dash, and three periods also find an ellipsis. A
+curly quote, an em dash or an ellipsis pasted into the Find box finds
+only itself. Find also finds a phrase when part of it is italic, bold
+or a link.
+
+Replace follows Smart Typography. When Smart Typography is on, text
+put in by Replace gets curly quotes, em dashes and ellipses as if you
+had typed it there. When it is off, and inside code, the text goes in
+exactly as typed.
+
+Replace All replaces everything. Before, it replaced at most 500
+matches at a time. Find still lists and steps through at most 500
+matches; when there are more, the count reads "1/500+".
+
+Pictures on other computers are not loaded. A picture whose address
+points to a shared folder on another computer is no longer fetched,
+because asking for it makes Windows sign in to that computer. Pictures
+next to the document, anywhere else on this computer (a mapped drive
+letter included) and on the web load as before. A document that itself
+lives in a shared folder still shows the pictures from that computer.
+
+NEW IN 1.3.2
+Find no longer takes away the red spelling lines. Before, every
+paragraph in which Find highlighted a match lost its red lines, and
+they stayed away after Find was closed. Now the red lines stay where
+they are while you search and after you close Find. The highlights
+look as they did.
+
+Text put in by Replace and Replace All is now checked for spelling.
+The check runs when you go back to the text (Esc, or a click in the
+document): the red lines disappear for about a second and come back,
+as they do after a paste. Until then, a paragraph that Replace changed
+shows no red lines.
+
+That check is also more dependable. After a paste, Ignore All, or
+Clear Custom Dictionary, most red lines sometimes stayed away until
+the mouse moved; this happened mainly while text was selected. They
+now come back on their own.
+
+NEW IN 1.3.1
+Ignore All: right-click a word with a red line under it and choose
+Ignore All, just above Add to Dictionary. Every occurrence of that word
+in the document loses its red line, including ones you type later. It
+lasts until you close the document or exit PicoMarQ; nothing is written
+into the .md file or the dictionary. For a word you will keep using,
+choose Add to Dictionary instead. (Spelling is checked in the formatted
+view only.)
+
+When you choose Ignore All, the other red lines disappear for about a
+second and come back, as they do after a paste. The same can happen a
+second after you type an ignored word in a long paragraph (more than
+about 150 words), or after Undo. In a book-length document, a word
+that occurs thousands of times is better added to the dictionary:
+thousands of ignored words make typing slower.
+
+Settings > Spelling > Clear Custom Dictionary... removes every word you
+added with Add to Dictionary. It lists the words and asks first; Cancel
+is the default. The words are then marked as misspelled again. This
+cannot be undone. On Windows, a word you add may also be kept in
+Windows' own spelling dictionary; clearing removes it from there too.
+
+Help > About PicoMarQ (Alt+H opens Help) shows the version and that
+PicoMarQ is based on Scratch by Eric Li, with buttons that open
+PicoMarQ's page and Scratch's page on GitHub.
+
+NEW IN 1.3
+Word count of a selection: when text is selected, the word count at the
+bottom right reads "56 of 1,234 words": the words in the selection, then
+the whole document. With nothing selected it reads "1,234 words" as
+before. It follows the selection as you drag or extend it, in both
+views, and counts selected table cells. A partly selected word counts
+as a word. Selecting everything (Ctrl+A) gives the document's count.
+
+Settings > Typography: the size box is now labeled Point Size (12-24).
+It works as before.
+
+NEW IN 1.2.7
+Spelling: opened files and pasted text are now spell-checked, not only
+what you type, and spelling is always US English. After a paste the
+whole document is rechecked, so other red underlines disappear for
+about a second (a few seconds in very long documents) and come back.
+
+Settings > Typography > Point Size (12-24): you can type a size. A size
+from 12 to 24 takes effect as you type it; a number outside that range
+moves to 12 or 24 when you press Enter or leave the box. The Up and Down
+arrow keys still work. Custom Width (under Page Width) works the same
+way.
+
+Settings > Saved Themes > Restore Default Theme... asks first, then
+returns colors (Light and Dark), typography, and User Interface settings
+to PicoMarQ's defaults. Light or Dark, Startup, Smart Typography, your
+documents, and saved theme files are not changed. Use Save Theme first
+if you want to keep your current look.
+
+SAVING AND LOADING APPEARANCE THEMES
+Settings > Saved Themes > Save Theme... or Load Theme... opens the
+standard Windows file dialog. Both start in the Themes folder next to
+PicoMarQ.exe, which is created automatically. Theme presets are JSON
+files; the filename extension is .json. The dialog can also navigate
+to another folder. Copy JSON files to share themes between computers.
+
+Themes save Light/Dark mode, colors for both modes, typography, and
+User Interface settings. They do not contain Markdown documents,
+Startup behavior or Smart Typography preferences. Missing installed
+fonts fall back to the built-in Sans font; bad theme files are rejected.
+Heading 4 is now bold at its former size. The 1.2.4 color picker
+behavior is retained unchanged.
+
+When upgrading a portable install, preserve your Themes directory.
+
+STARTUP CHOICE
+Settings > Startup (below User Interface) > When PicoMarQ starts offers
+Restore previous session
+(the default) or Start new session. The change takes effect at the next
+launch and does not close the documents you are currently editing.
+
+Start new session opens one blank document. Fonts, appearance settings,
+and recent files are kept. Opening a Markdown file from Windows opens
+that file under either startup setting.
+
+After an unexpected shutdown, Restore previous session recovers drafts
+automatically. With Start new session selected, PicoMarQ first offers
+Restore Session or Start New Session if it finds unsaved work. Restore is
+the default; choosing Start New Session explicitly discards recovered
+edits, without altering saved files.
+
+ONE DOCUMENT PER WINDOW
+New, Open, Open Recent, and opening a Markdown file from Windows create
+independent document windows. Open can select several files. Place windows
+side by side, on separate monitors, or switch with Alt+Tab. Copy and paste
+works normally between windows. Reopening a file that is already open
+raises its existing window and preserves its unsaved edits.
+
+View contains Markdown Source and text zoom; its document list is gone.
+Each window keeps its own undo history, Find panel, source mode, cursor,
+scroll position, size, and position. Settings and recent files are shared.
+
+SAVING, CLOSING, AND RECOVERY
+Markdown files are saved manually. Recovery snapshots preserve drafts
+separately for every open window; they do not overwrite your .md files.
+Older PicoMarQ/Quill profiles are reused automatically. Previously open
+documents appear in their own windows with their recovered drafts.
+
+File > Close Window (Ctrl+W) checks the current document's unsaved changes.
+With several windows open, it closes only that window. With one window
+open, it closes that document and leaves a fresh blank document at the
+same size and position, including maximized state. The app stays open.
+Cancel or a canceled Save As leaves the original document open. An
+explicitly closed document is removed from the next session.
+
+Alt+F4 and the title-bar X close the native window. Closing the final
+window this way exits and keeps its saved document for the next launch
+when Restore previous session is selected, just like File > Exit. This
+also works when a file is closed immediately after opening from Windows.
+
+File > Exit (Ctrl+Shift+Q) checks every window and keeps all remaining saved
+documents for restoration as separate windows next time when Restore is
+selected. A later Cancel keeps all windows and drafts, including those
+marked Discard earlier in that exit attempt. Canceling Save As also
+cancels closing. Discard removes an untitled draft; for a named document,
+it keeps the saved text for restoration. After an unexpected termination,
+unsaved drafts remain available for recovery. Undo histories start fresh
+after restarting.
+
+Revert to Saved confirms before replacing the current window's text with
+the file on disk and clearing its undo history. A failed read keeps your
+current text. Revert is disabled until a document has a filename. The
+Refresh control for external changes performs the same operation.
+
+SHORTCUTS
+Ctrl+N          New window
+Ctrl+O          Open files in separate windows
+Ctrl+S          Save
+F12             Save As
+Ctrl+W          Close document; keep a blank if it is the last window
+Alt+F4          Close this window
+Ctrl+Shift+Q    Exit all windows
+Ctrl+P          Print this document
+Ctrl+F          Find
+Ctrl+H          Replace
+Ctrl+Shift+M    Toggle Markdown source
+Ctrl+,          Settings
+Ctrl+plus/minus Zoom document text
+Ctrl+0          Actual text size
+
+See KEYBOARD-SHORTCUTS.md for the full list.
+
+This is an unsigned personal build adapted from Scratch by Eric Li.
+This package keeps the runtime files of the previous release; only the
+application files and the version shown in the executable's properties
+are new. RELEASE-VALIDATION.txt says how it was assembled and tested.
+Source, build instructions, and tests are in the source ZIP.

@@ -1,0 +1,419 @@
+diff --git a/README.md b/README.md
+index 6672393..6ee30df 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-# PicoMarQ 1.3.3
++# PicoMarQ 1.3.4
+ 
+ **Website:** https://crotalus65.github.io/PicoMarq/ — what the program is, screenshots, and the download.
+ 
+@@ -52,6 +52,6 @@ Tailwind reads every text file in the folder when it compiles the stylesheet, in
+ 
+ ## History
+ 
+-Version 1.3.3 stops Undo from emptying a document, keeps the red spelling lines in long paragraphs, makes Find treat what is typed and what Smart Typography makes of it as the same, lets Replace All replace more than 500 matches, and no longer loads pictures from other computers' shared folders. Version 1.3.2 made Find and Replace get along with the spelling checker: Find's highlights no longer take the red lines away from the paragraphs they are in, and text put in by Replace is checked. Version 1.3.1 added Ignore All, Clear Custom Dictionary and Help > About.
++Version 1.3.4 moves to a newer release of the engine (Electron 44.11.5, with the security fixes since 44.6.0); the program itself is unchanged. Version 1.3.3 stops Undo from emptying a document, keeps the red spelling lines in long paragraphs, makes Find treat what is typed and what Smart Typography makes of it as the same, lets Replace All replace more than 500 matches, and no longer loads pictures from other computers' shared folders. Version 1.3.2 made Find and Replace get along with the spelling checker: Find's highlights no longer take the red lines away from the paragraphs they are in, and text put in by Replace is checked. Version 1.3.1 added Ignore All, Clear Custom Dictionary and Help > About.
+ 
+ What each version changed, and why things are built the way they are: [docs/HISTORY-AND-DESIGN.md](docs/HISTORY-AND-DESIGN.md) and the patches in [history/](history/). The validation of the current version is in [VALIDATION.md](VALIDATION.md).
+diff --git a/START-HERE.txt b/START-HERE.txt
+index 0fdb9b4..c876e60 100644
+--- a/START-HERE.txt
++++ b/START-HERE.txt
+@@ -1,4 +1,4 @@
+-PICOMARQ — WINDOWS BUILD 1.3.3
++PICOMARQ — WINDOWS BUILD 1.3.4
+ 
+ Extract the whole PicoMarQ folder and run PicoMarQ.exe.
+ Keep every runtime file beside the executable. No installation, Node,
+@@ -11,7 +11,20 @@ folder. Keep the executable in the same place if Windows already uses
+ it to open .md files. Preferences and recovery stay in the existing
+ AppData profile on each machine.
+ 
+-WHAT'S NEW IN 1.3.3
++WHAT'S NEW IN 1.3.4
++A newer engine. PicoMarQ runs on Electron, which carries a copy of the
++Chromium browser engine. This version moves from Electron 44.6.0 to
++44.11.5: the same generation of the engine, with the security and bug
++fixes published since. Nothing in how PicoMarQ works has changed; the
++program itself is that of 1.3.3.
++
++Because the engine is new, every file in the PicoMarQ folder is new
++this time, not only the program's own. Update as described above: close
++PicoMarQ and replace the whole contents of the folder. If something
++behaves differently from 1.3.3, the 1.3.3 folder still works, with the
++same settings and drafts.
++
++NEW IN 1.3.3
+ Undo can no longer empty a document. Before, Ctrl+Z in a file you had
+ just opened, or pressed once more than you had made changes, took out
+ the whole text (Ctrl+Y brought it back), and saving at that moment
+diff --git a/THIRD-PARTY-NOTICES.txt b/THIRD-PARTY-NOTICES.txt
+index f0a10f4..babfbe6 100644
+--- a/THIRD-PARTY-NOTICES.txt
++++ b/THIRD-PARTY-NOTICES.txt
+@@ -4701,7 +4701,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ 
+ 
+ ============================================================
+-electron 44.6.0
++electron 44.11.5
+ Declared license: MIT
+ 
+ Copyright (c) Electron contributors
+diff --git a/VALIDATION.md b/VALIDATION.md
+index acb3b32..8d05081 100644
+--- a/VALIDATION.md
++++ b/VALIDATION.md
+@@ -1,68 +1,56 @@
+-# PicoMarQ 1.3.3 — validation and release status
++# PicoMarQ 1.3.4 — validation and release status
+ 
+-**Changes since 1.3.2** (`history/changes-since-1.3.2.patch`):
++**Change since 1.3.3** (`history/changes-since-1.3.3.patch`): a newer engine, and nothing else in the program.
+ 
+-- **Undo can no longer empty a document.** Through 1.3.2, Ctrl+Z in a document that had just been opened, or pressed once more than there were changes, took out the whole text. Ctrl+Y brought it back, but a save in between wrote an empty file.
+-  - *Why.* Putting a document's text into its editor was an ordinary change for the editor (TipTap's `setContent`), and so the first step of the undo history.
+-  - *How.* The load is marked as not belonging to the history (`addToHistory: false`, `src/components/editor/Editor.tsx`). Revert to Saved starts a new editor and loads the same way. The return from the Markdown source view is still a step of its own, as before: one Undo there changes nothing that can be seen, the next ones take back earlier typing, and they stop at the opened text.
+-- **Red lines in long paragraphs.** Chromium rechecks spelling by itself only around the caret: a whole paragraph of up to 1,024 characters, otherwise 512 characters on either side. Through 1.3.2, a paragraph longer than that (about 170 words) lost the red lines farther from the caret whenever the editor changed text itself, and they stayed away. Two causes, two cures:
+-  - *Text replaced as a whole* (`src/lib/minimal-text-updates.ts`). When the editor changed a piece of text it assigned the whole new string, and Chromium then drops every spelling mark in that piece. Smart Typography does this for each curly apostrophe, quotation mark, dash and ellipsis, and Undo of typing does it too. Now only the characters that differ are replaced; Chromium keeps the marks before them and moves the ones after them along. Typing with Smart Typography and Undo of typing cost no red line anymore.
+-  - *Text built anew* (`src/components/editor/QuietRecheck.ts`, `recheckSpellingQuietly` in `src/lib/spelling.ts`). Bold, Italic, Enter, joining paragraphs, Undo of those, and Edit > Apply Smart Typography put part of a paragraph into new pieces of text, which have no marks. After such a change the editor asks Chromium for a check of the whole document of a kind that does not blink. Chromium makes such a check by itself when the length of the text has changed by more than 1,024 characters since its last one, and it then replaces the marks piece by piece instead of clearing them first. The editor changes the length Chromium counts without touching the document: an invisible filler at the end of the editor element is made 1,100 characters longer or shorter. In the test paragraph (1,672 characters, a misspelling 800 characters before the caret and one 820 after it) the red line after a word made bold or italic was back 1.39 to 1.45 seconds later (8 tries), and no other red line went away. The same now holds in short paragraphs for the cases listed for 1.3.2 (Undo of a deleted selection, Bold on and off, Italic).
+-  - *The two kinds of recheck together.* The rechecks of 1.2.7 to 1.3.2 (after a paste, Replace, Ignore All, Clear Custom Dictionary and a return from the source view) clear every red line and bring them back about a second later; they are unchanged. Such a recheck goes over the document one second after it is asked for. A change made before that is covered by it, so no quiet check is asked for then; a change made after it gets its quiet check. A first version skipped the quiet check for a second and a half: Bold between 1.0 and 1.2 seconds after a blinking recheck then lost the red line after the word for good (8 times of 9). With the rule as it is now, the line came back 30 times of 30, for Bold at ten moments between 0.3 and 2.5 seconds after the recheck.
+-  - *The filler* is an element at the end of the document, of no size, that cannot be selected, is not read aloud, and is not part of the text, of a copy or of the saved file. Two faults of a trial build, found while measuring speed, were corrected before this release. An empty filler was a place of its own for Chromium's caret: Ctrl+End put the caret behind it and not at the end of the last line, and Chromium does not scroll to a caret there. The editor put the caret right a moment later but scrolls only when that moment is shorter than a twentieth of a second, so in a 2 MB document that had just been opened Ctrl+End left the window where it was. The filler is now never empty, and Ctrl+End, Ctrl+Shift+End and the arrow keys at the end of a document do what they do in 1.3.2, the first movement of the caret included. And the last block of a document was no longer the last child of the editor element, from which the stylesheet takes the bottom margin, so every document was 13 pixels taller; one rule in `src/App.css` gives the block before the filler the same treatment. Pictures of the window with eighteen documents, each ending in a different kind of block (and one of them scrolled to its end), are the same in 1.3.2 and 1.3.3 to the pixel; against the trial build the same comparison showed the 13 pixels in every one.
+-  - *Tried and taken out.* Drawing frames after every caret movement, so that Chromium's own check gets its turn in a window that stands still (see Limitations). Without it the red lines were back three seconds after the caret returned in 85 of 86 tries, with it in 16 of 16; those numbers show no difference, so it is not in this version.
+-- **Find understands Smart Typography** (`src/lib/find-text.ts`). A straight apostrophe or quotation mark typed in the Find box also finds the curly ones, exactly two hyphens also find an em dash, and three periods also find an ellipsis: the conversions of Smart Typography read backward. It works one way only. A curly quote, an em dash or an ellipsis in the Find box finds itself and nothing else, so an exact search stays possible, and an em dash never matches the hyphens of a table line or of code.
+-- **Find finds a phrase across formatting** (`src/lib/find-in-document.ts`). In the formatted view a paragraph is now searched as one text. Through 1.3.2 each stretch of the same formatting was searched by itself: with `the *Odyssey* in` in the text, "the Odyssey" was not found.
+-- **Replace follows Smart Typography.** When Smart Typography is on, the text of the Replace box is converted as if it had been typed at that place: curly quotes that open or close by what stands before them, an em dash, an ellipsis. Inside code, and in the source view wherever Smart Typography does not act on typing (code, math, front matter, link addresses, HTML), it goes in as typed; with Smart Typography off, everywhere.
+-- **Replace All replaces every match.** Through 1.3.2 it replaced at most 500 at a time. Find still lists, highlights and steps through at most 500 matches and now shows "1/500+" when there are more. Replace All changes each paragraph once, which keeps very many matches from freezing the window (see Speed), and one Undo takes all of it back.
+-- **Pictures in shared folders on other computers are not fetched** (`src/lib/desktop.ts`, `desktop/shared-folders.cjs`, `desktop/main.cjs`).
+-  - *Why.* On Windows, asking another computer for a file makes Windows sign in to it, which gives that computer the user's name and a form of the password that can be attacked. A document from someone else could point a picture at a computer set up for that (`![](//server/share/x.png)`, or the same written as a `file:` address). Opening the document was enough.
+-  - *How.* The page gives such a picture no address, however the address is written (two slashes, `file://server/…`, `file:////server/…`, backslashes, percent signs). And the main process stops every request for a file on another computer before it goes out, whatever in the page asked for it. The computer the document itself is on is the exception, and so is the one PicoMarQ runs from: a document in a shared folder shows the pictures from that computer. A mapped drive letter counts as this computer. The document is not changed; every address stays in its text.
+-  - *What else was looked at.* Nothing else in a document asked another computer for anything: markup in a diagram's labels is shown as text, the math commands that fetch are off, other HTML (video, frames, style sheets, objects, styles) is dropped, and a link does nothing until it is clicked and is then opened only as a web or mail link.
+-- Version 1.3.3 in `package.json`, the documents, the text of the web page, and the executable's properties.
++- **Electron 44.11.5 in place of 44.6.0.** PicoMarQ runs on Electron, which carries a copy of the Chromium browser engine and of Node.js. The new release has Chromium 152.0.7977.169 (was 152.0.7977.130) and Node.js 24.22.3 (was 24.21.0). It is the same generation of Chromium with the security and bug fixes of the seventeen Electron releases since, so the page engine that the spelling features lean on is the one they were built for. Of the release notes in between, those of 44.7.0, 44.8.0, 44.9.0, 44.10.0, 44.11.0 and 44.11.5 were read: fixes, and nothing that changes a function PicoMarQ uses. Some of the fixes are to the request filter that 1.3.3's barrier against pictures on other computers is built on (two crashes, and requests made by web workers now pass through it too; PicoMarQ starts no web workers).
++- **The program is that of 1.3.3.** The compiled program in `dist/` and the main-process files in `desktop/` are byte for byte the same. In `package.json` and `package-lock.json` only the version and the entry for Electron change; no other part was moved (the lock file differs from 1.3.3's in those two entries only).
++- **The packaging script** (`scripts/package-windows.cjs`) now compares the checksum of Electron's Windows package with the published one itself, can use a copy fetched beforehand (`PICOMARQ_ELECTRON_ZIP`), and writes `RELEASE-VALIDATION.txt`. It is used again because the engine is new: every release from 1.2.4 to 1.3.3 kept the runtime files of the release before it.
++- **One test was corrected** (`tests/desktop-smoke.cjs`). Before it presses Ctrl+W in one of several windows, it now waits until every window is on the screen and the window it means has kept the focus. The reason is under “Tests” and “Found while testing” below. The program was not changed for it.
++- Version 1.3.4 in `package.json`, the documents, the text of the web page, and the executable's properties; the line for Electron in `THIRD-PARTY-NOTICES.txt` (its license text is unchanged).
+ 
+-**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. The compiled stylesheet (`index-CyLybaO3.css`) is that of 1.3.2 plus the one rule for the block before the filler. The JavaScript bundle (`index-DJg4t7ss.js`) and `index.html` change. In `desktop/`, `main.cjs` changes (the request check) and `shared-folders.cjs` is new; the other main-process files are those of 1.3.2. Rebuilding this source package reproduces `dist/` byte for byte, with the `dist/` folder that comes with the source in place (see the README).
++**What the update takes care of, and what it does not.** `npm audit` listed 19 advisories for 1.3.3 and lists 18 now (11 rated high, 3 moderate, 4 low): the one for Electron is gone. Of the others, three are in the program (TipTap, ProseMirror's handling of pasted HTML, KaTeX) and the rest in tools that only build it; none of them was touched, because updating the editing libraries changes how editing behaves and is a decision of its own. The Electron 44 line is scheduled to get fixes until about March 2, 2027 (a tentative date on Electron's schedule); after that, staying current means the next generation of the engine, which is a bigger step than this one.
+ 
+-**Tests** (Linux, Electron 44.6.0 official linux-x64 build, Xvfb, US English dictionary):
++**Build.** `npm ci` and `npm run build` (TypeScript, Vite) with Node 22.23.5 / npm 10.9.9. The stylesheet (`index-CyLybaO3.css`), the JavaScript bundle (`index-DJg4t7ss.js`) and `index.html` are those of 1.3.3. Rebuilding this source package reproduces `dist/` byte for byte, with the `dist/` folder that comes with the source in place (see the README).
+ 
+-- `npm test`: 81 passed (37 + 44). New: `tests/find-text.test.mts` (9: what counts as a match), `tests/protected-markdown.test.mts` (4: where Smart Typography does not act in Markdown source, against the existing function at every position of sample and random documents), `tests/shared-folders.test.mts` and `.test.cjs` (7: which addresses are on another computer, the same list of cases for the page and for the main process).
+-- `tests/paragraph-smoke.cjs` (`npm run test:paragraph`, new), in the real app, reading the red lines off the screen. 10 checks: an apostrophe, a quotation mark, two hyphens and three periods typed in the long paragraph; Undo of typing and a conversion taken back with Backspace; Bold and Italic; Enter in the middle, joining again, and Undo of the join; Apply Smart Typography with the caret far away; the short-paragraph cases; the filler (no size, not in the text, at the caret, in a copy or in the saved file); Bold 1.1 seconds after a blinking recheck; a recheck cut short by a visit to the Find box; and the end of the document (Ctrl+End goes straight to the end of the last line and the window follows, the arrow keys stay there, the last paragraph keeps the margin of a last child, with the filler short and long). Run against 1.3.2 it fails at the first check ("red line lost under acommodate, embarass").
+-- `tests/find-smoke.cjs`: 13 checks, 5 of them new: typed and typeset characters, in both directions; a phrase across italic, bold and a link, and Replace of it; what Replace puts in with Smart Typography on, in code, and with it off; Replace All of 1,200 matches where Find shows "1/500+", and one Undo; the same matches and replacements in the source view. Check 4 no longer asks for a recheck after its four Undos, because the red lines now come back by themselves; run against 1.3.2 the test fails there.
+-- `tests/undo-smoke.cjs` (`npm run test:undo`, new), 5 checks: a freshly opened document has nothing to undo, by Ctrl+Z and by the Edit menu; Undo takes back typing and stops at the opened text, a save there keeps the file, Redo works; the same after a visit to the source view; after Revert to Saved; and in a new document. Run against 1.3.2 it fails at the first check.
+-- `tests/pictures-smoke.cjs` (`npm run test:pictures`, new), 6 checks: a picture next to the document is shown; pictures on another computer's share get no address, in four spellings, and nothing is asked of that computer; a picture on the web keeps its address; the document's text keeps every address; a request made past the page's own check is stopped in the main process before it goes out (the page is told "blocked"), and files on this computer still load; diagram labels, math, links and other HTML ask no other computer for anything. The computers named in the test end in `.invalid`, which never resolves. Run against 1.3.2 it fails at the second check.
+-- Each safeguard was taken out in turn in a copy of the source, and the tests failed where expected: text replaced as a whole (paragraph check 1), no quiet check (check 3), quiet check skipped for a second and a half after a blinking one (check 8), filler empty when short (check 7 by its length; check 10 by the path of the caret, when the test's counts of the length are left out), no margin rule (check 10); a typed apostrophe finding only itself (Find check 9), a match stopped by formatting (check 10), Replace as typed (check 11), Replace All of the listed matches only (check 12), no "+" in the count (check 12); the load in the undo history (Undo check 1); the page keeping share addresses (pictures check 2), the main process letting the request through (check 5).
+-- `tests/ignore-smoke.cjs` (12 checks), `tests/dictionary-smoke.cjs` (5), `tests/spelling-smoke.cjs` (7), `tests/desktop-smoke.cjs` (19), `settings-smoke.cjs`, `word-count-smoke.cjs`, `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`, `npm run test:equivalence`, `tests/theme-browser-smoke.py` and `tests/colors-browser-smoke.py`: passed, unchanged.
+-- The paragraph, Find and Ignore All tests were each run several times in a row without a failure after the last change.
+-- The packaged `resources/app` from the Windows ZIP passed the paragraph, Find, Undo, pictures, Ignore All, dictionary, spelling, settings and desktop checks.
++**Tests** (Linux, Electron 44.11.5 official linux-x64 build, Xvfb, US English dictionary):
+ 
+-**Speed.** Same machine and method as for 1.3.2; the 2 MB document (248,000 words, 4,394 paragraphs); four runs each unless said otherwise. The differences between the versions are no larger than those between runs.
++- `npm test`: 81 passed (37 + 44).
++- In the real app: `tests/paragraph-smoke.cjs` (10 checks), `tests/find-smoke.cjs` (13), `tests/undo-smoke.cjs` (5), `tests/pictures-smoke.cjs` (6), `tests/ignore-smoke.cjs` (12), `tests/dictionary-smoke.cjs` (5), `tests/spelling-smoke.cjs` (7), `tests/desktop-smoke.cjs` (19), `settings-smoke.cjs`, `word-count-smoke.cjs`, `typography-smoke.cjs`, `startup-smoke.cjs`, `close-restore-smoke.cjs`, `close-command-smoke.cjs`, `npm run test:equivalence`, `tests/theme-browser-smoke.py` and `tests/colors-browser-smoke.py`: all passed. They are the tests of 1.3.3, except for the wait added to the desktop check (next point). The tests of the spelling features are the ones that depend most on the engine's inner workings (when Chromium rechecks, how it keeps its marks, where it puts the caret at the end of a document); they passed without a change.
++- **The desktop check failed once, and the fault was in the check.** In the first run on the files from the Windows ZIP, its step “close a window with Ctrl+W and answer Cancel” failed: a different window had closed. It passed the next 19 runs, so the machine was kept busy to bring the fault out (three processes that do nothing but use its two processors). The check then failed in 2 of 6 runs on the new engine and in 2 of 6 on the old one, at the same two steps, and each time the window created last had closed in place of the one the key was sent to. The check sent its key straight after asking for the focus, and the key was faster than the focus (“Found while testing” below). With the wait in place it passed 8 of 8 runs on the busy machine with the new engine, 8 of 8 with the old one, and 6 of 6 on a quiet machine.
++- The paragraph, Find and Ignore All tests were each run several times in a row on the new engine without a failure.
++- The safeguards of 1.3.3 were taken out in turn again, on the new engine, and each test failed where it had failed on the old one (thirteen cases, and the empty filler a second time with the test's counts of its length left out): the tests still tell a working safeguard from a missing one.
++- The packaged `resources/app` from the Windows ZIP passed the paragraph, Find, Undo, pictures, Ignore All, dictionary, spelling, settings and desktop checks (the desktop check as corrected).
+ 
+-- *Typing*: 28–32 ms per key (30–34 ms in 1.3.2); with Find open and its 404 matches shown, 27–36 ms (28–32 ms).
+-- *Find*: 404 matches are shown 139–155 ms after the last key (158–168 ms in 1.3.2); Next takes 15–19 ms (14–20 ms); closing Find 175–226 ms (198–252 ms). For the letter e, in about 191,000 places, "1/500+" is shown after 114 ms (1.3.2: "1/500" after 118 ms; one run each).
+-- *Replace All*: the word "the", in more than 1,800 places, took one second; the letter e, in 191,000 places, 9 seconds, and the window does not respond meanwhile. (With one change for each match, as in a first version, the second did not finish in two minutes.)
+-- *A new paragraph* (Enter) takes 90–98 ms (83–95 ms in 1.3.2; three runs of eight). The quiet check that follows runs while the editor is idle. A key that arrives while it is going over the document took about 10 ms longer than in 1.3.2 on average (0 to 30 ms, in six sets of eight keys).
+-- *The quiet check* brought a red line at the very end of the document back 3.1 to 3.4 seconds after a change that had taken it, with the caret at the start (in 1.3.2 it stayed away). *A blinking recheck* brings that line back 2.5–2.9 seconds after it is asked for (2.7–3.0 seconds in 1.3.2; three runs each).
++**Compared with 1.3.3 on the old engine** (same machine; for the speed figures the two versions were run in turn):
+ 
+-**Windows portable distribution.** Assembled by `scripts/repack-windows-from-1.3.2.py` from the 1.3.2 portable release. Its Electron 44.6.0 runtime is unchanged. In `resources/app`, `package.json`, `dist/index.html`, the JavaScript bundle, the stylesheet and `desktop/main.cjs` differ from 1.3.2 and `desktop/shared-folders.cjs` is new; `START-HERE.txt` and `RELEASE-VALIDATION.txt` are this release's. In `PicoMarQ.exe` only the version information changes from 1.3.2 to 1.3.3 (two strings and two numbers of the fixed version record), as checked independently with `pefile`: 4 bytes of `.rsrc` differ, every other section is identical, and the entry point is the same.
+-Baseline (1.3.2) executable SHA-256: `10eae107fcc76e37b4df72dcff28b8940d23e15e0bf72555bb52f2b37391ffd6`
+-1.3.3 executable SHA-256: `6a7868754bab4fd9a3418698f19404cb30d110ae4a9ba28e502d2bc3b95e4bbf`
++- *What it looks like.* Pictures of the window with eighteen documents, each ending in a different kind of block (one of them also scrolled to its end): eighteen of the nineteen pictures are the same to the pixel. In the nineteenth, a table, one pixel differs by one step of gray, and that pixel differs between two runs of the same version as well.
++- *Speed, in the 2 MB document* (248,000 words; four runs each unless said otherwise): typing 32–37 ms per key (31–36 ms on the old engine); with Find open 30–35 ms (36 ms); Find shows its 404 matches 145–183 ms after the last key (159–188 ms); Next 16–18 ms (17–20 ms); closing Find 175–323 ms (179–264 ms; this one varies most from run to run on both); a new paragraph 98–126 ms (102–120 ms; two runs of eight); a blinking recheck brings the red line at the far end back after 2.7–3.5 seconds (2.9–3.4 seconds; twelve measurements each); the quiet check after 2.9–3.7 seconds (3.1–3.4 seconds when 1.3.3 was tested). None of the differences is larger than the difference between two runs of the same version.
++- *The quiet check in the long test paragraph* brings the lost red line back after 1.38–1.44 seconds (1.39–1.45 on the old engine; eight tries each).
++- *A recheck cut short by a visit to the Find box* was made up for when the caret came back in 30 of 30 tries (85 of 86 on the old engine).
++- *The same data folder with both versions.* 1.3.3 on the old engine, then 1.3.4 on the new one, then each once more, all on one data folder: every start restored the document of the run before, a word added to the custom dictionary by one version was known to the other, the program's own files (`session.json`) stayed readable, and neither engine complained about the other's files. Going back to 1.3.3 is therefore possible.
++
++**Windows portable distribution.** Built by `npm run package:windows` from Electron's official Windows package, `electron-v44.11.5-win32-x64.zip` (158,322,092 bytes). Its SHA-256 was compared with two lists: the one inside the `electron` npm package (which `package-lock.json` pins) and `SHASUMS256.txt` on Electron's release page. Checked independently of the script that builds the package, with `pefile`:
++
++- All 71 runtime files of Electron's package are in the PicoMarQ package unchanged. Electron's sample application is left out. Beside the runtime there are `PicoMarQ.exe`, `START-HERE.txt`, `RELEASE-VALIDATION.txt`, `KEYBOARD-SHORTCUTS.md`, `APP-LICENSE.txt`, `THIRD-PARTY-NOTICES.txt` and the program in `resources/app`, whose `dist/` and `desktop/` equal this source.
++- `PicoMarQ.exe` is Electron's `electron.exe` with the PicoMarQ icon, name and version: the same size, every section but the resource section identical, the headers identical, the entry point the same; in the resource section the icon (nine images, the same as in 1.3.3 and in `app.ico`) and the version information differ, and the 45 other resources, the manifest among them, are Electron's. Neither file is signed, as before.
++- The names of the runtime files are the same as in 1.3.3, so an update that replaces the folder's contents leaves nothing old behind.
++
++Electron's Windows package SHA-256: `2938040ee81382bb8a99954425a316fee17f23d55f5be0ef413275f7e793c8af`
++Electron's `electron.exe` SHA-256: `376ad076899379c865fbcd28f45087f03b46a823ce1f66376df776e1f0244dd6`
++1.3.4 executable SHA-256: `eb8955f3054be917a8123a9b1f16be07fb5f4423d66649d9b5c97a7aed0ae898`
+ 
+ **Limitations.**
+ 
+-- Not run on Windows. The red lines, Find and Undo are in Chromium's page engine and in the editor, the same on every system. The picture change is about what Windows does when a file on another computer is asked for, and that cannot be watched here: what is tested is that the page asks for no such file and that the main process stops such a request. On Linux, Chromium reads four slashes after `file:` as a path on this computer; Windows reads them as a share, and the page's check goes by the written address for that reason.
+-- A document in a shared folder shows pictures from its own computer only; a picture on a second computer's share is not shown. A picture on the web is fetched as before, which tells that server that the document was opened.
+-- The rechecks that blink are the same as in 1.3.2: after a paste, Replace, Ignore All, Clear Custom Dictionary and a return from the source view, every red line is gone for about a second (several seconds in a very long document). Moving them to the quiet check is possible and was left for a later version.
+-- If the Find box or Settings is opened within about a second of a recheck that blinks, the recheck is abandoned and the red lines outside the caret's paragraph stay away while the caret is elsewhere. When the caret was back in the document they returned by themselves in 85 of 86 tries (with the Find box); the one time they were still missing three seconds later, and what brought them back then was not recorded.
+-- After Bold, Italic, Enter or an Undo of those in a paragraph of more than about 170 words, a red line far from the caret is away for about a second and a half before it returns (three seconds at the far end of a 2 MB document).
+-- Find lists at most 500 matches. A typeset character in the Find box finds only itself. A search for spaces alone finds nothing, as before.
+-- The limitations of 1.3.2 that concern Replace stand: a paragraph changed by Replace shows no red lines until the caret is back in the text.
++- **Not run on Windows, and this time that matters more.** Through 1.3.3 the runtime files were those of earlier releases, which had been in use on Windows; only the program's own files were new. Now every file of the runtime is new. What stands behind it: it is Electron's own published build, unchanged; the Linux build of the same release runs every test; and the executable differs from Electron's only in icon, name and version. What is missing is a run on Windows itself. Keep the 1.3.3 folder until 1.3.4 has been used for a while; both work on the same settings and drafts.
++- The limitations of 1.3.3 stand unchanged: the rechecks that blink (after a paste, Replace, Ignore All, Clear Custom Dictionary and a return from the source view); the red lines that stay away while the caret is in the Find box if it was opened within a second of such a recheck; the second and a half before a red line returns after Bold, Italic or Enter in a long paragraph; Find's list of at most 500 matches; pictures on a second computer's share not shown, and pictures on the web fetched as before. The picture change of 1.3.3 is about what Windows does when a file on another computer is asked for, which cannot be watched on Linux.
+ 
+-**Found earlier, the same in earlier versions, and not changed.**
++**Found while testing, the same in earlier versions, and not changed.**
+ 
++- *A key pressed in the instant a large document appears can be undone by the program.* After a document is loaded, the program restores the writing position in two steps, one screen frame apart, and each sets the scroll position. With the 2 MB document that frame lasts about a fifth of a second. Ctrl+End pressed in between puts the caret at the end, and the second step puts the window back at the top; pressed within about a hundredth of a second after it, the window moves and the caret stays. In these tests a key sent the moment the document was shown hit that gap about one time in ten, on either engine, mostly in the first window after the program starts. A scroll made between the two steps is undone in 1.3.2 in the same way. Pressing the key again does what was meant.
++- *A menu shortcut acts on the window that has the focus when its command runs.* The windows share one menu, and the command of a shortcut (Ctrl+W, Ctrl+S, Ctrl+F and the rest) runs a moment after the key press, for the window that has the focus then. With a keyboard that is the window the key was pressed in, unless the focus moves in that moment, as it does when a new window appears. A test sends its key by program, and there the order matters. With two windows open and the focus on the second, on either engine: Ctrl+W sent to the first window without asking for the focus did nothing; sent straight after asking for the focus, it closed the second window (5 of 5 tries); sent once the first window had the focus, it closed the first. The desktop check sent its key straight after asking, which worked as long as the window it meant had the focus already, and failed when a window created a moment earlier had just taken it. A window with unsaved changes asks before it closes, whichever window the command reaches, so no writing is lost this way. The 1.3.3 program does the same, and it was left as it is; the check now waits.
+ - *The formatted view writes Markdown its own way.* A file is rewritten as a whole when it is saved after an edit in the formatted view (the Markdown source view saves exactly what is in it). 72 small files from other sources were opened, edited without changing anything, and saved. Text, headings, emphasis, quotations, links, images, lists, front matter and math came back with the same meaning, in PicoMarQ's notation: `*` for italics, `-` for list items, `#` headings, `---` rules, backtick fences, inline links for reference-style links, Unix line endings, no byte order mark, single blank lines, and no line break at the end of the file. These changed in meaning:
+   - Footnotes and citations in Pandoc's notation get backslashes: `[^1]` is saved as `\[^1\]`, `[@smith2020]` as `\[@smith2020\]`, `^[note]` as `^\[note\]`. PicoMarQ shows them as plain text either way, but other programs no longer read them as footnotes or citations. A command such as `\newpage` on a line of its own is saved as `\\newpage`, and a subscript `H~2~O` as `H~~2~~O` (struck through).
+   - A code block fenced with tildes (`~~~`) is not shown and is gone from the saved file. Code blocks fenced with backticks or indented are kept.
+   - HTML is dropped: a comment disappears, and tags such as `<sub>`, `<span>`, `<kbd>` or `<div>` are removed while the text inside them stays. `<u>` and `<br>` are understood. The entity `&nbsp;` becomes an ordinary space; other entities (`&amp;`, `&mdash;`) are shown and saved as written. A non-breaking space character is kept.
+   - In tables, the alignment of columns (`:---:`, `---:`) is lost. A link around an image is lost. Two paragraphs in one list item become one, and blank lines between list items go.
+   - A file that ends with a list, a table, an image, a math block or a quotation gets an empty last line with one space in it.
+-- *The parts PicoMarQ is built from have had security fixes since the versions used here.* `npm audit` lists 19 advisories on 2026-11-22 (12 rated high, 3 moderate, 4 low). Most concern tools that only build the program. Four are in the program: Electron 44.6.0 (fixes through 44.11.5 in the same line), TipTap, ProseMirror's handling of pasted HTML, and KaTeX. PicoMarQ shows no web pages, runs no scripts but its own (`script-src 'self'`), denies new windows, navigation and permission requests, and opens only `http`, `https` and `mailto` links, in the browser. What remains exposed is what a document or pasted text can do to the page engine. Updating the parts changes the runtime and needs a full test pass, so it is a version of its own.
+diff --git a/docs/HISTORY-AND-DESIGN.md b/docs/HISTORY-AND-DESIGN.md
+index e1ef7de..c0c7fd5 100644
+--- a/docs/HISTORY-AND-DESIGN.md
++++ b/docs/HISTORY-AND-DESIGN.md
+@@ -11,6 +11,7 @@ This version removes folder navigation, folder settings, AI integrations, Git in
+ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64. The build is not code-signed. PicoMarQ is independent of upstream Scratch.
+ 
+ - PicoMarQ uses one independent native window per document. File, Edit, View, and Help keep their compact row; the document-switching list has been removed from View. Windows can be placed side by side or on separate monitors, with normal clipboard operations between them.
++- Version 1.3.4 changes the engine and nothing else: Electron 44.11.5 (Chromium 152.0.7977.169, Node.js 24.22.3) in place of 44.6.0 (Chromium 152.0.7977.130), the same generation of Chromium with the fixes published in between. The compiled program in `dist/` and the main-process files in `desktop/` are byte for byte those of 1.3.3. Every file of the runtime is new, so the Windows package is built from Electron's official package instead of from the previous release. One test was corrected: `tests/desktop-smoke.cjs` waits for the focus before it presses Ctrl+W (see the note on shortcuts under Close Window below).
+ - Version 1.3.3 mends five things found in a review of 1.3.2. Undo stops at the text a document was opened with (it could take the whole text out, and a save then wrote an empty file). Red lines in long paragraphs survive typing with Smart Typography, and come back by themselves, without the others blinking, after Bold, Italic, Undo or Enter. Find treats a typed apostrophe, quotation mark, two hyphens and three periods as also meaning their typeset forms, and finds a phrase across a change of formatting; Replace typesets its text when Smart Typography is on. Replace All replaces every match, not the first 500. And a picture whose address points at another computer's shared folder is not loaded.
+ - Version 1.3.2 makes Find and Replace get along with the spelling checker. Find's highlights no longer take the red lines away from the paragraphs that contain a match (through 1.3.1 they did, and the lines stayed away after Find was closed); the highlights look the same. Text put in by Replace and Replace All is spell-checked when the caret returns to the document, with the usual second without red lines. And the recheck that follows a paste, Ignore All or Clear Custom Dictionary no longer waits for the mouse to move, which it sometimes did while text was selected.
+ - Version 1.3.1 adds Ignore All, Clear Custom Dictionary, and About. **Ignore All** is in the right-click menu of a word the spelling checker has marked, above Add to Dictionary: every occurrence of that word in the document loses its red line, including occurrences typed later, until the document is closed or PicoMarQ exits. Nothing is written into the Markdown file or the dictionary. The other red lines disappear for about a second and come back, as after a paste. **Settings > Spelling > Clear Custom Dictionary…** removes every word added with Add to Dictionary, after a question that lists the words and has Cancel as its default; the words are then marked as misspelled again in every open document. **Help > About PicoMarQ** (a fourth menu, Alt+H) shows the version and that PicoMarQ is based on Scratch by Eric Li, with buttons that open the two projects' pages on GitHub. A personal name, a university and an address in the test document, the tests, the icon notes and the oldest patch file were replaced with placeholders.
+@@ -36,6 +37,7 @@ Extract the Windows ZIP completely and run **PicoMarQ.exe**. Windows 10/11 x64.
+ - A live word count beside zoom in the status bar. It counts document text in both editing views, excluding Markdown formatting markers and hidden link URLs. While text is selected it reads "x of n words", where x is the number of words in the selection. The settings sample preview has been removed.
+ - Markdown files are saved manually. Recovery snapshots merge independently for each window, retaining drafts, selection, scroll, source mode, size, position, and maximized state. Preferences remain in the existing AppData profile and changes apply to every open window.
+ - File > Close Window (Ctrl+W) removes the current document from the session after Save/Discard/Cancel. It closes that window when others remain, or replaces the final document with a blank at the same position when no other window remains. A failed replacement load keeps the original document and recovery data. The title-bar close button and Alt+F4 close the native window; on the last window they exit and retain its saved document for restoration when Restore is selected. Discard during Exit keeps the saved version of a named document and removes an untitled draft.
++- The windows share one menu (`buildMenu` and `menuFor` in `desktop/main.cjs`). The command of a menu shortcut runs a moment after the key press, for the window that has the focus then. With a keyboard that is the window the key was pressed in, unless the focus moves in that moment, as it does when a new window appears; a window with unsaved changes asks before it closes whichever window the command reaches. A test that sends a key by program has to wait until its window has the focus: a key sent straight after asking for the focus is faster than the focus, and its command goes to the window that still has it. `tests/desktop-smoke.cjs` waits since 1.3.4.
+ - File > Exit (Ctrl+Shift+Q) checks all windows and retains the remaining saved documents for the next launch when Restore is selected. Discard choices take effect only after every prompt succeeds; a later Cancel preserves all drafts and windows. Canceling Save As also cancels closing. Unsaved drafts remain available for recovery after an unexpected termination.
+ - Revert to Saved confirms before rereading the current file from disk in the same window and clearing its undo history. It is disabled for untitled documents. A failed read preserves current text. The Refresh control for external edits uses the same operation.
+ - Find and Replace stays above the scrolling text in both views until explicitly closed. Each window has independent Find and Undo state.
+@@ -53,7 +55,7 @@ Markdown source is available through View or Ctrl+Shift+M. The toolbar omits inl
+ 
+ Added/pasted images are embedded as data URLs. Existing relative image links resolve against the document's location. Source and code blocks stay monospace. Switching open documents preserves their undo histories. Recovery after a restart does not restore undo history; opening a recovered document starts a new undo history.
+ 
+-The Windows portable distributions since 1.2.4 are assembled from the previous release's package: the Electron 44.6.0 x64 runtime is kept byte for byte, the application files in `resources/app` are replaced, and only the version information in the `.exe` is updated (`scripts/repack-windows-from-*.py`; 1.3.3 comes from 1.3.2). The 1.2.3 runtime was originally packaged from Electron's official release with checksum verification. Since 1.2.7 the renderer in `dist/` is compiled from this TypeScript source. The app is tested on Linux with the same Electron version; it has not been run on Windows in the build environment. `VALIDATION.md` has the details for this release.
++The Windows portable distributions from 1.2.4 through 1.3.3 were assembled from the previous release's package: the Electron 44.6.0 x64 runtime was kept byte for byte, the application files in `resources/app` were replaced, and only the version information in the `.exe` was updated (`scripts/repack-windows-from-*.py`; 1.3.3 came from 1.3.2). The 1.2.3 runtime had been packaged from Electron's official release with checksum verification, and 1.3.4, which changes the engine to Electron 44.11.5, is packaged that way again (`npm run package:windows`, below). A later release that keeps the engine can be assembled from the 1.3.4 package as before. Since 1.2.7 the renderer in `dist/` is compiled from this TypeScript source. The app is tested on Linux with the same Electron version; it has not been run on Windows in the build environment. `VALIDATION.md` has the details for this release.
+ 
+ ## Performance
+ 
+@@ -121,7 +123,7 @@ npm start
+ 
+ `npm run build` compiles the renderer into `dist/`. Tailwind reads every text file in the folder when it compiles the stylesheet, and that includes the compiled program of the previous build in `dist/` and the patch files in `history`. With the released `dist/` in place the build reproduces it byte for byte. Started without a `dist/` folder, the first build gives a stylesheet about 12 kB smaller, without 95 rules for words that occur only in the compiled program (no element of the running program was found to use one); a second build gives the released stylesheet.
+ 
+-`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.3.3.zip` (named after the version in `package.json`), containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and downloads Electron 44.6.0 for Windows from the official release with checksum verification. The package embeds the PicoMarQ name, version, and icon and verifies that executable code and data are preserved. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory. The released packages are made another way, which keeps the runtime of the previous release unchanged: after `npm ci && npm run build`, run `python scripts/repack-windows-from-1.3.2.py /path/to/PicoMarQ-Windows-x64-1.3.2.zip` to make `release/PicoMarQ-Windows-x64-1.3.3.zip` (the earlier `repack-windows-from-*.py` scripts made 1.2.4, 1.2.6, 1.2.7, 1.3.0, 1.3.1 and 1.3.2 the same way).
++`npm run package:windows` makes `release/PicoMarQ-Windows-x64-1.3.4.zip` (named after the version in `package.json`), containing a `PicoMarQ` folder with `PicoMarQ.exe` and its runtime. It runs on Linux/macOS with `zip` and `unzip` installed and uses Electron's official Windows package for the version named in `package.json` (44.11.5): downloaded, or, when the download does not get through, fetched beforehand and named in `PICOMARQ_ELECTRON_ZIP`. Either way the file's SHA-256 must equal the one in `checksums.json` of the `electron` npm package, which `package-lock.json` pins. Every file of Electron's package goes into the PicoMarQ package unchanged, except that `electron.exe` becomes `PicoMarQ.exe` with the PicoMarQ name, version, and icon (the script verifies that executable code and data are preserved) and Electron's sample application is left out. `RELEASE-VALIDATION.txt` in the package records the three checksums. Building on Windows can use WSL, or copy `dist`, `desktop`, `app.ico`, and application package.json into Electron's `resources/app` directory. This is how 1.3.4 was made, because its engine is new. Releases that keep the engine were made another way, which leaves the runtime of the previous release untouched: after `npm ci && npm run build`, `python scripts/repack-windows-from-1.3.2.py /path/to/PicoMarQ-Windows-x64-1.3.2.zip` made `release/PicoMarQ-Windows-x64-1.3.3.zip` (the earlier `repack-windows-from-*.py` scripts made 1.2.4, 1.2.6, 1.2.7, 1.3.0, 1.3.1 and 1.3.2 the same way).
+ 
+ The icon is drawn in `scripts/build-icon.cjs`; `npm run build:icon` renders it with Playwright's Chromium into `app.ico` (16–256 px, PNG entries), `assets/app-icon.svg`, and the PNG copies (`assets/app-icon.png`, `app-icon.png`). `assets/ICON.md` has the design notes.
+ 
+diff --git a/package-lock.json b/package-lock.json
+index 6ec2293..15f36fd 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "picomarq",
+-  "version": "1.3.3",
++  "version": "1.3.4",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "picomarq",
+-      "version": "1.3.3",
++      "version": "1.3.4",
+       "dependencies": {
+         "@radix-ui/react-alert-dialog": "^1.1.15",
+         "@radix-ui/react-dropdown-menu": "^2.1.16",
+@@ -47,7 +47,7 @@
+         "@types/react": "^19.1.8",
+         "@types/react-dom": "^19.1.6",
+         "@vitejs/plugin-react": "^4.6.0",
+-        "electron": "44.6.0",
++        "electron": "44.11.5",
+         "pe-library": "2.0.1",
+         "playwright": "1.62.1",
+         "resedit": "3.1.0",
+@@ -3228,9 +3228,9 @@
+       }
+     },
+     "node_modules/electron": {
+-      "version": "44.6.0",
+-      "resolved": "https://registry.npmjs.org/electron/-/electron-44.6.0.tgz",
+-      "integrity": "sha512-qjzKZ82yTsAoo0Q/gqdy4PEMQkzYpukZqIduaHWZYHapFhK9wgWwU4YId60xHmwTCraqF4AfVCm05o90dZJKMQ==",
++      "version": "44.11.5",
++      "resolved": "https://registry.npmjs.org/electron/-/electron-44.11.5.tgz",
++      "integrity": "sha512-FgtBBAgWRyT/k2LbXDvlnHQRtc35sfp4UaWjYvktsh2HWWYSnfA/DnYGEOxQUZXpcp4EELj37x5zSSrh585nwg==",
+       "dev": true,
+       "license": "MIT",
+       "dependencies": {
+diff --git a/package.json b/package.json
+index 8166e8f..5830874 100644
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,7 @@
+   "name": "picomarq",
+   "productName": "PicoMarQ",
+   "private": true,
+-  "version": "1.3.3",
++  "version": "1.3.4",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -67,7 +67,7 @@
+     "@types/react": "^19.1.8",
+     "@types/react-dom": "^19.1.6",
+     "@vitejs/plugin-react": "^4.6.0",
+-    "electron": "44.6.0",
++    "electron": "44.11.5",
+     "pe-library": "2.0.1",
+     "playwright": "1.62.1",
+     "resedit": "3.1.0",
+diff --git a/scripts/package-windows.cjs b/scripts/package-windows.cjs
+index 01cac70..61aed8f 100644
+--- a/scripts/package-windows.cjs
++++ b/scripts/package-windows.cjs
+@@ -1,14 +1,32 @@
++// Builds the portable Windows package from Electron's official Windows
++// package: release/PicoMarQ-Windows-x64-<version>.zip. Used whenever the
++// engine changes (1.3.4: Electron 44.11.5); releases that keep the engine
++// can be assembled from the previous release instead (repack-windows-from-*.py).
+ const { downloadArtifact } = require('@electron/get');
+ const fs = require('node:fs/promises');
+ const path = require('node:path');
++const { createHash } = require('node:crypto');
+ const { promisify } = require('node:util');
+ const { execFile } = require('node:child_process');
+ const { setWindowsIcon } = require('./windows-icon.cjs');
+ const exec = promisify(execFile);
++const sha256 = async file => createHash('sha256').update(await fs.readFile(file)).digest('hex');
+ async function main() {
+   const project = require('../package.json');
+   const version = project.devDependencies.electron;
+-  const zip = await downloadArtifact({ version, artifactName: 'electron', platform: 'win32', arch: 'x64' });
++  // Electron's package is downloaded (and kept in the user's cache), or a
++  // copy fetched beforehand is named in PICOMARQ_ELECTRON_ZIP. Either way it
++  // must be the file the Electron project published: its checksum is
++  // compared with the list inside the electron npm package, and that package
++  // is pinned by package-lock.json.
++  const electronPackage = path.dirname(require.resolve('electron/package.json'));
++  const installed = require(path.join(electronPackage, 'package.json')).version;
++  if (installed !== version) throw new Error(`node_modules has Electron ${installed}, package.json asks for ${version}: run npm ci`);
++  const artifact = `electron-v${version}-win32-x64.zip`;
++  const published = require(path.join(electronPackage, 'checksums.json'))[artifact];
++  const zip = process.env.PICOMARQ_ELECTRON_ZIP || await downloadArtifact({ version, artifactName: 'electron', platform: 'win32', arch: 'x64' });
++  const packageSum = await sha256(zip);
++  if (!published || packageSum !== published) throw new Error(`${zip} is not ${artifact} as published: SHA-256 ${packageSum}, published ${published}`);
+   const name = project.productName;
+   const release = path.resolve(`release/${name}`);
+   await fs.rm(release, { recursive: true, force: true });
+@@ -18,17 +36,45 @@ async function main() {
+   await fs.mkdir(app, { recursive: true });
+   for (const name of ['dist', 'desktop']) await fs.cp(name, path.join(app, name), { recursive: true });
+   for (const name of ['LICENSE', 'THIRD-PARTY-NOTICES.txt', 'app.ico']) await fs.copyFile(name, path.join(app, name));
+-  await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: project.name, productName: project.productName, version: project.version, main: 'desktop/main.cjs' }, null, 2));
++  await fs.writeFile(path.join(app, 'package.json'), JSON.stringify({ name: project.name, productName: project.productName, version: project.version, main: 'desktop/main.cjs' }, null, 2) + '\n');
+   await fs.rm(path.join(release, 'resources/default_app.asar'), { force: true });
++  const electronExeSum = await sha256(path.join(release, 'electron.exe'));
+   await setWindowsIcon(path.join(release, 'electron.exe'), path.join(release, `${name}.exe`), path.resolve('app.ico'), { productName: project.productName, version: project.version });
+   await fs.rm(path.join(release, 'electron.exe'));
++  const exeSum = await sha256(path.join(release, `${name}.exe`));
+   await fs.copyFile('START-HERE.txt', path.join(release, 'START-HERE.txt'));
+   await fs.copyFile('docs/KEYBOARD-SHORTCUTS.md', path.join(release, 'KEYBOARD-SHORTCUTS.md'));
+   await fs.copyFile('LICENSE', path.join(release, 'APP-LICENSE.txt'));
+   await fs.copyFile('THIRD-PARTY-NOTICES.txt', path.join(release, 'THIRD-PARTY-NOTICES.txt'));
++  await fs.writeFile(path.join(release, 'RELEASE-VALIDATION.txt'), [
++    `${name} ${project.version} portable Windows release`,
++    '',
++    `Built from Electron's official Windows package, version ${version}`,
++    `(${artifact}), whose checksum was compared`,
++    'with the one the Electron project publishes. Every file of that',
++    `package is here as it came, with two exceptions: electron.exe is`,
++    `${name}.exe, with the ${name} icon, name and version in place of`,
++    "Electron's (its code and data are unchanged), and Electron's sample",
++    'application (resources\\default_app.asar) is left out. The program',
++    'itself is in resources\\app.',
++    '',
++    `The renderer is compiled from the ${project.version} source (npm ci, npm run`,
++    `build). Tested on Linux with the same Electron ${version}: unit tests,`,
++    'Chromium browser checks, and the desktop, typography, startup,',
++    'close, settings, spelling, word-count, Ignore All, dictionary,',
++    'Find, long-paragraph, Undo and pictures checks (see VALIDATION.md',
++    'in the source package). Not run on Windows here; this unsigned',
++    'build should be checked on Windows 10/11.',
++    '',
++    `Electron package SHA-256:        ${packageSum}`,
++    `Electron's electron.exe SHA-256: ${electronExeSum}`,
++    `${name}.exe SHA-256:            ${exeSum}`,
++    '',
++  ].join('\n'));
+   const archive = path.resolve(`release/${name}-Windows-x64-${project.version}.zip`);
+   await fs.rm(archive, { force: true });
+   await exec('zip', ['-q', '-r', '-6', archive, path.basename(release)], { cwd: path.dirname(release), maxBuffer: 1024 * 1024 });
++  console.log(JSON.stringify({ electron: version, electron_package_sha256: packageSum, electron_exe_sha256: electronExeSum, exe_sha256: exeSum }, null, 2));
+   console.log(archive);
+ }
+ main().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/site/index.html b/site/index.html
+index 3f0a6e4..089cfc0 100644
+--- a/site/index.html
++++ b/site/index.html
+@@ -39,21 +39,21 @@
+           <blockquote class="aside"><span class="md" aria-hidden="true">&gt;</span>The Markdown is there when you want it and out of sight when you don’t.</blockquote>
+           <div class="actions">
+             <a class="button" id="download" href="https://github.com/Crotalus65/PicoMarq/releases/latest">Download for Windows</a>
+-            <p class="version">Version <span class="v">1.3.3</span>, <span class="mb">156</span> MB. Free and open source.</p>
++            <p class="version">Version <span class="v">1.3.4</span>, <span class="mb">153</span> MB. Free and open source.</p>
+           </div>
+         </article>
+ 
+         <figure class="shot">
+           <img src="screenshot.png" width="1000" height="660" alt="PicoMarQ with a short story open: the title, two chapter headings, paragraphs with italic and bold text, and an indented quotation. The quotation is selected, and the status bar reads 11 of 208 words.">
+-          <figcaption>Version <span class="v">1.3.3</span> with a story in progress. The quotation is selected, so the count at the bottom right reads “11 of 208 words.”</figcaption>
++          <figcaption>Version <span class="v">1.3.4</span> with a story in progress. The quotation is selected, so the count at the bottom right reads “11 of 208 words.”</figcaption>
+         </figure>
+       </section>
+ 
+       <section id="install" aria-labelledby="install-heading">
+         <h2 id="install-heading"><span class="md" aria-hidden="true">##</span>Install</h2>
+         <ol>
+-          <li>Download <code>PicoMarQ-Windows-x64-<span class="v">1.3.3</span>.zip</code> and extract the whole archive to a folder you can write to.</li>
+-          <li>Open the extracted <code>PicoMarQ</code> folder and run <code>PicoMarQ.exe</code>. There is no installer and no account. The folder carries its own copy of the engine the program runs on, which is why the download is <span class="mb">156</span> MB.</li>
++          <li>Download <code>PicoMarQ-Windows-x64-<span class="v">1.3.4</span>.zip</code> and extract the whole archive to a folder you can write to.</li>
++          <li>Open the extracted <code>PicoMarQ</code> folder and run <code>PicoMarQ.exe</code>. There is no installer and no account. The folder carries its own copy of the engine the program runs on, which is why the download is <span class="mb">153</span> MB.</li>
+           <li>Windows SmartScreen may object the first time, because the program is not code-signed. Choose <b>More info</b>, then <b>Run anyway</b>. Each release page lists SHA-256 checksums if you want to verify the file first.</li>
+           <li>To open Markdown files with a double-click, right-click a <code>.md</code> file, choose <b>Open with</b>, pick <code>PicoMarQ.exe</code> (you may have to browse to it), and choose <b>Always</b>.</li>
+         </ol>
+diff --git a/tests/desktop-smoke.cjs b/tests/desktop-smoke.cjs
+index d5f86cb..00e2f9e 100644
+--- a/tests/desktop-smoke.cjs
++++ b/tests/desktop-smoke.cjs
+@@ -447,8 +447,24 @@ async function main() {
+   const sourceMode = async () => { if (!await text().isVisible()) await dispatch('source'); await text().waitFor(); };
+   const nativeClose = async () => {
+     const win = await electron.browserWindow(page);
++    // Every window shares one menu, and the command of a menu shortcut goes to the window that has the
++    // focus when the command runs, a moment after the key press. A window that was just created shows
++    // itself, and takes the focus, when it is ready. A key pressed in another window at that moment closed
++    // the new window instead (seen on a busy machine, on Electron 44.6.0 and 44.11.5 alike). So wait until
++    // every window is on the screen and this one has kept the focus, and only then press the key.
++    let held = 0;
++    await until(async () => {
++      const focused = await win.evaluate(window => {
++        const BrowserWindow = window.constructor;
++        if (BrowserWindow.getAllWindows().every(other => other.isVisible()) && BrowserWindow.getFocusedWindow()?.id === window.id) return true;
++        window.focus(); window.webContents.focus();
++        return false;
++      });
++      held = focused ? held + 1 : 0;
++      return held === 2;
++    }, 'The window did not take and keep the focus');
+     await win.evaluate(window => {
+-      window.focus(); window.webContents.focus();
++      window.webContents.focus();
+       window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w', modifiers: ['control'] });
+       window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'w', modifiers: ['control'] });
+     });
